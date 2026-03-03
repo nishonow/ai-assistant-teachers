@@ -1,1 +1,1 @@
-# ai-assistant-teachers
+# This is AI powered legal assistant for teachers. It allows teachers to ask legal questions and get answers based on the latest legal resources.
