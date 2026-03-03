@@ -15,8 +15,20 @@ from utils.states import AskTeacherState
 router = Router()
 
 
-async def _animate_thinking(status_message: Message, stop_event: asyncio.Event) -> None:
-    frames = ("Thinking.", "Thinking..", "Thinking...")
+def _thinking_frames(base_text: str) -> tuple[str, str, str]:
+    normalized = base_text.strip()
+    normalized = normalized.rstrip(".").rstrip("…").rstrip()
+    if not normalized:
+        normalized = "⏳"
+
+    return (f"{normalized}.", f"{normalized}..", f"{normalized}...")
+
+
+async def _animate_thinking(
+    status_message: Message,
+    stop_event: asyncio.Event,
+    frames: tuple[str, str, str],
+) -> None:
     index = 1
 
     while not stop_event.is_set():
@@ -100,12 +112,20 @@ async def process_question_handler(message: Message, ai_helper: GeminiHelper, db
         await message.answer(get_text(lang, "empty_question"))
         return
 
-    thinking_message = await message.answer("Thinking.")
+    frames = _thinking_frames(get_text(lang, "thinking"))
+    thinking_message = await message.answer(frames[0])
     stop_event = asyncio.Event()
-    animation_task = asyncio.create_task(_animate_thinking(thinking_message, stop_event))
+    animation_task = asyncio.create_task(_animate_thinking(thinking_message, stop_event, frames))
+    started_at = asyncio.get_running_loop().time()
+    answer = get_text(lang, "general_error")
 
     try:
         answer = await ai_helper.generate_answer(question=question, language=lang)
+        elapsed = asyncio.get_running_loop().time() - started_at
+        if elapsed < 2.0:
+            await asyncio.sleep(2.0 - elapsed)
+    except Exception:
+        answer = get_text(lang, "general_error")
     finally:
         stop_event.set()
         with suppress(asyncio.CancelledError):
@@ -133,10 +153,13 @@ async def back_button_outside_state(message: Message, state: FSMContext, db: Dat
 
 
 @router.message()
-async def fallback_handler(message: Message, db: Database) -> None:
+async def fallback_handler(message: Message, state: FSMContext, db: Database) -> None:
+    await state.clear()
+
     lang = await db.get_user_lang(message.from_user.id) or "ru"
+    text = f"{get_text(lang, 'welcome')}\n\n{get_text(lang, 'menu_hint')}"
 
     await message.answer(
-        get_text(lang, "unknown"),
+        text,
         reply_markup=main_menu_keyboard(lang),
     )

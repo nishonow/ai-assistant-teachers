@@ -21,5 +21,5 @@ async def start_handler(message: Message, state: FSMContext, db: Database) -> No
     lang = await db.get_user_lang(message.from_user.id) or "ru"
 
     await state.clear()
-    text = f"{get_text(lang, 'welcome')}\n\n{get_text(lang, 'menu_hint')}"
+    text = f"{get_text(lang, 'welcome')}"
     await message.answer(text, reply_markup=main_menu_keyboard(lang))
