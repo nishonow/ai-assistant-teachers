@@ -1,4 +1,4 @@
-﻿from aiogram import Router
+from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -19,7 +19,6 @@ async def start_handler(message: Message, state: FSMContext, db: Database) -> No
     )
 
     lang = await db.get_user_lang(message.from_user.id) or "ru"
-
     await state.clear()
-    text = f"{get_text(lang, 'welcome')}"
+    text = f"{get_text(lang, 'welcome')}\n\n{get_text(lang, 'menu_hint')}"
     await message.answer(text, reply_markup=main_menu_keyboard(lang))

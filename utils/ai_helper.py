@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import html
 import re
 
@@ -10,21 +10,19 @@ class GeminiHelper:
         self.model = model
         self.client = genai.Client(api_key=api_key)
 
-    async def generate_answer(self, question: str, language: str = "ru") -> str:
+    async def generate_answer(self, question: str, language: str = "ru", contexts: list[str] | None = None) -> str:
+        if not contexts:
+            return self._empty_context(language)
+
         language_name = "Russian" if language == "ru" else "Kyrgyz"
+        context_block = "\n\n".join(contexts)
+
         prompt = (
-            "You are an AI legal assistant for teachers in Kyrgyzstan. "
-            "Give practical and clear legal guidance in education context. "
-            "Default style: very concise and direct. "
-            "For simple questions, answer in 1-3 short sentences (about 30-80 words). "
-            "Do not add sections like 'Conclusion', 'Key points', or 'Practical steps' unless user explicitly asks. "
-            "Use bullets only when truly needed, max 3 bullets by default. "
-            "Expand only when user asks for details or the case is complex/high-risk. "
-            "Avoid long introductions and avoid repeating generic disclaimers in each reply. "
-            "If the user asks what to do, give a direct action-oriented answer first. "
-            "Do not use markdown symbols; use plain text or simple HTML tags only.\n\n"
-            f"Reply in {language_name}.\n\n"
-            f"Question: {question}"
+            f"Answer in {language_name}. Use only CONTEXT. "
+            "If not enough context, say not found in uploaded documents. "
+            "Keep it concise, usually 1-3 short sentences. No markdown.\n\n"
+            f"CONTEXT:\n{context_block}\n\n"
+            f"QUESTION: {question}"
         )
 
         try:
@@ -106,13 +104,20 @@ class GeminiHelper:
     @staticmethod
     def _error_message(language: str) -> str:
         if language == "kg":
-            return "Азыр жооп ала алган жокмун. Сураныч, кайра аракет кылыңыз."
+            return "⚠️ Азыр жооп ала алган жокмун. Кийинчерээк кайра аракет кылыңыз."
 
-        return "Сейчас не удалось получить ответ. Пожалуйста, попробуйте еще раз."
+        return "⚠️ Сейчас не удалось получить ответ. Попробуйте позже."
 
     @staticmethod
     def _empty_message(language: str) -> str:
         if language == "kg":
-            return "Тилекке каршы, так жооп табылган жок. Суроону башкача бериңиз."
+            return "⚠️ Тилекке каршы, жооп түзүлгөн жок."
 
-        return "К сожалению, не получилось сформировать точный ответ. Попробуйте переформулировать вопрос."
+        return "⚠️ К сожалению, ответ не сформировался."
+
+    @staticmethod
+    def _empty_context(language: str) -> str:
+        if language == "kg":
+            return "📄 Жүктөлгөн документтерден бул суроого маалымат табылган жок."
+
+        return "📄 В загруженных документах не найдено данных по этому вопросу."

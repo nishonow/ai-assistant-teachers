@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import logging
 from pathlib import Path
 
@@ -11,6 +11,7 @@ from config import load_config
 from handlers import setup_routers
 from utils.ai_helper import GeminiHelper
 from utils.database import Database
+from utils.rag import RAGService
 
 
 async def main() -> None:
@@ -18,14 +19,20 @@ async def main() -> None:
     config = load_config()
 
     data_dir = Path("data")
+    docs_dir = data_dir / "docs"
     data_dir.mkdir(parents=True, exist_ok=True)
+    docs_dir.mkdir(parents=True, exist_ok=True)
 
-    db = Database(data_dir / "bot.db")
+    db = Database(config.postgres_url)
     await db.init()
 
     ai_helper = GeminiHelper(
         api_key=config.gemini_api_key,
         model=config.gemini_model,
+    )
+    rag_service = RAGService(
+        api_key=config.gemini_api_key,
+        embedding_model=config.gemini_embedding_model,
     )
 
     bot = Bot(
@@ -40,8 +47,12 @@ async def main() -> None:
             bot,
             db=db,
             ai_helper=ai_helper,
+            rag_service=rag_service,
+            admin_ids=config.admin_ids,
+            docs_dir=docs_dir,
         )
     finally:
+        await db.close()
         await bot.session.close()
 
 

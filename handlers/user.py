@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 from contextlib import suppress
 
 from aiogram import F, Router
@@ -10,6 +10,7 @@ from utils.ai_helper import GeminiHelper
 from utils.database import Database
 from utils.keyboards import language_keyboard, main_menu_keyboard, question_mode_keyboard
 from utils.messages import get_text
+from utils.rag import RAGService
 from utils.states import AskTeacherState
 
 router = Router()
@@ -24,11 +25,7 @@ def _thinking_frames(base_text: str) -> tuple[str, str, str]:
     return (f"{normalized}.", f"{normalized}..", f"{normalized}...")
 
 
-async def _animate_thinking(
-    status_message: Message,
-    stop_event: asyncio.Event,
-    frames: tuple[str, str, str],
-) -> None:
+async def _animate_thinking(status_message: Message, stop_event: asyncio.Event, frames: tuple[str, str, str]) -> None:
     index = 1
 
     while not stop_event.is_set():
@@ -96,7 +93,6 @@ async def back_to_menu_from_question(message: Message, state: FSMContext, db: Da
     await state.clear()
 
     lang = await db.get_user_lang(message.from_user.id) or "ru"
-
     await message.answer(
         get_text(lang, "menu_hint"),
         reply_markup=main_menu_keyboard(lang),
@@ -104,7 +100,7 @@ async def back_to_menu_from_question(message: Message, state: FSMContext, db: Da
 
 
 @router.message(AskTeacherState.waiting_question)
-async def process_question_handler(message: Message, ai_helper: GeminiHelper, db: Database) -> None:
+async def process_question_handler(message: Message, ai_helper: GeminiHelper, rag_service: RAGService, db: Database) -> None:
     lang = await db.get_user_lang(message.from_user.id) or "ru"
 
     question = (message.text or "").strip()
@@ -120,7 +116,23 @@ async def process_question_handler(message: Message, ai_helper: GeminiHelper, db
     answer = get_text(lang, "general_error")
 
     try:
-        answer = await ai_helper.generate_answer(question=question, language=lang)
+        chunks = await rag_service.retrieve_relevant_chunks(
+            db=db,
+            question=question,
+            top_k=3,
+            max_context_chars=1400,
+        )
+
+        if not chunks:
+            answer = get_text(lang, "no_context")
+        else:
+            contexts = [f"[{item.source}] {item.text}" for item in chunks]
+            answer = await ai_helper.generate_answer(
+                question=question,
+                language=lang,
+                contexts=contexts,
+            )
+
         elapsed = asyncio.get_running_loop().time() - started_at
         if elapsed < 2.0:
             await asyncio.sleep(2.0 - elapsed)
@@ -145,7 +157,6 @@ async def back_button_outside_state(message: Message, state: FSMContext, db: Dat
     await state.clear()
 
     lang = await db.get_user_lang(message.from_user.id) or "ru"
-
     await message.answer(
         get_text(lang, "menu_hint"),
         reply_markup=main_menu_keyboard(lang),

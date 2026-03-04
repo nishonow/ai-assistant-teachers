@@ -1,3 +1,6 @@
 .venv
 .idea
 .env
+__pycache__/
+data/bot.db
+data/docs/
