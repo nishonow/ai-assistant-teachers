@@ -1,8 +1,12 @@
 import asyncio
 import html
+import logging
 import re
 
 from google import genai
+
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiHelper:
@@ -20,7 +24,8 @@ class GeminiHelper:
         prompt = (
             f"Answer in {language_name}. Use only CONTEXT. "
             "If not enough context, say not found in uploaded documents. "
-            "Keep it concise, usually 1-3 short sentences. No markdown.\n\n"
+            "Keep it concise but useful: 2-4 short sentences with direct action steps when available. "
+            "No markdown.\n\n"
             f"CONTEXT:\n{context_block}\n\n"
             f"QUESTION: {question}"
         )
@@ -32,6 +37,7 @@ class GeminiHelper:
                 contents=prompt,
             )
         except Exception:
+            logger.exception("Gemini generate_content failed")
             return self._error_message(language)
 
         text = getattr(response, "text", None)

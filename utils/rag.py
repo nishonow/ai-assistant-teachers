@@ -53,11 +53,15 @@ class RAGService:
             return 0
 
         vectors = await self.embed_texts(chunks)
+        vectors_by_index: dict[int, list[float]] = {
+            index: vector
+            for index, vector in enumerate(vectors, start=1)
+            if isinstance(vector, list) and vector
+        }
 
         rows: list[tuple[int, str, str]] = []
-        for index, (chunk, vector) in enumerate(zip(chunks, vectors, strict=False), start=1):
-            if not vector:
-                continue
+        for index, chunk in enumerate(chunks, start=1):
+            vector = vectors_by_index.get(index, [])
             rows.append((index, chunk, json.dumps(vector, ensure_ascii=False)))
 
         await db.replace_document_chunks(document_id, rows)
@@ -68,8 +72,12 @@ class RAGService:
         if not rows:
             return []
 
-        question_tokens = self._tokenize(question)
-        question_trigrams = self._char_ngrams(question, size=3)
+        question_variants = self._question_variants(question)
+        question_tokens: set[str] = set()
+        question_trigrams: set[str] = set()
+        for variant in question_variants:
+            question_tokens.update(self._tokenize(variant))
+            question_trigrams.update(self._char_ngrams(variant, size=3))
 
         question_vectors = await self.embed_texts([question])
         question_vector = question_vectors[0] if question_vectors and question_vectors[0] else []
@@ -87,7 +95,12 @@ class RAGService:
                 except json.JSONDecodeError:
                     vector = []
 
-                semantic_score = self._cosine_similarity(question_vector, vector)
+                if isinstance(vector, list):
+                    safe_vector = [float(v) for v in vector if isinstance(v, (int, float))]
+                else:
+                    safe_vector = []
+
+                semantic_score = self._cosine_similarity(question_vector, safe_vector)
                 if math.isnan(semantic_score):
                     semantic_score = 0.0
 
@@ -95,9 +108,6 @@ class RAGService:
             trigram_score = self._char_ngram_jaccard(question_trigrams, self._char_ngrams(chunk_text, size=3))
 
             score = 0.75 * ((semantic_score + 1.0) / 2.0) + 0.2 * lexical_score + 0.05 * trigram_score
-            if score <= 0:
-                continue
-
             scored.append(
                 RetrievedChunk(
                     text=chunk_text,
@@ -111,7 +121,11 @@ class RAGService:
         if selected:
             return selected
 
-        return self._lexical_fallback(rows=rows, question=question, top_k=top_k, max_context_chars=max_context_chars)
+        fallback = self._lexical_fallback(rows=rows, question=question, top_k=top_k, max_context_chars=max_context_chars)
+        if fallback:
+            return fallback
+
+        return self._select_with_limit(scored, top_k=top_k, max_context_chars=max_context_chars, candidate_multiplier=24)
 
     async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         if not texts:
@@ -220,8 +234,12 @@ class RAGService:
         norm_b = 0.0
 
         for i in range(size):
-            a = vec_a[i]
-            b = vec_b[i]
+            try:
+                a = float(vec_a[i])
+                b = float(vec_b[i])
+            except (TypeError, ValueError):
+                continue
+
             dot += a * b
             norm_a += a * a
             norm_b += b * b
@@ -288,6 +306,40 @@ class RAGService:
 
         overlap = question_tokens.intersection(chunk_tokens)
         return len(overlap) / max(len(question_tokens), 1)
+
+    @staticmethod
+    def _tokenize(text: str) -> set[str]:
+        tokens = re.findall(r"[A-Za-zА-Яа-яЁё0-9]+", text.lower())
+        return {token for token in tokens if len(token) >= 3}
+
+    @staticmethod
+    def _question_variants(question: str) -> list[str]:
+        normalized = re.sub(r"\s+", " ", question).strip()
+        if not normalized:
+            return []
+
+        base = normalized.lower()
+        replacements = {
+            "professor": "профессор",
+            "teacher": "преподаватель",
+            "money": "деньги",
+            "pay": "платить",
+            "bribe": "взятка",
+            "grade": "оценка",
+            "better grade": "повышение оценки",
+            "in order to": "чтобы",
+            "asks": "просит",
+            "ask": "просит",
+        }
+
+        translated = base
+        for src, dst in replacements.items():
+            translated = translated.replace(src, dst)
+
+        variants = [normalized]
+        if translated != base:
+            variants.append(translated)
+        return variants
 
     @staticmethod
     def _char_ngrams(text: str, size: int = 3) -> set[str]:

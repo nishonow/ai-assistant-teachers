@@ -1,4 +1,6 @@
 import asyncio
+import html
+import logging
 from contextlib import suppress
 
 from aiogram import F, Router
@@ -14,18 +16,40 @@ from utils.rag import RAGService
 from utils.states import AskTeacherState
 
 router = Router()
+logger = logging.getLogger(__name__)
 
 
-def _thinking_frames(base_text: str) -> tuple[str, str, str]:
+def _is_generation_failure(answer: str) -> bool:
+    return answer.strip().startswith("⚠️")
+
+
+def _extractive_fallback_answer(chunks: list, lang: str) -> str:
+    header = "📄 Найдено в документах:" if lang == "ru" else "📄 Документтен табылды:"
+    lines: list[str] = [header]
+
+    for item in chunks[:2]:
+        source = html.escape(str(getattr(item, "source", "document")))
+        text = str(getattr(item, "text", "")).strip()
+        if not text:
+            continue
+        snippet = html.escape(text[:420].strip())
+        if len(text) > 420:
+            snippet += "..."
+        lines.append(f"• [{source}] {snippet}")
+
+    return "\n".join(lines) if len(lines) > 1 else ""
+
+
+def _thinking_frames(base_text: str) -> tuple[str, str, str, str]:
     normalized = base_text.strip()
     normalized = normalized.rstrip(".").rstrip("…").rstrip()
     if not normalized:
         normalized = "⏳"
 
-    return (f"{normalized}.", f"{normalized}..", f"{normalized}...")
+    return (f"{normalized}", f"{normalized}.", f"{normalized}..", f"{normalized}...")
 
 
-async def _animate_thinking(status_message: Message, stop_event: asyncio.Event, frames: tuple[str, str, str]) -> None:
+async def _animate_thinking(status_message: Message, stop_event: asyncio.Event, frames: tuple[str, str, str, str]) -> None:
     index = 1
 
     while not stop_event.is_set():
@@ -60,7 +84,7 @@ async def set_language_callback(callback: CallbackQuery, state: FSMContext, db: 
     await db.set_user_lang(callback.from_user.id, lang)
 
     await state.clear()
-    await callback.answer(get_text(lang, "lang_updated"))
+    await callback.answer(get_text(lang, "lang_updated"), show_alert=True)
 
     if callback.message:
         try:
@@ -113,30 +137,50 @@ async def process_question_handler(message: Message, ai_helper: GeminiHelper, ra
     stop_event = asyncio.Event()
     animation_task = asyncio.create_task(_animate_thinking(thinking_message, stop_event, frames))
     started_at = asyncio.get_running_loop().time()
-    answer = get_text(lang, "general_error")
+    answer = get_text(lang, "no_context")
 
     try:
-        chunks = await rag_service.retrieve_relevant_chunks(
-            db=db,
-            question=question,
-            top_k=3,
-            max_context_chars=1400,
-        )
+        try:
+            chunks = await rag_service.retrieve_relevant_chunks(
+                db=db,
+                question=question,
+                top_k=4,
+                max_context_chars=2000,
+            )
+        except Exception:
+            logger.exception("RAG retrieval failed for user_id=%s", message.from_user.id)
+            chunks = None
 
-        if not chunks:
+        if chunks is None:
+            answer = get_text(lang, "general_error")
+        elif not chunks:
+            logger.info("RAG returned no chunks for user_id=%s", message.from_user.id)
             answer = get_text(lang, "no_context")
         else:
+            logger.info("RAG returned %s chunks for user_id=%s", len(chunks), message.from_user.id)
             contexts = [f"[{item.source}] {item.text}" for item in chunks]
-            answer = await ai_helper.generate_answer(
-                question=question,
-                language=lang,
-                contexts=contexts,
-            )
+            try:
+                answer = await ai_helper.generate_answer(
+                    question=question,
+                    language=lang,
+                    contexts=contexts,
+                )
+            except Exception:
+                logger.exception("Answer generation raised exception for user_id=%s", message.from_user.id)
+                answer = get_text(lang, "general_error")
+            else:
+                if not answer.strip():
+                    fallback_answer = _extractive_fallback_answer(chunks, lang)
+                    answer = fallback_answer or get_text(lang, "no_context")
+                elif _is_generation_failure(answer):
+                    logger.warning("Model returned failure-style response for user_id=%s: %s", message.from_user.id, answer[:180])
+                    answer = get_text(lang, "general_error")
 
         elapsed = asyncio.get_running_loop().time() - started_at
         if elapsed < 2.0:
             await asyncio.sleep(2.0 - elapsed)
     except Exception:
+        logger.exception("Unhandled error in process_question_handler for user_id=%s", message.from_user.id)
         answer = get_text(lang, "general_error")
     finally:
         stop_event.set()

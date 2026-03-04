@@ -15,7 +15,13 @@ from utils.rag import RAGService
 
 
 async def main() -> None:
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    )
+    logging.getLogger("aiogram.event").setLevel(logging.WARNING)
+    logging.getLogger("aiogram.dispatcher").setLevel(logging.WARNING)
+    logger = logging.getLogger("bot")
     config = load_config()
 
     data_dir = Path("data")
@@ -41,6 +47,8 @@ async def main() -> None:
     )
     dp = Dispatcher(storage=MemoryStorage())
     setup_routers(dp)
+
+    logger.info("Bot is running")
 
     try:
         await dp.start_polling(

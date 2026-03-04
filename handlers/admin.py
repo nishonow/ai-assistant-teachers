@@ -31,12 +31,28 @@ def _safe_file_name(file_name: str) -> str:
 
 def _selection_title(action: str) -> str:
     if action == "delete":
-        return "🗑 Select a document to delete:"
-    return "🔄 Select a document to reindex:"
+        return "Select number of document to delete"
+    return "Select number of document to reindex"
 
 
 def _resolve_page(raw_page: str) -> int:
     return int(raw_page) if raw_page.isdigit() else 1
+
+
+def _selection_message(action: str, documents: list[dict], page: int, page_size: int = 10) -> str:
+    total = len(documents)
+    total_pages = max((total + page_size - 1) // page_size, 1)
+    current_page = min(max(page, 1), total_pages)
+    start = (current_page - 1) * page_size
+    end = start + page_size
+    page_docs = documents[start:end]
+
+    lines = [_selection_title(action)]
+    for offset, item in enumerate(page_docs):
+        number = start + offset + 1
+        lines.append(f"{number}. {item['file_name']}")
+
+    return "\n".join(lines)
 
 
 @router.message(Command("admin"))
@@ -165,7 +181,7 @@ async def admin_reindex_documents(message: Message, db: Database) -> None:
         return
 
     await message.answer(
-        _selection_title("reindex"),
+        _selection_message("reindex", docs, page=1),
         reply_markup=admin_documents_pagination_keyboard(docs, action="reindex", page=1),
     )
 
@@ -178,7 +194,7 @@ async def admin_delete_prompt(message: Message, db: Database) -> None:
         return
 
     await message.answer(
-        _selection_title("delete"),
+        _selection_message("delete", docs, page=1),
         reply_markup=admin_documents_pagination_keyboard(docs, action="delete", page=1),
     )
 
@@ -203,7 +219,7 @@ async def admin_documents_page(callback: CallbackQuery, db: Database) -> None:
 
     page = _resolve_page(raw_page)
     await callback.message.edit_text(
-        _selection_title(action),
+        _selection_message(action, docs, page=page),
         reply_markup=admin_documents_pagination_keyboard(docs, action=action, page=page),
     )
     await callback.answer()
@@ -225,7 +241,7 @@ async def admin_document_action(callback: CallbackQuery, db: Database, rag_servi
             path = Path(file_path)
             if path.exists():
                 path.unlink(missing_ok=True)
-            await callback.answer("✅ Document deleted")
+            await callback.answer("✅ Document deleted", show_alert=True)
         else:
             await callback.answer("⚠️ Document not found", show_alert=True)
     else:
@@ -248,7 +264,7 @@ async def admin_document_action(callback: CallbackQuery, db: Database, rag_servi
                             document_id=document_id,
                             text=text_content,
                         )
-                        await callback.answer(f"✅ Reindexed: {chunks} chunks")
+                        await callback.answer(f"✅ Reindexed: {chunks} chunks", show_alert=True)
                 except Exception:
                     await callback.answer("⚠️ Reindex failed", show_alert=True)
 
@@ -258,7 +274,7 @@ async def admin_document_action(callback: CallbackQuery, db: Database, rag_servi
         return
 
     await callback.message.edit_text(
-        _selection_title(action),
+        _selection_message(action, refreshed_docs, page=page),
         reply_markup=admin_documents_pagination_keyboard(refreshed_docs, action=action, page=page),
     )
 

@@ -73,7 +73,7 @@ def admin_documents_pagination_keyboard(
     documents: list[dict],
     action: str,
     page: int = 1,
-    page_size: int = 8,
+    page_size: int = 10,
 ) -> InlineKeyboardMarkup:
     total = len(documents)
     total_pages = max((total + page_size - 1) // page_size, 1)
@@ -83,42 +83,30 @@ def admin_documents_pagination_keyboard(
     page_docs = documents[start:end]
 
     rows: list[list[InlineKeyboardButton]] = []
-    for item in page_docs:
+    number_buttons: list[InlineKeyboardButton] = []
+    for offset, item in enumerate(page_docs):
         document_id = int(item["id"])
-        file_name = str(item["file_name"])
-        short_name = file_name[:38] + "..." if len(file_name) > 41 else file_name
-        rows.append(
-            [
-                InlineKeyboardButton(
-                    text=short_name,
-                    callback_data=f"admin:{action}:doc:{document_id}:{current_page}",
-                )
-            ]
-        )
-
-    nav_row: list[InlineKeyboardButton] = []
-    if current_page > 1:
-        nav_row.append(
+        display_number = start + offset + 1
+        number_buttons.append(
             InlineKeyboardButton(
-                text="⬅️",
-                callback_data=f"admin:{action}:page:{current_page - 1}",
+                text=str(display_number),
+                callback_data=f"admin:{action}:doc:{document_id}:{current_page}",
             )
         )
 
-    nav_row.append(
-        InlineKeyboardButton(
-            text=f"{current_page}/{total_pages}",
-            callback_data="admin:noop",
-        )
-    )
+    if number_buttons:
+        rows.append(number_buttons[:5])
+    if len(number_buttons) > 5:
+        rows.append(number_buttons[5:10])
 
-    if current_page < total_pages:
-        nav_row.append(
-            InlineKeyboardButton(
-                text="➡️",
-                callback_data=f"admin:{action}:page:{current_page + 1}",
-            )
-        )
+    prev_callback = f"admin:{action}:page:{current_page - 1}" if current_page > 1 else "admin:noop"
+    next_callback = f"admin:{action}:page:{current_page + 1}" if current_page < total_pages else "admin:noop"
+
+    nav_row = [
+        InlineKeyboardButton(text="⬅️ Prev", callback_data=prev_callback),
+        InlineKeyboardButton(text=f"{current_page}/{total_pages}", callback_data="admin:noop"),
+        InlineKeyboardButton(text="Next ➡️", callback_data=next_callback),
+    ]
 
     rows.append(nav_row)
     return InlineKeyboardMarkup(inline_keyboard=rows)
