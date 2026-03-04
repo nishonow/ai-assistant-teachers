@@ -5,6 +5,7 @@ import re
 
 from google import genai
 
+from utils.messages import get_text
 
 logger = logging.getLogger(__name__)
 
@@ -18,16 +19,18 @@ class GeminiHelper:
         if not contexts:
             return self._empty_context(language)
 
-        language_name = "Russian" if language == "ru" else "Kyrgyz"
         context_block = "\n\n".join(contexts)
-
         prompt = (
-            f"Answer in {language_name}. Use only CONTEXT. "
-            "If not enough context, say not found in uploaded documents. "
-            "Keep it concise but useful: 2-4 short sentences with direct action steps when available. "
-            "No markdown.\n\n"
-            f"CONTEXT:\n{context_block}\n\n"
-            f"QUESTION: {question}"
+            "Answer the QUESTION using only DOCUMENTS.\n"
+            "Reply in the same language as the QUESTION (English/Russian/Kyrgyz).\n"
+            "Never change the language even if DOCUMENTS use another language.\n"
+            "If DOCUMENTS contain relevant info, answer using it.\n"
+            "If partially relevant, answer only with what exists in DOCUMENTS.\n"
+            "If nothing relevant, return one short 'not found' sentence in the same language.\n"
+            "Answer in 3-6 short lines using line breaks.\n"
+            "Plain text only. Allowed HTML tags: <b>, <i>, <code>. No Markdown.\n\n"
+            f"DOCUMENTS:\n{context_block}\n\n"
+            f"QUESTION:\n{question}"
         )
 
         try:
@@ -72,9 +75,6 @@ class GeminiHelper:
 
         escaped = html.escape(normalized)
         escaped = re.sub(r"(?m)^#{1,3}\s+(.+)$", r"<b>\1</b>", escaped)
-        escaped = re.sub(r"(?m)^\s*[-*]\s+", "• ", escaped)
-        escaped = re.sub(r"(?m)^\s*\d+\.\s+", "• ", escaped)
-        escaped = re.sub(r"(?m)^\s*&gt;\s*", "❯ ", escaped)
         escaped = re.sub(r"`([^`\n]+)`", r"<code>\1</code>", escaped)
         escaped = re.sub(r"\*\*([^*\n]+)\*\*", r"<b>\1</b>", escaped)
         escaped = re.sub(r"__([^_\n]+)__", r"<b>\1</b>", escaped)
@@ -89,8 +89,6 @@ class GeminiHelper:
     @staticmethod
     def _normalize_existing_html(text: str) -> str:
         normalized = text
-        normalized = re.sub(r"(?m)^\s*[-*]\s+", "• ", normalized)
-        normalized = re.sub(r"(?m)^\s*\d+\.\s+", "• ", normalized)
         normalized = re.sub(r"\*\*([^*\n]+)\*\*", r"<b>\1</b>", normalized)
         normalized = re.sub(r"__([^_\n]+)__", r"<b>\1</b>", normalized)
         normalized = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<i>\1</i>", normalized)
@@ -109,21 +107,12 @@ class GeminiHelper:
 
     @staticmethod
     def _error_message(language: str) -> str:
-        if language == "kg":
-            return "⚠️ Азыр жооп ала алган жокмун. Кийинчерээк кайра аракет кылыңыз."
-
-        return "⚠️ Сейчас не удалось получить ответ. Попробуйте позже."
+        return get_text(language, "general_error")
 
     @staticmethod
     def _empty_message(language: str) -> str:
-        if language == "kg":
-            return "⚠️ Тилекке каршы, жооп түзүлгөн жок."
-
-        return "⚠️ К сожалению, ответ не сформировался."
+        return get_text(language, "general_error")
 
     @staticmethod
     def _empty_context(language: str) -> str:
-        if language == "kg":
-            return "📄 Жүктөлгөн документтерден бул суроого маалымат табылган жок."
-
-        return "📄 В загруженных документах не найдено данных по этому вопросу."
+        return get_text(language, "no_context")
