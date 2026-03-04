@@ -8,7 +8,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from utils.ai_helper import GeminiHelper
+from utils.ai_helper import OpenAIHelper
 from utils.database import Database
 from utils.keyboards import language_keyboard, main_menu_keyboard, question_mode_keyboard
 from utils.messages import get_text
@@ -20,7 +20,19 @@ logger = logging.getLogger(__name__)
 
 
 def _is_generation_failure(answer: str) -> bool:
-    return answer.strip().startswith("⚠️")
+    normalized = answer.strip().lower()
+    if normalized.startswith("⚠️"):
+        return True
+
+    not_found_markers = {
+        "not found",
+        "not found.",
+        "не найдено",
+        "не найдено.",
+        "табылган жок",
+        "табылган жок.",
+    }
+    return normalized in not_found_markers
 
 
 def _extractive_fallback_answer(chunks: list, lang: str) -> str:
@@ -124,7 +136,7 @@ async def back_to_menu_from_question(message: Message, state: FSMContext, db: Da
 
 
 @router.message(AskTeacherState.waiting_question)
-async def process_question_handler(message: Message, ai_helper: GeminiHelper, rag_service: RAGService, db: Database) -> None:
+async def process_question_handler(message: Message, ai_helper: OpenAIHelper, rag_service: RAGService, db: Database) -> None:
     lang = await db.get_user_lang(message.from_user.id) or "ru"
 
     question = (message.text or "").strip()
@@ -144,8 +156,8 @@ async def process_question_handler(message: Message, ai_helper: GeminiHelper, ra
             chunks = await rag_service.retrieve_relevant_chunks(
                 db=db,
                 question=question,
-                top_k=4,
-                max_context_chars=2000,
+                top_k=6,
+                max_context_chars=3200,
             )
         except Exception:
             logger.exception("RAG retrieval failed for user_id=%s", message.from_user.id)
@@ -174,7 +186,8 @@ async def process_question_handler(message: Message, ai_helper: GeminiHelper, ra
                     answer = fallback_answer or get_text(lang, "no_context")
                 elif _is_generation_failure(answer):
                     logger.warning("Model returned failure-style response for user_id=%s: %s", message.from_user.id, answer[:180])
-                    answer = get_text(lang, "general_error")
+                    fallback_answer = _extractive_fallback_answer(chunks, lang)
+                    answer = fallback_answer or get_text(lang, "no_context")
 
         elapsed = asyncio.get_running_loop().time() - started_at
         if elapsed < 2.0:

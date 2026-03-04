@@ -9,9 +9,16 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from config import load_config
 from handlers import setup_routers
-from utils.ai_helper import GeminiHelper
+from utils.ai_helper import OpenAIHelper
 from utils.database import Database
 from utils.rag import RAGService
+
+
+async def reset_database_on_startup(db: Database) -> None:
+    logger = logging.getLogger("bot")
+    logger.warning("DATABASE RESET ENABLED: clearing all users, documents, and chunks")
+    await db.clear_all_data()
+    logger.warning("DATABASE RESET COMPLETE")
 
 
 async def main() -> None:
@@ -32,13 +39,16 @@ async def main() -> None:
     db = Database(config.postgres_url)
     await db.init()
 
-    ai_helper = GeminiHelper(
-        api_key=config.gemini_api_key,
-        model=config.gemini_model,
+    # WARNING: Uncomment for one-time production reset, then comment again.
+    # await reset_database_on_startup(db)
+
+    ai_helper = OpenAIHelper(
+        api_key=config.openai_api_key,
+        model=config.openai_model,
     )
     rag_service = RAGService(
-        api_key=config.gemini_api_key,
-        embedding_model=config.gemini_embedding_model,
+        api_key=config.openai_api_key,
+        embedding_model=config.openai_embedding_model,
     )
 
     bot = Bot(

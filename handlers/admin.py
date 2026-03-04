@@ -55,6 +55,36 @@ def _selection_message(action: str, documents: list[dict], page: int, page_size:
     return "\n".join(lines)
 
 
+def _documents_overview_message(documents: list[dict], limit: int = 20) -> str:
+    total_docs = len(documents)
+    total_chunks = sum(int(item.get("chunk_count") or 0) for item in documents)
+
+    lines = [
+        "📚 <b>Documents</b>",
+        "",
+        f"• Total documents: <b>{total_docs}</b>",
+        f"• Total chunks: <b>{total_chunks}</b>",
+        "",
+    ]
+
+    for index, item in enumerate(documents[:limit], start=1):
+        file_name = str(item.get("file_name") or "document")
+        file_type = str(item.get("file_type") or "unknown").upper()
+        doc_id = int(item.get("id") or 0)
+        chunk_count = int(item.get("chunk_count") or 0)
+        indexed_state = "✅ indexed" if chunk_count > 0 else "⚠️ not indexed"
+        lines.append(
+            f"{index}) <b>{file_name}</b>\n"
+            f"   ID: <code>{doc_id}</code> | Type: <code>{file_type}</code> | Chunks: <b>{chunk_count}</b> ({indexed_state})"
+        )
+
+    if total_docs > limit:
+        lines.append("")
+        lines.append(f"… and <b>{total_docs - limit}</b> more")
+
+    return "\n".join(lines)
+
+
 @router.message(Command("admin"))
 async def admin_menu_handler(message: Message, state: FSMContext) -> None:
     await state.clear()
@@ -147,14 +177,8 @@ async def admin_list_documents(message: Message, db: Database) -> None:
         await message.answer("📚 No documents uploaded yet.", reply_markup=admin_menu_keyboard())
         return
 
-    lines = []
-    for item in docs:
-        lines.append(
-            f"ID {item['id']} | {item['file_name']} | {item['file_type']} | chunks: {item['chunk_count']}"
-        )
-
     await message.answer(
-        "📚 Documents:\n\n" + "\n".join(lines),
+        _documents_overview_message(docs),
         reply_markup=admin_menu_keyboard(),
     )
 

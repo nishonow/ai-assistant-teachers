@@ -207,3 +207,17 @@ class Database:
             )
 
         return [dict(row) for row in rows]
+
+    async def clear_all_data(self) -> None:
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    """
+                    TRUNCATE TABLE
+                        chunks,
+                        documents,
+                        users
+                    RESTART IDENTITY CASCADE
+                    """
+                )

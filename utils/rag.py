@@ -5,7 +5,7 @@ import math
 import re
 from dataclasses import dataclass
 
-from google import genai
+from openai import OpenAI
 
 from utils.database import Database
 
@@ -26,8 +26,8 @@ class RetrievedChunk:
 
 class RAGService:
     def __init__(self, api_key: str, embedding_model: str, chunk_size: int = 900, chunk_overlap: int = 150) -> None:
-        self.client = genai.Client(api_key=api_key)
-        fallback_models = [embedding_model, "gemini-embedding-001", "text-embedding-004"]
+        self.client = OpenAI(api_key=api_key)
+        fallback_models = [embedding_model, "text-embedding-3-small", "text-embedding-3-large"]
         self.embedding_models: list[str] = list(dict.fromkeys(m.strip() for m in fallback_models if m.strip()))
         self.active_embedding_model: str | None = None
         self.embedding_disabled = False
@@ -95,7 +95,7 @@ class RAGService:
             )
         return len(rows)
 
-    async def retrieve_relevant_chunks(self, db: Database, question: str, top_k: int = 3, max_context_chars: int = 2200) -> list[RetrievedChunk]:
+    async def retrieve_relevant_chunks(self, db: Database, question: str, top_k: int = 6, max_context_chars: int = 3200) -> list[RetrievedChunk]:
         rows = await db.list_chunks_with_documents()
         if not rows:
             return []
@@ -155,7 +155,7 @@ class RAGService:
         self._log_top_scores(question=question, items=scored[:5], has_query_embedding=has_query_embedding)
 
         filtered = [item for item in scored if self._passes_relevance_threshold(item, has_query_embedding=has_query_embedding)]
-        selected = self._select_with_limit(filtered, top_k=top_k, max_context_chars=max_context_chars, candidate_multiplier=16)
+        selected = self._select_with_limit(filtered, top_k=top_k, max_context_chars=max_context_chars, candidate_multiplier=24)
         if selected:
             return selected
 
@@ -214,13 +214,13 @@ class RAGService:
     async def _embed_batch(self, model: str, texts: list[str]) -> tuple[list[list[float]], str]:
         try:
             response = await asyncio.to_thread(
-                self.client.models.embed_content,
+                self.client.embeddings.create,
                 model=model,
-                contents=texts,
+                input=texts,
             )
         except Exception as exc:
             message = str(exc).lower()
-            if "404" in message or "not found" in message:
+            if "404" in message or "not found" in message or "does not exist" in message:
                 logger.warning("Embedding model not found: %s", model)
                 return [], "not_found"
 
@@ -237,8 +237,26 @@ class RAGService:
         return cleaned_vectors, "ok"
 
     def _extract_vectors(self, response: object) -> list[list[float]]:
+        data = getattr(response, "data", None)
+        if isinstance(data, list):
+            vectors: list[list[float]] = []
+            for item in data:
+                embedding = getattr(item, "embedding", None)
+                if isinstance(embedding, list):
+                    vectors.append(embedding)
+            if vectors:
+                return vectors
+
         embeddings = getattr(response, "embeddings", None)
         if embeddings is None and isinstance(response, dict):
+            data = response.get("data")
+            if isinstance(data, list):
+                vectors = []
+                for item in data:
+                    if isinstance(item, dict) and isinstance(item.get("embedding"), list):
+                        vectors.append(item["embedding"])
+                if vectors:
+                    return vectors
             embeddings = response.get("embeddings")
 
         vectors: list[list[float]] = []
