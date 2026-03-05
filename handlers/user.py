@@ -19,39 +19,6 @@ router = Router()
 logger = logging.getLogger(__name__)
 
 
-def _is_generation_failure(answer: str) -> bool:
-    normalized = answer.strip().lower()
-    if normalized.startswith("⚠️"):
-        return True
-
-    not_found_markers = {
-        "not found",
-        "not found.",
-        "не найдено",
-        "не найдено.",
-        "табылган жок",
-        "табылган жок.",
-    }
-    return normalized in not_found_markers
-
-
-def _extractive_fallback_answer(chunks: list, lang: str) -> str:
-    header = "📄 Найдено в документах:" if lang == "ru" else "📄 Документтен табылды:"
-    lines: list[str] = [header]
-
-    for item in chunks[:2]:
-        source = html.escape(str(getattr(item, "source", "document")))
-        text = str(getattr(item, "text", "")).strip()
-        if not text:
-            continue
-        snippet = html.escape(text[:420].strip())
-        if len(text) > 420:
-            snippet += "..."
-        lines.append(f"• [{source}] {snippet}")
-
-    return "\n".join(lines) if len(lines) > 1 else ""
-
-
 def _thinking_frames(base_text: str) -> tuple[str, str, str, str]:
     normalized = base_text.strip()
     normalized = normalized.rstrip(".").rstrip("…").rstrip()
@@ -156,8 +123,8 @@ async def process_question_handler(message: Message, ai_helper: OpenAIHelper, ra
             chunks = await rag_service.retrieve_relevant_chunks(
                 db=db,
                 question=question,
-                top_k=6,
-                max_context_chars=3200,
+                top_k=10,
+                max_context_chars=9000,
             )
         except Exception:
             logger.exception("RAG retrieval failed for user_id=%s", message.from_user.id)
@@ -182,12 +149,7 @@ async def process_question_handler(message: Message, ai_helper: OpenAIHelper, ra
                 answer = get_text(lang, "general_error")
             else:
                 if not answer.strip():
-                    fallback_answer = _extractive_fallback_answer(chunks, lang)
-                    answer = fallback_answer or get_text(lang, "no_context")
-                elif _is_generation_failure(answer):
-                    logger.warning("Model returned failure-style response for user_id=%s: %s", message.from_user.id, answer[:180])
-                    fallback_answer = _extractive_fallback_answer(chunks, lang)
-                    answer = fallback_answer or get_text(lang, "no_context")
+                    answer = get_text(lang, "no_context")
 
         elapsed = asyncio.get_running_loop().time() - started_at
         if elapsed < 2.0:

@@ -20,16 +20,20 @@ class OpenAIHelper:
             return self._empty_context(language)
 
         context_block = "\n\n".join(contexts)
-        no_context_text = get_text(language, "no_context")
+        question_language = await self._detect_question_language(question, fallback=language)
         prompt = (
-            "Answer the QUESTION using only DOCUMENTS.\n"
-            "Reply in the same language as the QUESTION (English/Russian/Kyrgyz).\n"
-            "Never change the language even if DOCUMENTS use another language.\n"
-            "If DOCUMENTS contain relevant info, answer using it.\n"
-            "If partially relevant, answer only with what exists in DOCUMENTS.\n"
-            f"If nothing relevant, return exactly this sentence and nothing else: {no_context_text}\n"
-            "Answer in 3-6 short lines using line breaks.\n"
-            "Plain text only. Allowed HTML tags: <b>, <i>, <code>. No Markdown.\n\n"
+            "Answer QUESTION using only the information from DOCUMENTS.\n"
+            f"Reply in exactly the same language: {question_language}.\n"
+            "Do not invent rules, procedures, deadlines, or penalties.\n"
+            "State the answer directly.\n"
+            "Do not use meta phrases like 'the documents say' or 'according to the documents'.\n"
+            "If DOCUMENTS contain any relevant details, provide them first as the answer.\n"
+            "Only if exact details are missing, say briefly what is not specified.\n"
+            "If nothing relevant exists at all, give a short polite no-info answer without mentioning documents.\n"
+            "Keep the answer concise (3-6 short lines).\n"
+            "Structure: short explanation first, then actions if needed. Separate sections with one blank line.\n"
+            "Use HTML tags for clarity: <b>, <u>. Wrap key relevant terms or actions in <b>...</b>, at least once.\n"
+            "Use '•' bullets for actions (max 4).\n\n"
             f"DOCUMENTS:\n{context_block}\n\n"
             f"QUESTION:\n{question}"
         )
@@ -73,15 +77,16 @@ class OpenAIHelper:
             normalized,
             flags=re.S,
         )
+        normalized = re.sub(r"(?m)^\s*\d+[\.)]\s+", "• ", normalized)
+        normalized = re.sub(r"(?m)^\s*[-*•·–—]\s+", "• ", normalized)
 
         escaped = html.escape(normalized)
-        escaped = re.sub(r"(?m)^\s*[-*]\s+", "• ", escaped)
         escaped = re.sub(r"(?m)^#{1,3}\s+(.+)$", r"<b>\1</b>", escaped)
-        escaped = re.sub(r"`([^`\n]+)`", r"<code>\1</code>", escaped)
+        escaped = re.sub(r"`([^`\n]+)`", r"\1", escaped)
         escaped = re.sub(r"\*\*([^*\n]+)\*\*", r"<b>\1</b>", escaped)
         escaped = re.sub(r"__([^_\n]+)__", r"<b>\1</b>", escaped)
-        escaped = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<i>\1</i>", escaped)
-        escaped = re.sub(r"(?<!_)_([^_\n]+)_(?!_)", r"<i>\1</i>", escaped)
+        escaped = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<u>\1</u>", escaped)
+        escaped = re.sub(r"(?<!_)_([^_\n]+)_(?!_)", r"<u>\1</u>", escaped)
 
         for index, block in enumerate(code_blocks):
             escaped = escaped.replace(f"@@CODE_BLOCK_{index}@@", block)
@@ -113,11 +118,67 @@ class OpenAIHelper:
     @staticmethod
     def _normalize_existing_html(text: str) -> str:
         normalized = text
+        normalized = re.sub(r"(?m)^\s*\d+[\.)]\s+", "• ", normalized)
+        normalized = re.sub(r"(?m)^\s*[-*•·–—]\s+", "• ", normalized)
+        normalized = re.sub(r"(?i)<\s*strong\s*>", "<b>", normalized)
+        normalized = re.sub(r"(?i)<\s*/\s*strong\s*>", "</b>", normalized)
+        normalized = re.sub(r"(?i)<\s*em\s*>", "<u>", normalized)
+        normalized = re.sub(r"(?i)<\s*/\s*em\s*>", "</u>", normalized)
+        normalized = re.sub(r"(?i)<\s*i\s*>", "<u>", normalized)
+        normalized = re.sub(r"(?i)<\s*/\s*i\s*>", "</u>", normalized)
+        normalized = re.sub(r"(?i)</?(code|pre|a|blockquote)(?:\s+[^>]*)?>", "", normalized)
         normalized = re.sub(r"\*\*([^*\n]+)\*\*", r"<b>\1</b>", normalized)
         normalized = re.sub(r"__([^_\n]+)__", r"<b>\1</b>", normalized)
-        normalized = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<i>\1</i>", normalized)
-        normalized = re.sub(r"(?<!_)_([^_\n]+)_(?!_)", r"<i>\1</i>", normalized)
+        normalized = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<u>\1</u>", normalized)
+        normalized = re.sub(r"(?<!_)_([^_\n]+)_(?!_)", r"<u>\1</u>", normalized)
         return normalized
+
+    async def _detect_question_language(self, question: str, fallback: str = "ru") -> str:
+        normalized_question = re.sub(r"\s+", " ", question).strip()
+        if not normalized_question:
+            return self._map_fallback_language(fallback)
+
+        prompt = (
+            "Detect the language of QUESTION. "
+            "Return only one value from this list: English, Russian, Kyrgyz, Uzbek, Turkish, Azerbaijani, Other.\n\n"
+            f"QUESTION:\n{normalized_question}"
+        )
+
+        try:
+            response = await asyncio.to_thread(
+                self.client.responses.create,
+                model=self.model,
+                input=prompt,
+            )
+            detected = self._extract_response_text(response).strip()
+            detected_lower = detected.lower()
+            allowed = {
+                "english": "English",
+                "russian": "Russian",
+                "kyrgyz": "Kyrgyz",
+                "uzbek": "Uzbek",
+                "turkish": "Turkish",
+                "azerbaijani": "Azerbaijani",
+                "other": self._map_fallback_language(fallback),
+            }
+            if detected_lower in allowed:
+                return allowed[detected_lower]
+        except Exception:
+            logger.warning("Language detection call failed; fallback=%s", fallback)
+
+        return self._map_fallback_language(fallback)
+
+    @staticmethod
+    def _map_fallback_language(fallback: str) -> str:
+        mapping = {
+            "ru": "Russian",
+            "kg": "Kyrgyz",
+            "en": "English",
+            "uz": "Uzbek",
+            "tr": "Turkish",
+            "az": "Azerbaijani",
+        }
+        return mapping.get(str(fallback).lower(), "English")
 
     @staticmethod
     def _looks_like_html(text: str) -> bool:

@@ -29,35 +29,83 @@ class RAGService:
         self.client = OpenAI(api_key=api_key)
         fallback_models = [embedding_model, "text-embedding-3-small", "text-embedding-3-large"]
         self.embedding_models: list[str] = list(dict.fromkeys(m.strip() for m in fallback_models if m.strip()))
+        self.query_rewrite_model = "gpt-4o-mini"
         self.active_embedding_model: str | None = None
         self.embedding_disabled = False
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
 
     def split_into_chunks(self, text: str) -> list[str]:
-        normalized = re.sub(r"\s+", " ", text).strip()
+        normalized = text.replace("\r\n", "\n").replace("\r", "\n").strip()
         if not normalized:
             return []
 
+        paragraphs = [part.strip() for part in re.split(r"\n{2,}", normalized) if part.strip()]
+        if not paragraphs:
+            return []
+
         chunks: list[str] = []
-        start = 0
-        text_len = len(normalized)
 
-        while start < text_len:
-            end = min(text_len, start + self.chunk_size)
-            if end < text_len:
-                boundary = normalized.rfind(" ", start + int(self.chunk_size * 0.55), end)
-                if boundary > start:
-                    end = boundary
+        def append_chunk(value: str) -> None:
+            cleaned = value.strip()
+            if cleaned:
+                chunks.append(cleaned)
 
-            chunk = normalized[start:end].strip()
-            if chunk:
-                chunks.append(chunk)
+        def with_overlap(next_block: str) -> str:
+            if not chunks or self.chunk_overlap <= 0:
+                return next_block.strip()
 
-            if end >= text_len:
-                break
+            overlap = chunks[-1][-self.chunk_overlap :].strip()
+            if not overlap:
+                return next_block.strip()
 
-            start = max(0, end - self.chunk_overlap)
+            candidate = f"{overlap}\n\n{next_block.strip()}"
+            if len(candidate) <= self.chunk_size:
+                return candidate
+
+            return next_block.strip()
+
+        current_chunk = ""
+
+        for paragraph in paragraphs:
+            if len(paragraph) > self.chunk_size:
+                if current_chunk:
+                    append_chunk(current_chunk)
+                    current_chunk = ""
+
+                start = 0
+                paragraph_len = len(paragraph)
+                while start < paragraph_len:
+                    end = min(paragraph_len, start + self.chunk_size)
+                    if end < paragraph_len:
+                        boundary = paragraph.rfind(" ", start + int(self.chunk_size * 0.55), end)
+                        if boundary > start:
+                            end = boundary
+
+                    part = paragraph[start:end].strip()
+                    if part:
+                        append_chunk(with_overlap(part))
+
+                    if end >= paragraph_len:
+                        break
+
+                    start = max(0, end - self.chunk_overlap)
+
+                continue
+
+            if not current_chunk:
+                current_chunk = with_overlap(paragraph)
+                continue
+
+            candidate = f"{current_chunk}\n\n{paragraph}".strip()
+            if len(candidate) <= self.chunk_size:
+                current_chunk = candidate
+            else:
+                append_chunk(current_chunk)
+                current_chunk = with_overlap(paragraph)
+
+        if current_chunk:
+            append_chunk(current_chunk)
 
         return chunks
 
@@ -95,14 +143,79 @@ class RAGService:
             )
         return len(rows)
 
-    async def retrieve_relevant_chunks(self, db: Database, question: str, top_k: int = 6, max_context_chars: int = 3200) -> list[RetrievedChunk]:
+    async def retrieve_relevant_chunks(self, db: Database, question: str, top_k: int = 10, max_context_chars: int = 9000) -> list[RetrievedChunk]:
         rows = await db.list_chunks_with_documents()
         if not rows:
             return []
 
+        candidate_k = 30
+        final_k = max(top_k, 10)
+        primary_min_score = 0.40
+        fallback_min_score = 0.35
+
+        primary_candidates, _ = await self._retrieve_once(
+            rows=rows,
+            question=question,
+            top_k=candidate_k,
+            max_context_chars=max_context_chars,
+            min_score=primary_min_score,
+            fallback_min_score=fallback_min_score,
+        )
+
+        translated_query = await self._translate_query_to_russian(question)
+        if not translated_query:
+            return self._finalize_chunks(primary_candidates, final_k=final_k, max_context_chars=max_context_chars)
+
+        if translated_query.strip().lower() == question.strip().lower():
+            return self._finalize_chunks(primary_candidates, final_k=final_k, max_context_chars=max_context_chars)
+
+        fallback_candidates, _ = await self._retrieve_once(
+            rows=rows,
+            question=translated_query,
+            top_k=candidate_k,
+            max_context_chars=max_context_chars,
+            min_score=primary_min_score,
+            fallback_min_score=fallback_min_score,
+        )
+
+        merged_candidates = self._merge_ranked_chunks(
+            primary=primary_candidates,
+            fallback=fallback_candidates,
+            top_k=candidate_k,
+            max_context_chars=max_context_chars,
+        )
+        merged_selected = self._finalize_chunks(
+            merged_candidates,
+            final_k=final_k,
+            max_context_chars=max_context_chars,
+        )
+        if merged_selected:
+            logger.info(
+                "RAG hybrid retrieval used translation fallback. primary=%s fallback=%s merged=%s",
+                len(primary_candidates),
+                len(fallback_candidates),
+                len(merged_selected),
+            )
+            return merged_selected
+
+        if fallback_candidates:
+            logger.info("RAG fallback retrieval selected translated query results")
+            return self._finalize_chunks(fallback_candidates, final_k=final_k, max_context_chars=max_context_chars)
+
+        return self._finalize_chunks(primary_candidates, final_k=final_k, max_context_chars=max_context_chars)
+
+    async def _retrieve_once(
+        self,
+        rows: list[dict],
+        question: str,
+        top_k: int,
+        max_context_chars: int,
+        min_score: float = 0.40,
+        fallback_min_score: float = 0.35,
+    ) -> tuple[list[RetrievedChunk], list[RetrievedChunk]]:
         question_forms = self._question_forms(question)
         if not question_forms:
-            return []
+            return [], []
 
         question_token_sets = [self._tokenize(item) for item in question_forms]
         question_trigram_sets = [self._char_ngrams(item, size=3) for item in question_forms]
@@ -154,10 +267,13 @@ class RAGService:
         scored.sort(key=lambda item: item.score, reverse=True)
         self._log_top_scores(question=question, items=scored[:5], has_query_embedding=has_query_embedding)
 
-        filtered = [item for item in scored if self._passes_relevance_threshold(item, has_query_embedding=has_query_embedding)]
-        selected = self._select_with_limit(filtered, top_k=top_k, max_context_chars=max_context_chars, candidate_multiplier=24)
+        filtered = [item for item in scored if item.score >= min_score]
+        selected = self._select_with_limit(filtered, top_k=top_k, max_context_chars=max_context_chars, candidate_multiplier=48)
+        if len(selected) < top_k:
+            relaxed = [item for item in scored if item.score >= fallback_min_score]
+            selected = self._select_with_limit(relaxed, top_k=top_k, max_context_chars=max_context_chars, candidate_multiplier=48)
         if selected:
-            return selected
+            return selected, scored
 
         fallback = self._lexical_fallback(
             rows=rows,
@@ -166,9 +282,145 @@ class RAGService:
             max_context_chars=max_context_chars,
         )
         if fallback:
-            return fallback
+            return fallback, scored
 
-        return []
+        return [], scored
+
+    @staticmethod
+    def _is_near_duplicate_chunk(candidate: RetrievedChunk, selected: list[RetrievedChunk]) -> bool:
+        if candidate.document_id is None or candidate.chunk_index is None:
+            return False
+
+        for existing in selected:
+            if existing.document_id != candidate.document_id:
+                continue
+            if existing.chunk_index is None:
+                continue
+            if abs(existing.chunk_index - candidate.chunk_index) <= 2:
+                return True
+
+        return False
+
+    def _finalize_chunks(self, items: list[RetrievedChunk], final_k: int, max_context_chars: int) -> list[RetrievedChunk]:
+        if not items:
+            return []
+
+        sorted_items = sorted(items, key=lambda item: item.score, reverse=True)
+        selected: list[RetrievedChunk] = []
+        selected_keys: set[tuple[int | None, int | None, str]] = set()
+        total_chars = 0
+        min_target = min(8, len(sorted_items))
+
+        for item in sorted_items:
+            if len(selected) >= final_k:
+                break
+
+            key = (item.document_id, item.chunk_index, item.text)
+            if key in selected_keys:
+                continue
+            if self._is_near_duplicate_chunk(item, selected):
+                continue
+
+            context_text = f"[{item.source}] {item.text}".strip()
+            if not context_text:
+                continue
+            if total_chars + len(context_text) > max_context_chars:
+                continue
+
+            selected.append(item)
+            selected_keys.add(key)
+            total_chars += len(context_text)
+
+        if len(selected) >= min_target:
+            return selected
+
+        for item in sorted_items:
+            if len(selected) >= final_k:
+                break
+
+            key = (item.document_id, item.chunk_index, item.text)
+            if key in selected_keys:
+                continue
+
+            context_text = f"[{item.source}] {item.text}".strip()
+            if not context_text:
+                continue
+            if total_chars + len(context_text) > max_context_chars:
+                continue
+
+            selected.append(item)
+            selected_keys.add(key)
+            total_chars += len(context_text)
+
+        return selected
+
+    async def _translate_query_to_russian(self, question: str) -> str:
+        normalized = re.sub(r"\s+", " ", question).strip()
+        if not normalized:
+            return ""
+
+        prompt = (
+            "Translate the QUESTION to Russian.\n"
+            "Return only the translated question text without any explanations or extra symbols.\n"
+            "If it is already Russian, return it unchanged.\n\n"
+            f"QUESTION:\n{normalized}"
+        )
+
+        try:
+            response = await asyncio.to_thread(
+                self.client.responses.create,
+                model=self.query_rewrite_model,
+                input=prompt,
+            )
+        except Exception as exc:
+            logger.warning("Query translation fallback failed: %s", str(exc))
+            return ""
+
+        translated = self._extract_response_text(response)
+        translated = re.sub(r"\s+", " ", translated).strip()
+        return translated
+
+    @staticmethod
+    def _extract_response_text(response: object) -> str:
+        text = getattr(response, "output_text", None)
+        if isinstance(text, str) and text.strip():
+            return text
+
+        output = getattr(response, "output", None)
+        if isinstance(output, list):
+            parts: list[str] = []
+            for item in output:
+                content = getattr(item, "content", None)
+                if not isinstance(content, list):
+                    continue
+                for piece in content:
+                    piece_text = getattr(piece, "text", None)
+                    if isinstance(piece_text, str) and piece_text.strip():
+                        parts.append(piece_text)
+            if parts:
+                return "\n".join(parts)
+
+        return ""
+
+    @staticmethod
+    def _merge_ranked_chunks(primary: list[RetrievedChunk], fallback: list[RetrievedChunk], top_k: int, max_context_chars: int) -> list[RetrievedChunk]:
+        if not primary and not fallback:
+            return []
+
+        best_by_key: dict[tuple[int | None, int | None, str], RetrievedChunk] = {}
+        for item in primary + fallback:
+            unique_key = (item.document_id, item.chunk_index, item.text)
+            previous = best_by_key.get(unique_key)
+            if previous is None or item.score > previous.score:
+                best_by_key[unique_key] = item
+
+        merged = sorted(best_by_key.values(), key=lambda item: item.score, reverse=True)
+        return RAGService._select_with_limit(
+            merged,
+            top_k=top_k,
+            max_context_chars=max_context_chars,
+            candidate_multiplier=16,
+        )
 
     async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         if not texts:
@@ -315,7 +567,7 @@ class RAGService:
     def _combine_scores(semantic_score: float, lexical_score: float, trigram_score: float, has_semantic_pair: bool) -> float:
         if has_semantic_pair:
             semantic_normalized = RAGService._normalize_cosine(semantic_score)
-            return (0.82 * semantic_normalized) + (0.13 * lexical_score) + (0.05 * trigram_score)
+            return (0.94 * semantic_normalized) + (0.04 * lexical_score) + (0.02 * trigram_score)
 
         # Lexical-only fallback path when embeddings are unavailable.
         return (0.85 * lexical_score) + (0.15 * trigram_score)
@@ -323,25 +575,6 @@ class RAGService:
     @staticmethod
     def _normalize_cosine(value: float) -> float:
         return max(0.0, min(1.0, (value + 1.0) / 2.0))
-
-    @staticmethod
-    def _passes_relevance_threshold(item: RetrievedChunk, has_query_embedding: bool) -> bool:
-        if has_query_embedding:
-            if item.score < 0.42:
-                return False
-
-            if item.semantic_score >= 0.53:
-                return True
-
-            if item.lexical_score >= 0.16:
-                return True
-
-            return item.semantic_score >= 0.48 and item.trigram_score >= 0.03
-
-        if item.score < 0.11:
-            return False
-
-        return item.lexical_score >= 0.08 or item.trigram_score >= 0.06
 
     @staticmethod
     def _cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
