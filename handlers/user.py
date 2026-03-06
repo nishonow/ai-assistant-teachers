@@ -1,6 +1,7 @@
 import asyncio
 import html
 import logging
+import re
 from contextlib import suppress
 
 from aiogram import F, Router
@@ -17,6 +18,8 @@ from utils.states import AskTeacherState
 
 router = Router()
 logger = logging.getLogger(__name__)
+CHAT_HISTORY_KEY = "chat_history"
+CHAT_HISTORY_LIMIT = 5
 
 
 def _thinking_frames(base_text: str) -> tuple[str, str, str, str]:
@@ -26,6 +29,12 @@ def _thinking_frames(base_text: str) -> tuple[str, str, str, str]:
         normalized = "⏳"
 
     return (f"{normalized}", f"{normalized}.", f"{normalized}..", f"{normalized}...")
+
+
+def _plain_text_for_history(text: str) -> str:
+    # Strip lightweight HTML formatting before reusing previous assistant messages in prompts.
+    stripped = re.sub(r"<[^>]+>", " ", str(text or ""))
+    return html.unescape(re.sub(r"\s+", " ", stripped)).strip()
 
 
 async def _animate_thinking(status_message: Message, stop_event: asyncio.Event, frames: tuple[str, str, str, str]) -> None:
@@ -85,6 +94,7 @@ async def ask_mode_handler(message: Message, state: FSMContext, db: Database) ->
     lang = await db.get_user_lang(message.from_user.id) or "ru"
 
     await state.set_state(AskTeacherState.waiting_question)
+    await state.update_data(**{CHAT_HISTORY_KEY: []})
     await message.answer(
         get_text(lang, "ask_prompt"),
         reply_markup=question_mode_keyboard(lang),
@@ -103,8 +113,17 @@ async def back_to_menu_from_question(message: Message, state: FSMContext, db: Da
 
 
 @router.message(AskTeacherState.waiting_question)
-async def process_question_handler(message: Message, ai_helper: OpenAIHelper, rag_service: RAGService, db: Database) -> None:
+async def process_question_handler(
+    message: Message,
+    ai_helper: OpenAIHelper,
+    rag_service: RAGService,
+    db: Database,
+    state: FSMContext,
+) -> None:
     lang = await db.get_user_lang(message.from_user.id) or "ru"
+    state_data = await state.get_data()
+    history_items = state_data.get(CHAT_HISTORY_KEY, [])
+    chat_history = history_items if isinstance(history_items, list) else []
 
     question = (message.text or "").strip()
     if not question:
@@ -143,6 +162,7 @@ async def process_question_handler(message: Message, ai_helper: OpenAIHelper, ra
                     question=question,
                     language=lang,
                     contexts=contexts,
+                    chat_history=chat_history,
                 )
             except Exception:
                 logger.exception("Answer generation raised exception for user_id=%s", message.from_user.id)
@@ -163,6 +183,18 @@ async def process_question_handler(message: Message, ai_helper: OpenAIHelper, ra
             await animation_task
         with suppress(TelegramBadRequest):
             await thinking_message.delete()
+
+    if answer != get_text(lang, "general_error"):
+        cleaned_answer = _plain_text_for_history(answer)
+        if cleaned_answer:
+            updated_history = list(chat_history)
+            updated_history.append(
+                {
+                    "question": question,
+                    "answer": cleaned_answer,
+                }
+            )
+            await state.update_data(**{CHAT_HISTORY_KEY: updated_history[-CHAT_HISTORY_LIMIT:]})
 
     await message.answer(
         answer,

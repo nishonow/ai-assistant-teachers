@@ -29,7 +29,6 @@ class RAGService:
         self.client = OpenAI(api_key=api_key)
         fallback_models = [embedding_model, "text-embedding-3-small", "text-embedding-3-large"]
         self.embedding_models: list[str] = list(dict.fromkeys(m.strip() for m in fallback_models if m.strip()))
-        self.query_rewrite_model = "gpt-4o-mini"
         self.active_embedding_model: str | None = None
         self.embedding_disabled = False
         self.chunk_size = chunk_size
@@ -150,8 +149,8 @@ class RAGService:
 
         candidate_k = 30
         final_k = max(top_k, 10)
-        primary_min_score = 0.40
-        fallback_min_score = 0.35
+        primary_min_score = 0.24
+        fallback_min_score = 0.18
 
         primary_candidates, _ = await self._retrieve_once(
             rows=rows,
@@ -161,46 +160,6 @@ class RAGService:
             min_score=primary_min_score,
             fallback_min_score=fallback_min_score,
         )
-
-        translated_query = await self._translate_query_to_russian(question)
-        if not translated_query:
-            return self._finalize_chunks(primary_candidates, final_k=final_k, max_context_chars=max_context_chars)
-
-        if translated_query.strip().lower() == question.strip().lower():
-            return self._finalize_chunks(primary_candidates, final_k=final_k, max_context_chars=max_context_chars)
-
-        fallback_candidates, _ = await self._retrieve_once(
-            rows=rows,
-            question=translated_query,
-            top_k=candidate_k,
-            max_context_chars=max_context_chars,
-            min_score=primary_min_score,
-            fallback_min_score=fallback_min_score,
-        )
-
-        merged_candidates = self._merge_ranked_chunks(
-            primary=primary_candidates,
-            fallback=fallback_candidates,
-            top_k=candidate_k,
-            max_context_chars=max_context_chars,
-        )
-        merged_selected = self._finalize_chunks(
-            merged_candidates,
-            final_k=final_k,
-            max_context_chars=max_context_chars,
-        )
-        if merged_selected:
-            logger.info(
-                "RAG hybrid retrieval used translation fallback. primary=%s fallback=%s merged=%s",
-                len(primary_candidates),
-                len(fallback_candidates),
-                len(merged_selected),
-            )
-            return merged_selected
-
-        if fallback_candidates:
-            logger.info("RAG fallback retrieval selected translated query results")
-            return self._finalize_chunks(fallback_candidates, final_k=final_k, max_context_chars=max_context_chars)
 
         return self._finalize_chunks(primary_candidates, final_k=final_k, max_context_chars=max_context_chars)
 
@@ -354,74 +313,6 @@ class RAGService:
 
         return selected
 
-    async def _translate_query_to_russian(self, question: str) -> str:
-        normalized = re.sub(r"\s+", " ", question).strip()
-        if not normalized:
-            return ""
-
-        prompt = (
-            "Translate the QUESTION to Russian.\n"
-            "Return only the translated question text without any explanations or extra symbols.\n"
-            "If it is already Russian, return it unchanged.\n\n"
-            f"QUESTION:\n{normalized}"
-        )
-
-        try:
-            response = await asyncio.to_thread(
-                self.client.responses.create,
-                model=self.query_rewrite_model,
-                input=prompt,
-            )
-        except Exception as exc:
-            logger.warning("Query translation fallback failed: %s", str(exc))
-            return ""
-
-        translated = self._extract_response_text(response)
-        translated = re.sub(r"\s+", " ", translated).strip()
-        return translated
-
-    @staticmethod
-    def _extract_response_text(response: object) -> str:
-        text = getattr(response, "output_text", None)
-        if isinstance(text, str) and text.strip():
-            return text
-
-        output = getattr(response, "output", None)
-        if isinstance(output, list):
-            parts: list[str] = []
-            for item in output:
-                content = getattr(item, "content", None)
-                if not isinstance(content, list):
-                    continue
-                for piece in content:
-                    piece_text = getattr(piece, "text", None)
-                    if isinstance(piece_text, str) and piece_text.strip():
-                        parts.append(piece_text)
-            if parts:
-                return "\n".join(parts)
-
-        return ""
-
-    @staticmethod
-    def _merge_ranked_chunks(primary: list[RetrievedChunk], fallback: list[RetrievedChunk], top_k: int, max_context_chars: int) -> list[RetrievedChunk]:
-        if not primary and not fallback:
-            return []
-
-        best_by_key: dict[tuple[int | None, int | None, str], RetrievedChunk] = {}
-        for item in primary + fallback:
-            unique_key = (item.document_id, item.chunk_index, item.text)
-            previous = best_by_key.get(unique_key)
-            if previous is None or item.score > previous.score:
-                best_by_key[unique_key] = item
-
-        merged = sorted(best_by_key.values(), key=lambda item: item.score, reverse=True)
-        return RAGService._select_with_limit(
-            merged,
-            top_k=top_k,
-            max_context_chars=max_context_chars,
-            candidate_multiplier=16,
-        )
-
     async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
@@ -567,14 +458,15 @@ class RAGService:
     def _combine_scores(semantic_score: float, lexical_score: float, trigram_score: float, has_semantic_pair: bool) -> float:
         if has_semantic_pair:
             semantic_normalized = RAGService._normalize_cosine(semantic_score)
-            return (0.94 * semantic_normalized) + (0.04 * lexical_score) + (0.02 * trigram_score)
+            return (0.88 * semantic_normalized) + (0.08 * lexical_score) + (0.04 * trigram_score)
 
         # Lexical-only fallback path when embeddings are unavailable.
         return (0.85 * lexical_score) + (0.15 * trigram_score)
 
     @staticmethod
     def _normalize_cosine(value: float) -> float:
-        return max(0.0, min(1.0, (value + 1.0) / 2.0))
+        # Keep only positive semantic similarity so unrelated chunks stay near 0.
+        return max(0.0, min(1.0, value))
 
     @staticmethod
     def _cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:

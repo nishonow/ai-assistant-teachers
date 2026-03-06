@@ -15,25 +15,32 @@ class OpenAIHelper:
         self.model = model
         self.client = OpenAI(api_key=api_key)
 
-    async def generate_answer(self, question: str, language: str = "ru", contexts: list[str] | None = None) -> str:
+    async def generate_answer(
+        self,
+        question: str,
+        language: str = "ru",
+        contexts: list[str] | None = None,
+        chat_history: list[dict[str, str]] | None = None,
+    ) -> str:
         if not contexts:
             return self._empty_context(language)
 
         context_block = "\n\n".join(contexts)
+        history_block = self._format_chat_history(chat_history)
         question_language = await self._detect_question_language(question, fallback=language)
+        history_section = f"CHAT_HISTORY:\n{history_block}\n\n" if history_block else ""
+
         prompt = (
-            "Answer QUESTION using only the information from DOCUMENTS.\n"
-            f"Reply in exactly the same language: {question_language}.\n"
-            "Do not invent rules, procedures, deadlines, or penalties.\n"
-            "State the answer directly.\n"
-            "Do not use meta phrases like 'the documents say' or 'according to the documents'.\n"
-            "If DOCUMENTS contain any relevant details, provide them first as the answer.\n"
-            "Only if exact details are missing, say briefly what is not specified.\n"
-            "If nothing relevant exists at all, give a short polite no-info answer without mentioning documents.\n"
-            "Keep the answer concise (3-6 short lines).\n"
-            "Structure: short explanation first, then actions if needed. Separate sections with one blank line.\n"
-            "Use HTML tags for clarity: <b>, <u>. Wrap key relevant terms or actions in <b>...</b>, at least once.\n"
-            "Use '•' bullets for actions (max 4).\n\n"
+            "Use DOCUMENTS to answer QUESTION.\n"
+            f"Answer in the same language as QUESTION (target: {question_language}); do not mix languages.\n"
+            "Use CHAT_HISTORY only to resolve references in follow-up questions; never use it as a factual source.\n"
+            "If a follow-up reference is clear, name the resolved subject in the first sentence; if unclear, ask one short clarifying question.\n"
+            "Do not invent facts, rules, procedures, deadlines, or penalties.\n"
+            "If DOCUMENTS cover the question, answer directly with those details. If partially covered, briefly say what is missing. If not covered, give a short polite no-info answer.\n"
+            "Avoid meta phrases like 'according to the documents'.\n"
+            "Keep it concise (3-6 short lines): short explanation first, then actions if needed.\n"
+            "Format for Telegram HTML: use <b> for key terms and up to 4 • bullet actions.\n\n"
+            f"{history_section}"
             f"DOCUMENTS:\n{context_block}\n\n"
             f"QUESTION:\n{question}"
         )
@@ -43,6 +50,7 @@ class OpenAIHelper:
                 self.client.responses.create,
                 model=self.model,
                 input=prompt,
+                temperature=0,
             )
         except Exception:
             logger.exception("OpenAI response generation failed")
@@ -50,48 +58,20 @@ class OpenAIHelper:
 
         text = self._extract_response_text(response)
         if text and text.strip():
-            return self._markdownish_to_html(text.strip())
+            return self._normalize_model_html(text.strip())
 
         return self._empty_message(language)
 
     @staticmethod
-    def _markdownish_to_html(text: str) -> str:
+    def _normalize_model_html(text: str) -> str:
         normalized = text.replace("\r\n", "\n").replace("\r", "\n").strip()
         if not normalized:
             return ""
 
-        if OpenAIHelper._looks_like_html(normalized):
-            return OpenAIHelper._normalize_existing_html(normalized)
+        if not OpenAIHelper._looks_like_html(normalized):
+            return html.escape(normalized)
 
-        code_blocks: list[str] = []
-
-        def code_block_repl(match: re.Match[str]) -> str:
-            code = html.escape(match.group(1).strip("\n"))
-            index = len(code_blocks)
-            code_blocks.append(f"<pre><code>{code}</code></pre>")
-            return f"@@CODE_BLOCK_{index}@@"
-
-        normalized = re.sub(
-            r"```(?:[^\n`]*)\n(.*?)```",
-            code_block_repl,
-            normalized,
-            flags=re.S,
-        )
-        normalized = re.sub(r"(?m)^\s*\d+[\.)]\s+", "• ", normalized)
-        normalized = re.sub(r"(?m)^\s*[-*•·–—]\s+", "• ", normalized)
-
-        escaped = html.escape(normalized)
-        escaped = re.sub(r"(?m)^#{1,3}\s+(.+)$", r"<b>\1</b>", escaped)
-        escaped = re.sub(r"`([^`\n]+)`", r"\1", escaped)
-        escaped = re.sub(r"\*\*([^*\n]+)\*\*", r"<b>\1</b>", escaped)
-        escaped = re.sub(r"__([^_\n]+)__", r"<b>\1</b>", escaped)
-        escaped = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<u>\1</u>", escaped)
-        escaped = re.sub(r"(?<!_)_([^_\n]+)_(?!_)", r"<u>\1</u>", escaped)
-
-        for index, block in enumerate(code_blocks):
-            escaped = escaped.replace(f"@@CODE_BLOCK_{index}@@", block)
-
-        return escaped
+        return OpenAIHelper._normalize_existing_html(normalized)
 
     @staticmethod
     def _extract_response_text(response: object) -> str:
@@ -118,20 +98,29 @@ class OpenAIHelper:
     @staticmethod
     def _normalize_existing_html(text: str) -> str:
         normalized = text
-        normalized = re.sub(r"(?m)^\s*\d+[\.)]\s+", "• ", normalized)
-        normalized = re.sub(r"(?m)^\s*[-*•·–—]\s+", "• ", normalized)
         normalized = re.sub(r"(?i)<\s*strong\s*>", "<b>", normalized)
         normalized = re.sub(r"(?i)<\s*/\s*strong\s*>", "</b>", normalized)
         normalized = re.sub(r"(?i)<\s*em\s*>", "<u>", normalized)
         normalized = re.sub(r"(?i)<\s*/\s*em\s*>", "</u>", normalized)
         normalized = re.sub(r"(?i)<\s*i\s*>", "<u>", normalized)
         normalized = re.sub(r"(?i)<\s*/\s*i\s*>", "</u>", normalized)
-        normalized = re.sub(r"(?i)</?(code|pre|a|blockquote)(?:\s+[^>]*)?>", "", normalized)
-        normalized = re.sub(r"\*\*([^*\n]+)\*\*", r"<b>\1</b>", normalized)
-        normalized = re.sub(r"__([^_\n]+)__", r"<b>\1</b>", normalized)
-        normalized = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<u>\1</u>", normalized)
-        normalized = re.sub(r"(?<!_)_([^_\n]+)_(?!_)", r"<u>\1</u>", normalized)
         return normalized
+
+    @staticmethod
+    def _format_chat_history(chat_history: list[dict[str, str]] | None) -> str:
+        if not chat_history:
+            return ""
+
+        lines: list[str] = []
+        for item in chat_history[-5:]:
+            question = str(item.get("question") or "").strip()
+            answer = str(item.get("answer") or "").strip()
+            if not question or not answer:
+                continue
+            lines.append(f"User: {question}")
+            lines.append(f"Assistant: {answer}")
+
+        return "\n".join(lines).strip()
 
     async def _detect_question_language(self, question: str, fallback: str = "ru") -> str:
         normalized_question = re.sub(r"\s+", " ", question).strip()
@@ -140,7 +129,7 @@ class OpenAIHelper:
 
         prompt = (
             "Detect the language of QUESTION. "
-            "Return only one value from this list: English, Russian, Kyrgyz, Uzbek, Turkish, Azerbaijani, Other.\n\n"
+            "Return only one code from this list: en, ru, kg, uz, tr, az, other.\n\n"
             f"QUESTION:\n{normalized_question}"
         )
 
@@ -149,24 +138,16 @@ class OpenAIHelper:
                 self.client.responses.create,
                 model=self.model,
                 input=prompt,
+                temperature=0,
             )
-            detected = self._extract_response_text(response).strip()
-            detected_lower = detected.lower()
-            allowed = {
-                "english": "English",
-                "russian": "Russian",
-                "kyrgyz": "Kyrgyz",
-                "uzbek": "Uzbek",
-                "turkish": "Turkish",
-                "azerbaijani": "Azerbaijani",
-                "other": self._map_fallback_language(fallback),
-            }
-            if detected_lower in allowed:
-                return allowed[detected_lower]
+            detected = self._extract_response_text(response).strip().lower()
+            match = re.search(r"\b(en|ru|kg|uz|tr|az|other)\b", detected)
+            if match and match.group(1) != "other":
+                return self._map_fallback_language(match.group(1))
         except Exception:
             logger.warning("Language detection call failed; fallback=%s", fallback)
 
-        return self._map_fallback_language(fallback)
+        return "the user's question language"
 
     @staticmethod
     def _map_fallback_language(fallback: str) -> str:
