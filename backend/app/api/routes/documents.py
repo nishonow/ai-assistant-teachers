@@ -1,7 +1,8 @@
 from fastapi import APIRouter, UploadFile, File, Depends, BackgroundTasks, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.database import get_db
-from app.models import Document
+from app.models import Document, Chunk
 from app.services.document_processor import save_file, process_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -38,8 +39,27 @@ async def upload_document(
 
 @router.get("/")
 def get_documents(db: Session = Depends(get_db)):
-    documents = db.query(Document).order_by(Document.created_at.desc()).all()
-    return documents
+    results = db.query(
+        Document,
+        func.count(Chunk.id).label("chunk_count")
+    ).outerjoin(Chunk, Chunk.document_id == Document.id)\
+     .group_by(Document.id)\
+     .order_by(Document.created_at.desc())\
+     .all()
+
+    return [
+        {
+            "id": doc.id,
+            "file_name": doc.file_name,
+            "file_type": doc.file_type,
+            "file_path": doc.file_path,
+            "uploaded_by": doc.uploaded_by,
+            "status": doc.status,
+            "created_at": doc.created_at,
+            "chunk_count": chunk_count,
+        }
+        for doc, chunk_count in results
+    ]
 
 @router.delete("/{document_id}")
 def delete_document(document_id: int, db: Session = Depends(get_db)):
@@ -49,3 +69,17 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
     db.delete(document)
     db.commit()
     return {"message": "Document deleted"}
+
+@router.post("/{document_id}/reindex")
+async def reindex_document(document_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    document = db.query(Document).filter(Document.id == document_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    db.query(Chunk).filter(Chunk.document_id == document_id).delete()
+    document.status = "pending"
+    db.commit()
+
+    background_tasks.add_task(process_document, document, db)
+
+    return {"id": document.id, "status": "reindexing"}

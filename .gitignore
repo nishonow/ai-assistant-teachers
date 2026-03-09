@@ -1,6 +1,27 @@
-.venv
-.idea
-.env
+# Python
 __pycache__/
-data/bot.db
-data/docs/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Env
+.env
+*.env
+
+# Uploads
+backend/uploads/
+backend/.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

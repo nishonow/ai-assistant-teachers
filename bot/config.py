@@ -4,22 +4,20 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
+BACKEND_URL = "http://localhost:8000"
 
 @dataclass(frozen=True)
 class Config:
     bot_token: str
-    openai_api_key: str
     postgres_url: str
-    openai_model: str = "gpt-4o-mini"
-    openai_embedding_model: str = "text-embedding-3-small"
     admin_ids: set[int] = frozenset()
+    backend_url: str = BACKEND_URL
 
 
 def load_config() -> Config:
     load_dotenv()
 
     bot_token = os.getenv("BOT_TOKEN", "").strip()
-    openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
     postgres_url = os.getenv("POSTGRES_URL", "").strip()
     admin_ids_raw = os.getenv("ADMIN_IDS", "[]").strip()
 
@@ -36,15 +34,11 @@ def load_config() -> Config:
     if not bot_token:
         raise ValueError("BOT_TOKEN is not set")
 
-    if not openai_api_key:
-        raise ValueError("OPENAI_API_KEY is not set")
-
     if not postgres_url:
         raise ValueError("POSTGRES_URL is not set")
 
     return Config(
         bot_token=bot_token,
-        openai_api_key=openai_api_key,
         postgres_url=postgres_url,
         admin_ids=admin_ids,
     )

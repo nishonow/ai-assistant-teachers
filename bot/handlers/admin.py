@@ -1,14 +1,13 @@
 ﻿import re
 from pathlib import Path
-from uuid import uuid4
 
+import httpx
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from utils.database import Database
-from utils.document_parser import extract_text_from_file
 from utils.keyboards import (
     admin_action_keyboard,
     admin_documents_pagination_keyboard,
@@ -16,7 +15,6 @@ from utils.keyboards import (
     main_menu_keyboard,
 )
 from utils.middlewares import AdminOnlyMiddleware
-from utils.rag import RAGService
 from utils.states import AdminState
 
 router = Router()
@@ -30,9 +28,7 @@ def _safe_file_name(file_name: str) -> str:
 
 
 def _selection_title(action: str) -> str:
-    if action == "delete":
-        return "Select number of document to delete"
-    return "Select number of document to reindex"
+    return "Select document to delete" if action == "delete" else "Select document to reindex"
 
 
 def _resolve_page(raw_page: str) -> int:
@@ -44,14 +40,11 @@ def _selection_message(action: str, documents: list[dict], page: int, page_size:
     total_pages = max((total + page_size - 1) // page_size, 1)
     current_page = min(max(page, 1), total_pages)
     start = (current_page - 1) * page_size
-    end = start + page_size
-    page_docs = documents[start:end]
+    page_docs = documents[start:start + page_size]
 
     lines = [_selection_title(action)]
     for offset, item in enumerate(page_docs):
-        number = start + offset + 1
-        lines.append(f"{number}. {item['file_name']}")
-
+        lines.append(f"{start + offset + 1}. {item['file_name']}")
     return "\n".join(lines)
 
 
@@ -60,27 +53,21 @@ def _documents_overview_message(documents: list[dict], limit: int = 20) -> str:
     total_chunks = sum(int(item.get("chunk_count") or 0) for item in documents)
 
     lines = [
-        "📚 <b>Documents</b>",
-        "",
+        "📚 <b>Documents</b>", "",
         f"• Total documents: <b>{total_docs}</b>",
-        f"• Total chunks: <b>{total_chunks}</b>",
-        "",
+        f"• Total chunks: <b>{total_chunks}</b>", "",
     ]
 
     for index, item in enumerate(documents[:limit], start=1):
-        file_name = str(item.get("file_name") or "document")
-        file_type = str(item.get("file_type") or "unknown").upper()
-        doc_id = int(item.get("id") or 0)
         chunk_count = int(item.get("chunk_count") or 0)
         indexed_state = "✅ indexed" if chunk_count > 0 else "⚠️ not indexed"
         lines.append(
-            f"{index}) <b>{file_name}</b>\n"
-            f"   ID: <code>{doc_id}</code> | Type: <code>{file_type}</code> | Chunks: <b>{chunk_count}</b> ({indexed_state})"
+            f"{index}) <b>{item['file_name']}</b>\n"
+            f"   ID: <code>{item['id']}</code> | {item['file_type'].upper()} | Chunks: <b>{chunk_count}</b> ({indexed_state})"
         )
 
     if total_docs > limit:
-        lines.append("")
-        lines.append(f"… and <b>{total_docs - limit}</b> more")
+        lines.append(f"\n… and <b>{total_docs - limit}</b> more")
 
     return "\n".join(lines)
 
@@ -88,118 +75,106 @@ def _documents_overview_message(documents: list[dict], limit: int = 20) -> str:
 @router.message(Command("admin"))
 async def admin_menu_handler(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer(
-        "🔐 Admin panel. Choose an action.",
-        reply_markup=admin_menu_keyboard(),
-    )
+    await message.answer("🔐 Admin panel. Choose an action.", reply_markup=admin_menu_keyboard())
 
 
 @router.message(F.text.in_(("⬅️ Back to Menu",)))
 async def back_to_user_menu_from_admin(message: Message, state: FSMContext, db: Database) -> None:
     lang = await db.get_user_lang(message.from_user.id) or "ru"
-
     await state.clear()
-    await message.answer(
-        "👇 Choose an action from the menu.",
-        reply_markup=main_menu_keyboard(lang),
-    )
+    await message.answer("👇 Choose an action from the menu.", reply_markup=main_menu_keyboard(lang))
 
 
 @router.message(F.text.in_(("📤 Add File",)))
 async def admin_add_file_button(message: Message, state: FSMContext) -> None:
     await state.set_state(AdminState.waiting_file)
-    await message.answer(
-        "📤 Send a file (.txt or .pdf).",
-        reply_markup=admin_action_keyboard(),
-    )
+    await message.answer("📤 Send a file (.txt, .pdf, .doc, .docx).", reply_markup=admin_action_keyboard())
 
 
 @router.message(AdminState.waiting_file, F.text != "❌ Cancel")
-async def admin_waiting_file(message: Message, state: FSMContext, db: Database, rag_service: RAGService, docs_dir: Path) -> None:
+async def admin_waiting_file(message: Message, state: FSMContext, http_client: httpx.AsyncClient) -> None:
     if not message.document:
         await message.answer("⚠️ Send a file as document.", reply_markup=admin_action_keyboard())
         return
 
     original_name = message.document.file_name or "document"
-    ext = Path(original_name).suffix.lower()
-    if ext not in {".txt", ".pdf"}:
-        await message.answer("⚠️ Only .txt and .pdf are supported.", reply_markup=admin_action_keyboard())
+    ext = Path(original_name).suffix.lower().lstrip(".")
+    if ext not in {"txt", "pdf", "doc", "docx"}:
+        await message.answer("⚠️ Only .txt, .pdf, .doc, .docx are supported.", reply_markup=admin_action_keyboard())
         return
 
-    safe_name = _safe_file_name(original_name)
-    stored_name = f"{uuid4().hex}_{safe_name}"
-    target_path = docs_dir / stored_name
+    await message.answer("⏳ Uploading and indexing...", reply_markup=admin_action_keyboard())
 
     try:
         file = await message.bot.get_file(message.document.file_id)
-        with target_path.open("wb") as output_file:
-            await message.bot.download_file(file.file_path, destination=output_file)
+        file_bytes = await message.bot.download_file(file.file_path)
 
-        await message.answer("⏳ Processing file and creating index...", reply_markup=admin_action_keyboard())
-
-        text_content = extract_text_from_file(target_path)
-        if not text_content.strip():
-            target_path.unlink(missing_ok=True)
-            await message.answer("⚠️ Failed to process file.", reply_markup=admin_action_keyboard())
-            return
-
-        document_id = await db.add_document(
-            file_name=original_name,
-            file_type=ext.lstrip("."),
-            file_path=str(target_path),
-            uploaded_by=message.from_user.id,
+        response = await http_client.post(
+            "/api/v1/documents/upload",
+            files={"file": (original_name, file_bytes.read(), "application/octet-stream")},
+            data={"uploaded_by": str(message.from_user.id)},
         )
-
-        chunk_count = await rag_service.index_document(
-            db=db,
-            document_id=document_id,
-            text=text_content,
-        )
-
-        if chunk_count <= 0:
-            await message.answer("⚠️ Failed to index file. Check embedding model/API key.", reply_markup=admin_action_keyboard())
-            return
+        response.raise_for_status()
+        data = response.json()
 
         await state.clear()
         await message.answer(
-            f"✅ File added. Indexed chunks: {chunk_count}.",
+            f"✅ File uploaded. Status: {data['status']}. ID: <code>{data['id']}</code>",
             reply_markup=admin_menu_keyboard(),
         )
-    except Exception:
-        target_path.unlink(missing_ok=True)
-        await message.answer("⚠️ Failed to process file.", reply_markup=admin_action_keyboard())
+    except httpx.HTTPStatusError as e:
+        await message.answer(f"⚠️ Backend error: {e.response.status_code}", reply_markup=admin_action_keyboard())
+    except Exception as e:
+        await message.answer(f"⚠️ Failed: {e}", reply_markup=admin_action_keyboard())
 
 
 @router.message(F.text.in_(("📚 Documents",)))
-async def admin_list_documents(message: Message, db: Database) -> None:
-    docs = await db.list_documents()
+async def admin_list_documents(message: Message, http_client: httpx.AsyncClient) -> None:
+    try:
+        response = await http_client.get("/api/v1/documents/")
+        response.raise_for_status()
+        docs = response.json()
+    except Exception:
+        await message.answer("⚠️ Failed to fetch documents.", reply_markup=admin_menu_keyboard())
+        return
+
     if not docs:
         await message.answer("📚 No documents uploaded yet.", reply_markup=admin_menu_keyboard())
         return
 
-    await message.answer(
-        _documents_overview_message(docs),
-        reply_markup=admin_menu_keyboard(),
-    )
+    await message.answer(_documents_overview_message(docs), reply_markup=admin_menu_keyboard())
 
 
 @router.message(F.text.in_(("📊 Stats",)))
-async def admin_stats(message: Message, db: Database) -> None:
-    stats = await db.get_admin_stats()
+async def admin_stats(message: Message, http_client: httpx.AsyncClient) -> None:
+    try:
+        response = await http_client.get("/api/v1/admin/stats")
+        response.raise_for_status()
+        stats = response.json()
+    except Exception:
+        await message.answer("⚠️ Failed to fetch stats.", reply_markup=admin_menu_keyboard())
+        return
+
     await message.answer(
-        "📊 Bot stats:\n\n"
-        f"👥 Total users: {stats['users_total']}\n"
-        f"🇷🇺 RU users: {stats['users_ru']}\n"
-        f"🇰🇬 KG users: {stats['users_kg']}\n"
-        f"📚 Documents: {stats['documents_total']}\n"
-        f"🧩 Chunks: {stats['chunks_total']}",
+        f"📊 Stats:\n\n"
+        f"👥 Total users: {stats.get('total_users', 0)}\n"
+        f"💬 Total messages: {stats.get('total_messages', 0)}\n"
+        f"📚 Documents: {stats.get('total_documents', 0)}\n"
+        f"🧩 Chunks: {stats.get('total_chunks', 0)}",
         reply_markup=admin_menu_keyboard(),
     )
 
 
 @router.message(F.text.in_(("🔄 Reindex",)))
-async def admin_reindex_documents(message: Message, db: Database) -> None:
-    docs = await db.list_documents()
+async def admin_reindex_documents(message: Message, http_client: httpx.AsyncClient) -> None:
+    try:
+        response = await http_client.get("/api/v1/documents/")
+        response.raise_for_status()
+        docs = response.json()
+    except Exception:
+        await message.answer("⚠️ Failed to fetch documents.", reply_markup=admin_menu_keyboard())
+        return
+
     if not docs:
         await message.answer("📚 No documents uploaded yet.", reply_markup=admin_menu_keyboard())
         return
@@ -211,8 +186,15 @@ async def admin_reindex_documents(message: Message, db: Database) -> None:
 
 
 @router.message(F.text.in_(("🗑 Delete Document",)))
-async def admin_delete_prompt(message: Message, db: Database) -> None:
-    docs = await db.list_documents()
+async def admin_delete_prompt(message: Message, http_client: httpx.AsyncClient) -> None:
+    try:
+        response = await http_client.get("/api/v1/documents/")
+        response.raise_for_status()
+        docs = response.json()
+    except Exception:
+        await message.answer("⚠️ Failed to fetch documents.", reply_markup=admin_menu_keyboard())
+        return
+
     if not docs:
         await message.answer("📚 No documents uploaded yet.", reply_markup=admin_menu_keyboard())
         return
@@ -229,19 +211,27 @@ async def admin_noop_callback(callback: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data.regexp(r"^admin:(delete|reindex):page:\d+$"))
-async def admin_documents_page(callback: CallbackQuery, db: Database) -> None:
+async def admin_documents_page(callback: CallbackQuery, http_client: httpx.AsyncClient) -> None:
     if not callback.data or not callback.message:
         await callback.answer()
         return
 
     _, action, _, raw_page = callback.data.split(":", maxsplit=3)
-    docs = await db.list_documents()
+    page = _resolve_page(raw_page)
+
+    try:
+        response = await http_client.get("/api/v1/documents/")
+        response.raise_for_status()
+        docs = response.json()
+    except Exception:
+        await callback.answer("⚠️ Failed to fetch documents", show_alert=True)
+        return
+
     if not docs:
         await callback.message.edit_text("📚 No documents uploaded yet.")
         await callback.answer()
         return
 
-    page = _resolve_page(raw_page)
     await callback.message.edit_text(
         _selection_message(action, docs, page=page),
         reply_markup=admin_documents_pagination_keyboard(docs, action=action, page=page),
@@ -250,7 +240,7 @@ async def admin_documents_page(callback: CallbackQuery, db: Database) -> None:
 
 
 @router.callback_query(F.data.regexp(r"^admin:(delete|reindex):doc:\d+:\d+$"))
-async def admin_document_action(callback: CallbackQuery, db: Database, rag_service: RAGService) -> None:
+async def admin_document_action(callback: CallbackQuery, http_client: httpx.AsyncClient) -> None:
     if not callback.data or not callback.message:
         await callback.answer()
         return
@@ -259,47 +249,34 @@ async def admin_document_action(callback: CallbackQuery, db: Database, rag_servi
     document_id = int(raw_document_id)
     page = _resolve_page(raw_page)
 
-    if action == "delete":
-        file_path = await db.delete_document(document_id)
-        if file_path:
-            path = Path(file_path)
-            if path.exists():
-                path.unlink(missing_ok=True)
+    try:
+        if action == "delete":
+            response = await http_client.delete(f"/api/v1/documents/{document_id}")
+            response.raise_for_status()
             await callback.answer("✅ Document deleted", show_alert=True)
         else:
-            await callback.answer("⚠️ Document not found", show_alert=True)
-    else:
-        docs = await db.list_documents()
-        selected = next((item for item in docs if int(item["id"]) == document_id), None)
-        if not selected:
-            await callback.answer("⚠️ Document not found", show_alert=True)
-        else:
-            path = Path(str(selected["file_path"]))
-            if not path.exists():
-                await callback.answer("⚠️ File is missing", show_alert=True)
-            else:
-                try:
-                    text_content = extract_text_from_file(path)
-                    if not text_content.strip():
-                        await callback.answer("⚠️ Failed to parse file", show_alert=True)
-                    else:
-                        chunks = await rag_service.index_document(
-                            db=db,
-                            document_id=document_id,
-                            text=text_content,
-                        )
-                        await callback.answer(f"✅ Reindexed: {chunks} chunks", show_alert=True)
-                except Exception:
-                    await callback.answer("⚠️ Reindex failed", show_alert=True)
+            response = await http_client.post(f"/api/v1/documents/{document_id}/reindex")
+            response.raise_for_status()
+            await callback.answer("✅ Reindexed", show_alert=True)
+    except httpx.HTTPStatusError as e:
+        await callback.answer(f"⚠️ Error: {e.response.status_code}", show_alert=True)
+        return
 
-    refreshed_docs = await db.list_documents()
-    if not refreshed_docs:
+    try:
+        response = await http_client.get("/api/v1/documents/")
+        response.raise_for_status()
+        docs = response.json()
+    except Exception:
+        await callback.answer("⚠️ Failed to refresh", show_alert=True)
+        return
+
+    if not docs:
         await callback.message.edit_text("📚 No documents uploaded yet.")
         return
 
     await callback.message.edit_text(
-        _selection_message(action, refreshed_docs, page=page),
-        reply_markup=admin_documents_pagination_keyboard(refreshed_docs, action=action, page=page),
+        _selection_message(action, docs, page=page),
+        reply_markup=admin_documents_pagination_keyboard(docs, action=action, page=page),
     )
 
 
