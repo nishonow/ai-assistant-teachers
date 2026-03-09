@@ -6,16 +6,27 @@ from app.services.embeddings import embed_text
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
-SYSTEM_PROMPT = """You are a legal assistant for teachers in Kyrgyzstan.
-Answer only based on the provided context from labor law documents.
-If the answer is not in the context, honestly say so.
-IMPORTANT: You MUST detect the language of the user's question and respond in THAT EXACT language.
-If the question is in English, respond in English.
-If the question is in Russian, respond in Russian.
-If the question is in Kyrgyz, respond in Kyrgyz.
-Do NOT default to Russian under any circumstances.
-Format your response for Telegram HTML: use <b> for key terms. Use - for bullet points.
-Do not use Markdown syntax like **bold** or numbered markdown lists."""
+SYSTEM_PROMPT = """You are Mugallim AI, a legal assistant for teachers in Kyrgyzstan.
+You help teachers understand their rights based on labor law documents.
+
+LANGUAGE RULE: You MUST respond in the EXACT language the user wrote in. 
+If user writes in English → respond in English.
+If user writes in Russian → respond in Russian.
+If user writes in Kyrgyz → respond in Kyrgyz.
+NEVER switch languages. NEVER default to Russian.
+
+ANSWER RULES:
+- For legal questions: answer ONLY from the provided document context
+- For greetings, small talk, questions about yourself: answer naturally and briefly
+- For questions about conversation history: answer from the chat history provided
+- If legal question is not in context: say you don't have that information in the documents
+- Never say "I can't answer" for non-legal questions
+
+STYLE:
+- Answer directly without meta phrases like "according to the documents", "based on the context", "the documents state"
+- Just give the answer as if you know it
+- Use <b> for key terms. Use - for bullet points. No markdown."""
+
 
 def search_chunks(query: str, db: Session, top_k: int = 5) -> list[Chunk]:
     query_embedding = embed_text(query)
@@ -24,14 +35,20 @@ def search_chunks(query: str, db: Session, top_k: int = 5) -> list[Chunk]:
     ).limit(top_k).all()
     return chunks
 
+
+def is_legal_question(question: str) -> bool:
+    small_talk = [
+        "who are you", "what are you", "hello", "hi", "hey",
+        "what did i ask", "my previous question", "what did i say",
+        "who am i", "thank you", "thanks", "okay", "ok",
+        "привет", "кто ты", "что ты", "спасибо", "что я спрашивал",
+        "мой вопрос", "что я сказал"
+    ]
+    q = question.lower().strip()
+    return not any(phrase in q for phrase in small_talk)
+
+
 def ask(question: str, user_id: int, platform: str, db: Session) -> str:
-    chunks = search_chunks(question, db)
-
-    if not chunks:
-        return "Sorry, I could not find relevant information in the documents."
-
-    context = "\n\n".join([chunk.chunk_text for chunk in chunks])
-
     history = db.query(Message).filter(
         Message.user_id == user_id,
         Message.platform == platform
@@ -39,13 +56,18 @@ def ask(question: str, user_id: int, platform: str, db: Session) -> str:
     history = list(reversed(history))
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
     for msg in history:
         messages.append({"role": msg.role, "content": msg.content})
 
-    messages.append({
-        "role": "user",
-        "content": f"Context from documents:\n{context}\n\nQuestion: {question}"
-    })
+    if is_legal_question(question):
+        chunks = search_chunks(question, db)
+        context = "\n\n".join([chunk.chunk_text for chunk in chunks]) if chunks else ""
+        user_content = f"Document context:\n{context}\n\nQuestion: {question}" if context else f"Question: {question}"
+    else:
+        user_content = question
+
+    messages.append({"role": "user", "content": user_content})
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
