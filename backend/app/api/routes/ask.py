@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.database import get_db
@@ -7,12 +7,17 @@ from app.services.rag import ask
 
 router = APIRouter(prefix="/ask", tags=["ask"])
 
+class HistoryMessage(BaseModel):
+    role: str
+    content: str
+
 class AskRequest(BaseModel):
     question: str
     platform_user_id: str
     platform: str = "telegram"
     name: str = "User"
     username: str = None
+    history: list[HistoryMessage] = []
 
 @router.post("/")
 def ask_question(request: AskRequest, db: Session = Depends(get_db)):
@@ -36,6 +41,7 @@ def ask_question(request: AskRequest, db: Session = Depends(get_db)):
         question=request.question,
         user_id=user.id,
         platform=request.platform,
+        history=[m.model_dump() for m in request.history],
         db=db
     )
 

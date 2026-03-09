@@ -1,7 +1,5 @@
 import asyncio
-import html
 import logging
-import re
 from contextlib import suppress
 
 import httpx
@@ -17,12 +15,12 @@ from utils.states import AskTeacherState
 
 router = Router()
 logger = logging.getLogger(__name__)
+HISTORY_KEY = "chat_history"
+HISTORY_LIMIT = 5
 
 
-def _thinking_frames(base_text: str) -> tuple[str, str, str, str]:
-    normalized = base_text.strip().rstrip(".").rstrip("…").rstrip()
-    if not normalized:
-        normalized = "⏳"
+def _thinking_frames(base_text: str) -> tuple:
+    normalized = base_text.strip().rstrip(".").rstrip("…").rstrip() or "⏳"
     return (f"{normalized}", f"{normalized}.", f"{normalized}..", f"{normalized}...")
 
 
@@ -55,10 +53,7 @@ async def set_language_callback(callback: CallbackQuery, state: FSMContext, db: 
     await callback.answer(get_text(lang, "lang_updated"), show_alert=True)
     if callback.message:
         try:
-            await callback.message.edit_text(
-                get_text(lang, "choose_language"),
-                reply_markup=language_keyboard(lang),
-            )
+            await callback.message.edit_text(get_text(lang, "choose_language"), reply_markup=language_keyboard(lang))
         except TelegramBadRequest:
             pass
         await callback.message.answer(get_text(lang, "menu_hint"), reply_markup=main_menu_keyboard(lang))
@@ -68,6 +63,7 @@ async def set_language_callback(callback: CallbackQuery, state: FSMContext, db: 
 async def ask_mode_handler(message: Message, state: FSMContext, db: Database) -> None:
     lang = await db.get_user_lang(message.from_user.id) or "ru"
     await state.set_state(AskTeacherState.waiting_question)
+    await state.update_data(**{HISTORY_KEY: []})
     await message.answer(get_text(lang, "ask_prompt"), reply_markup=question_mode_keyboard(lang))
 
 
@@ -92,6 +88,9 @@ async def process_question_handler(
         await message.answer(get_text(lang, "empty_question"))
         return
 
+    state_data = await state.get_data()
+    history = state_data.get(HISTORY_KEY, [])
+
     frames = _thinking_frames(get_text(lang, "thinking"))
     thinking_message = await message.answer(frames[0])
     stop_event = asyncio.Event()
@@ -105,9 +104,15 @@ async def process_question_handler(
             "platform": "telegram",
             "name": message.from_user.full_name,
             "username": message.from_user.username,
+            "history": history,
         })
         response.raise_for_status()
         answer = response.json().get("answer") or get_text(lang, "no_context")
+
+        history.append({"role": "user", "content": question})
+        history.append({"role": "assistant", "content": answer})
+        await state.update_data(**{HISTORY_KEY: history[-HISTORY_LIMIT * 2:]})
+
     except httpx.HTTPStatusError as e:
         logger.error("Backend error: %s", e)
     except httpx.RequestError as e:
