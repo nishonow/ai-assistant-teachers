@@ -20,6 +20,7 @@ def load_config() -> Config:
     bot_token = os.getenv("BOT_TOKEN", "").strip()
     postgres_url = os.getenv("POSTGRES_URL", "").strip()
     admin_ids_raw = os.getenv("ADMIN_IDS", "[]").strip()
+    backend_url = os.getenv("BACKEND_URL", BACKEND_URL).strip()
 
     try:
         admin_ids_list = json.loads(admin_ids_raw)
@@ -41,4 +42,5 @@ def load_config() -> Config:
         bot_token=bot_token,
         postgres_url=postgres_url,
         admin_ids=admin_ids,
+        backend_url=backend_url,
     )
