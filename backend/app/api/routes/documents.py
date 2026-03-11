@@ -24,7 +24,7 @@ async def upload_document(
 
     document = Document(
         file_name=file_name,
-        file_type=file_path,
+        file_type=file_type,
         file_path=file_path,
         uploaded_by=uploaded_by,
         status="pending"
