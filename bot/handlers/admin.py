@@ -1,4 +1,5 @@
-﻿import re
+﻿import asyncio
+import re
 from pathlib import Path
 
 import httpx
@@ -103,7 +104,7 @@ async def admin_waiting_file(message: Message, state: FSMContext, http_client: h
         await message.answer("⚠️ Only .txt, .pdf, .doc, .docx are supported.", reply_markup=admin_action_keyboard())
         return
 
-    await message.answer("⏳ Uploading and indexing...", reply_markup=admin_action_keyboard())
+    status_msg = await message.answer("⏳ Uploading...")
 
     try:
         file = await message.bot.get_file(message.document.file_id)
@@ -116,16 +117,37 @@ async def admin_waiting_file(message: Message, state: FSMContext, http_client: h
         )
         response.raise_for_status()
         data = response.json()
+        document_id = data["id"]
+
+        await status_msg.edit_text("⏳ Indexing document, please wait...")
+
+        for _ in range(30):
+            await asyncio.sleep(3)
+            poll = await http_client.get(f"/api/v1/documents/{document_id}")
+            poll.raise_for_status()
+            doc_status = poll.json().get("status")
+
+            if doc_status == "indexed":
+                await state.clear()
+                await status_msg.edit_text(f"✅ <b>{original_name}</b> indexed successfully.")
+                await message.answer("Choose an action:", reply_markup=admin_menu_keyboard())
+                return
+            elif doc_status == "failed":
+                await state.clear()
+                await status_msg.edit_text(f"⚠️ Indexing failed for <b>{original_name}</b>.")
+                await message.answer("Choose an action:", reply_markup=admin_menu_keyboard())
+                return
 
         await state.clear()
-        await message.answer(
-            f"✅ File uploaded. Status: {data['status']}. ID: <code>{data['id']}</code>",
-            reply_markup=admin_menu_keyboard(),
-        )
+        await status_msg.edit_text("⚠️ Indexing is taking too long. Check documents later.")
+        await message.answer("Choose an action:", reply_markup=admin_menu_keyboard())
+
     except httpx.HTTPStatusError as e:
-        await message.answer(f"⚠️ Backend error: {e.response.status_code}", reply_markup=admin_action_keyboard())
+        await status_msg.edit_text(f"⚠️ Backend error: {e.response.status_code}")
+        await message.answer("Choose an action:", reply_markup=admin_action_keyboard())
     except Exception as e:
-        await message.answer(f"⚠️ Failed: {e}", reply_markup=admin_action_keyboard())
+        await status_msg.edit_text(f"⚠️ Failed: {e}")
+        await message.answer("Choose an action:", reply_markup=admin_action_keyboard())
 
 
 @router.message(F.text.in_(("📚 Documents",)))

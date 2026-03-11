@@ -24,7 +24,7 @@ async def upload_document(
 
     document = Document(
         file_name=file_name,
-        file_type=file_type,
+        file_type=file_path,
         file_path=file_path,
         uploaded_by=uploaded_by,
         status="pending"
@@ -60,6 +60,13 @@ def get_documents(db: Session = Depends(get_db)):
         }
         for doc, chunk_count in results
     ]
+
+@router.get("/{document_id}")
+def get_document(document_id: int, db: Session = Depends(get_db)):
+    document = db.query(Document).filter(Document.id == document_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return {"id": document.id, "status": document.status, "file_name": document.file_name}
 
 @router.delete("/{document_id}")
 def delete_document(document_id: int, db: Session = Depends(get_db)):
