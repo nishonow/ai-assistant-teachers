@@ -10,3 +10,4 @@ aiofiles
 langchain-text-splitters
 pdfplumber
 python-docx
+lingua-language-detector

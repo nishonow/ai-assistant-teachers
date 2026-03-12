@@ -1,10 +1,13 @@
 from sqlalchemy.orm import Session
 from openai import OpenAI
+from lingua import Language, LanguageDetectorBuilder
 from app.config import settings
 from app.models import Chunk, Message
 from app.services.embeddings import embed_text
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+detector = LanguageDetectorBuilder.from_all_languages().build()
 
 SYSTEM_PROMPT = """You are Mugallim AI, a legal assistant for teachers in Kyrgyzstan.
 You help teachers understand their rights based on labor law documents.
@@ -22,18 +25,8 @@ STYLE:
 
 
 def detect_language(question: str) -> str:
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "user",
-                "content": f"Detect the language of this text and reply with ONLY the language name in English (e.g. English, Russian, Kyrgyz, etc.):\n\n{question}"
-            }
-        ],
-        max_tokens=10,
-        temperature=0
-    )
-    return response.choices[0].message.content.strip()
+    lang = detector.detect_language_of(question)
+    return lang.name.capitalize() if lang else "Russian"
 
 def search_chunks(query: str, db: Session, top_k: int = 5) -> list[Chunk]:
     query_embedding = embed_text(query)
