@@ -27,8 +27,8 @@ async def start_handler(
             async with http_client.stream("GET", f"/api/v1/documents/{doc_id}/file") as response:
                 response.raise_for_status()
                 content = await response.aread()
-                file_name = response.headers.get("content-disposition", "").split("filename=")[-1].strip('"') or "document"
-
+                content_disposition = response.headers.get("content-disposition", "")
+                file_name = content_disposition.split('filename="')[-1].rstrip('"') if 'filename="' in content_disposition else "document"
             await message.answer_document(BufferedInputFile(content, filename=file_name))
         except Exception:
             await message.answer(get_text(lang, "general_error"))
