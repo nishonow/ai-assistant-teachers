@@ -28,7 +28,13 @@ async def start_handler(
                 response.raise_for_status()
                 content = await response.aread()
                 content_disposition = response.headers.get("content-disposition", "")
-                file_name = content_disposition.split('filename="')[-1].rstrip('"') if 'filename="' in content_disposition else "document"
+                if "filename*=UTF-8''" in content_disposition:
+                    file_name = content_disposition.split("filename*=UTF-8''")[-1].strip()
+                elif 'filename="' in content_disposition:
+                    file_name = content_disposition.split('filename="')[-1].rstrip('"')
+                else:
+                    file_name = "document.pdf"
+
             await message.answer_document(BufferedInputFile(content, filename=file_name))
         except Exception:
             await message.answer(get_text(lang, "general_error"))
