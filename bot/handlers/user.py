@@ -114,7 +114,10 @@ async def process_question_handler(
         await state.update_data(**{HISTORY_KEY: history[-HISTORY_LIMIT * 2:]})
 
     except httpx.HTTPStatusError as e:
-        logger.error("Backend error: %s", e)
+        if e.response.status_code == 403:
+            answer = get_text(lang, "user_blocked")
+        else:
+            logger.error("Backend error: %s", e)
     except httpx.RequestError as e:
         logger.error("Backend unreachable: %s", e)
     finally:

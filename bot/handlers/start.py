@@ -2,6 +2,7 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
+import httpx
 
 from utils.database import Database
 from utils.keyboards import main_menu_keyboard
@@ -11,12 +12,19 @@ router = Router()
 
 
 @router.message(Command("start"))
-async def start_handler(message: Message, state: FSMContext, db: Database) -> None:
+async def start_handler(message: Message, state: FSMContext, db: Database, http_client: httpx.AsyncClient) -> None:
     await db.add_user(
         telegram_id=message.from_user.id,
         name=message.from_user.full_name,
         username=message.from_user.username,
     )
+
+    await http_client.post("/api/v1/users/register", json={
+        "platform_user_id": str(message.from_user.id),
+        "platform": "telegram",
+        "name": message.from_user.full_name,
+        "username": message.from_user.username,
+    })
 
     lang = await db.get_user_lang(message.from_user.id) or "ru"
     await state.clear()

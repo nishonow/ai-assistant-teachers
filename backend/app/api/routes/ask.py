@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.database import get_db
@@ -16,7 +16,7 @@ class AskRequest(BaseModel):
     platform_user_id: str
     platform: str = "telegram"
     name: str = "User"
-    username: str = None
+    username: str | None = None
     history: list[HistoryMessage] = []
 
 @router.post("/")
@@ -27,15 +27,10 @@ def ask_question(request: AskRequest, db: Session = Depends(get_db)):
     ).first()
 
     if not user:
-        user = User(
-            platform=request.platform,
-            platform_user_id=request.platform_user_id,
-            name=request.name,
-            username=request.username
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.is_blocked:
+        raise HTTPException(status_code=403, detail="User is blocked")
 
     answer = ask(
         question=request.question,

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, Text, Integer, ForeignKey, TIMESTAMP, func
+from sqlalchemy import Column, BigInteger, Text, Integer, ForeignKey, TIMESTAMP, Boolean, func
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 from app.database import Base
@@ -11,6 +11,7 @@ class User(Base):
     platform_user_id = Column(Text, nullable=False, unique=True)
     name = Column(Text, nullable=False)
     username = Column(Text)
+    is_blocked = Column(Boolean, nullable=False, default=False)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
 class Document(Base):
