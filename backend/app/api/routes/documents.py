@@ -1,9 +1,11 @@
 from fastapi import APIRouter, UploadFile, File, Depends, BackgroundTasks, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
 from app.models import Document, Chunk
 from app.services.document_processor import save_file, process_document
+import os
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -90,3 +92,17 @@ async def reindex_document(document_id: int, background_tasks: BackgroundTasks, 
     background_tasks.add_task(process_document, document, db)
 
     return {"id": document.id, "status": "reindexing"}
+
+@router.get("/{document_id}/file")
+def get_document_file(document_id: int, db: Session = Depends(get_db)):
+    document = db.query(Document).filter(Document.id == document_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if not os.path.exists(document.file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    return FileResponse(
+        path=document.file_path,
+        filename=document.file_name,
+        media_type="application/octet-stream"
+    )

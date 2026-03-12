@@ -32,7 +32,7 @@ def ask_question(request: AskRequest, db: Session = Depends(get_db)):
     if user.is_blocked:
         raise HTTPException(status_code=403, detail="User is blocked")
 
-    answer = ask(
+    result = ask(
         question=request.question,
         user_id=user.id,
         platform=request.platform,
@@ -40,4 +40,7 @@ def ask_question(request: AskRequest, db: Session = Depends(get_db)):
         db=db
     )
 
-    return {"answer": answer}
+    return {
+        "answer": result["answer"],
+        "sources": result["sources"]
+    }

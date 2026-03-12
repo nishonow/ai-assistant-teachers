@@ -17,6 +17,7 @@ router = Router()
 logger = logging.getLogger(__name__)
 HISTORY_KEY = "chat_history"
 HISTORY_LIMIT = 5
+BOT_USERNAME = "mugallim_bot"
 
 
 def _thinking_frames(base_text: str) -> tuple:
@@ -37,6 +38,17 @@ async def _animate_thinking(status_message: Message, stop_event: asyncio.Event, 
         except TelegramBadRequest:
             return
         index += 1
+
+
+def _format_sources(sources: dict) -> str:
+    if not sources:
+        return ""
+    # Build HTML deep links: <a href="tg://resolve?domain=mugallim_bot&start=file_42">filename.pdf</a>
+    links = []
+    for doc_id, file_name in sources.items():
+        url = f"tg://resolve?domain={BOT_USERNAME}&start=file_{doc_id}"
+        links.append(f'<a href="{url}">{file_name}</a>')
+    return "\n\n📄 <b>Источники:</b>\n" + "\n".join(f"- {l}" for l in links)
 
 
 @router.message(F.text.in_(("🌐 Язык", "🌐 Тил")))
@@ -95,7 +107,8 @@ async def process_question_handler(
     thinking_message = await message.answer(frames[0])
     stop_event = asyncio.Event()
     animation_task = asyncio.create_task(_animate_thinking(thinking_message, stop_event, frames))
-    answer = get_text(lang, "general_error")
+    answer = None
+    sources = {}
 
     try:
         response = await http_client.post("/api/v1/ask/", json={
@@ -107,7 +120,9 @@ async def process_question_handler(
             "history": history,
         })
         response.raise_for_status()
-        answer = response.json().get("answer") or get_text(lang, "no_context")
+        data = response.json()
+        answer = data.get("answer") or get_text(lang, "no_context")
+        sources = data.get("sources") or {}
 
         history.append({"role": "user", "content": question})
         history.append({"role": "assistant", "content": answer})
@@ -127,7 +142,8 @@ async def process_question_handler(
         with suppress(TelegramBadRequest):
             await thinking_message.delete()
 
-    await message.answer(answer, reply_markup=question_mode_keyboard(lang), parse_mode="HTML")
+    full_answer = (answer or get_text(lang, "general_error")) + _format_sources(sources)
+    await message.answer(full_answer, reply_markup=question_mode_keyboard(lang), parse_mode="HTML")
 
 
 @router.message(F.text.in_(("⬅️ Назад в меню", "⬅️ Менюга кайтуу")))

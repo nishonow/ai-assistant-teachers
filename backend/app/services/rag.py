@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from openai import OpenAI
-from lingua import Language, LanguageDetectorBuilder
+from lingua import LanguageDetectorBuilder
 from app.config import settings
-from app.models import Chunk, Message
+from app.models import Chunk, Message, Document
 from app.services.embeddings import embed_text
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
@@ -35,7 +35,7 @@ def search_chunks(query: str, db: Session, top_k: int = 5) -> list[Chunk]:
     ).limit(top_k).all()
 
 
-def ask(question: str, user_id: int, platform: str, history: list[dict], db: Session) -> str:
+def ask(question: str, user_id: int, platform: str, history: list[dict], db: Session) -> dict:
     detected_lang = detect_language(question)
 
     messages = [
@@ -62,7 +62,14 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
 
     answer = response.choices[0].message.content
 
+    sources = {}
+    for chunk in chunks:
+        if chunk.document_id not in sources:
+            doc = db.query(Document).filter(Document.id == chunk.document_id).first()
+            if doc:
+                sources[chunk.document_id] = doc.file_name
+
     db.add(Message(user_id=user_id, platform=platform))
     db.commit()
 
-    return answer
+    return {"answer": answer, "sources": sources}
