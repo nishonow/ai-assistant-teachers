@@ -64,11 +64,6 @@ def _documents_overview_message(documents: list[dict], limit: int = 20) -> str:
     return "\n".join(lines)
 
 
-@router.message(Command("admin"))
-async def admin_menu_handler(message: Message, state: FSMContext) -> None:
-    await state.clear()
-    await message.answer("🔐 Admin panel. Choose an action.", reply_markup=admin_menu_keyboard())
-
 
 @router.message(F.text.in_(("⬅️ Back to Menu",)))
 async def back_to_user_menu_from_admin(message: Message, state: FSMContext, db: Database) -> None:
@@ -218,3 +213,8 @@ async def admin_documents_page(callback: CallbackQuery, http_client: httpx.Async
         docs = response.json()
     except Exception:
         await callback.answer("⚠️ Failed to fetch documents", show_alert=True)
+
+@router.message(F.text == "❌ Cancel", AdminState.waiting_file)
+async def admin_cancel_action(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("🔐 Admin panel. Choose an action.", reply_markup=admin_menu_keyboard())
