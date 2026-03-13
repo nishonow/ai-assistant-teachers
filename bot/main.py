@@ -27,7 +27,7 @@ async def main() -> None:
     db = Database(config.postgres_url)
     await db.init()
 
-    http_client = httpx.AsyncClient(base_url=config.backend_url, timeout=60.0)
+    http_client = httpx.AsyncClient(base_url=config.backend_url, timeout=60.0, headers={"Authorization": f"Bearer {config.admin_secret_token}"})
 
     bot = Bot(
         token=config.bot_token,

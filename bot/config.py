@@ -10,6 +10,7 @@ BACKEND_URL = "http://localhost:8000"
 class Config:
     bot_token: str
     postgres_url: str
+    admin_secret_token: str
     admin_ids: set[int] = frozenset()
     backend_url: str = BACKEND_URL
 
@@ -21,6 +22,7 @@ def load_config() -> Config:
     postgres_url = os.getenv("POSTGRES_URL", "").strip()
     admin_ids_raw = os.getenv("ADMIN_IDS", "[]").strip()
     backend_url = os.getenv("BACKEND_URL", BACKEND_URL).strip()
+    admin_secret_token = os.getenv("ADMIN_SECRET_TOKEN", "").strip()
 
     try:
         admin_ids_list = json.loads(admin_ids_raw)
@@ -34,13 +36,15 @@ def load_config() -> Config:
 
     if not bot_token:
         raise ValueError("BOT_TOKEN is not set")
-
     if not postgres_url:
         raise ValueError("POSTGRES_URL is not set")
+    if not admin_secret_token:
+        raise ValueError("ADMIN_SECRET_TOKEN is not set")
 
     return Config(
         bot_token=bot_token,
         postgres_url=postgres_url,
         admin_ids=admin_ids,
         backend_url=backend_url,
+        admin_secret_token=admin_secret_token,
     )

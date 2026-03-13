@@ -5,9 +5,10 @@ from sqlalchemy import func
 from app.database import get_db
 from app.models import Document, Chunk
 from app.services.document_processor import save_file, process_document
+from app.dependencies import require_admin
 import os
 
-router = APIRouter(prefix="/documents", tags=["documents"])
+router = APIRouter(prefix="/documents", tags=["documents"], dependencies=Depends(require_admin))
 
 ALLOWED_TYPES = {"pdf", "txt", "doc", "docx"}
 
