@@ -8,7 +8,7 @@ from app.services.document_processor import save_file, process_document
 from app.dependencies import require_admin
 import os
 
-router = APIRouter(prefix="/documents", tags=["documents"], dependencies=Depends(require_admin))
+router = APIRouter(prefix="/documents", tags=["documents"], dependencies=[Depends(require_admin)])
 
 ALLOWED_TYPES = {"pdf", "txt", "doc", "docx"}
 
