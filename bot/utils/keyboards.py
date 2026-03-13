@@ -36,7 +36,7 @@ def question_mode_keyboard(lang: str) -> ReplyKeyboardMarkup:
 def admin_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📊 Stats")],
+            [KeyboardButton(text="📊 Stats"), KeyboardButton(text="👤 Users")],
             [KeyboardButton(text="📤 Add File"), KeyboardButton(text="📚 Documents")],
             [KeyboardButton(text="🔄 Reindex"), KeyboardButton(text="🗑 Delete Document")],
             [KeyboardButton(text="⬅️ Back to Menu")],
@@ -109,4 +109,48 @@ def admin_documents_pagination_keyboard(
     ]
 
     rows.append(nav_row)
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def admin_users_keyboard(
+    users: list[dict],
+    page: int = 1,
+    page_size: int = 10,
+) -> InlineKeyboardMarkup:
+    total = len(users)
+    total_pages = max((total + page_size - 1) // page_size, 1)
+    current_page = min(max(page, 1), total_pages)
+    start = (current_page - 1) * page_size
+    page_users = users[start:start + page_size]
+
+    rows: list[list[InlineKeyboardButton]] = []
+
+    for user in page_users:
+        uid = user["platform_user_id"]
+        name = user["name"]
+        is_blocked = user["is_blocked"]
+        toggle_action = "unblock" if is_blocked else "block"
+        toggle_text = "✅ Unblock" if is_blocked else "⛔️ Block"
+        status = "⛔️" if is_blocked else "✅"
+
+        rows.append([
+            InlineKeyboardButton(
+                text=f"{status} {name}",
+                callback_data="admin:noop",
+            ),
+            InlineKeyboardButton(
+                text=toggle_text,
+                callback_data=f"admin:users:{toggle_action}:{uid}:{current_page}",
+            ),
+        ])
+
+    prev_callback = f"admin:users:page:{current_page - 1}" if current_page > 1 else "admin:noop"
+    next_callback = f"admin:users:page:{current_page + 1}" if current_page < total_pages else "admin:noop"
+
+    rows.append([
+        InlineKeyboardButton(text="⬅️ Prev", callback_data=prev_callback),
+        InlineKeyboardButton(text=f"{current_page}/{total_pages}", callback_data="admin:noop"),
+        InlineKeyboardButton(text="Next ➡️", callback_data=next_callback),
+    ])
+
     return InlineKeyboardMarkup(inline_keyboard=rows)

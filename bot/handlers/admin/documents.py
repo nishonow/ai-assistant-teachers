@@ -1,5 +1,4 @@
-﻿import asyncio
-import re
+import asyncio
 from pathlib import Path
 
 import httpx
@@ -15,17 +14,9 @@ from utils.keyboards import (
     admin_menu_keyboard,
     main_menu_keyboard,
 )
-from utils.middlewares import AdminOnlyMiddleware
 from utils.states import AdminState
 
 router = Router()
-router.message.middleware(AdminOnlyMiddleware())
-router.callback_query.middleware(AdminOnlyMiddleware())
-
-
-def _safe_file_name(file_name: str) -> str:
-    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", file_name)
-    return cleaned.strip("._") or "document"
 
 
 def _selection_title(action: str) -> str:
@@ -164,27 +155,7 @@ async def admin_list_documents(message: Message, http_client: httpx.AsyncClient)
         await message.answer("📚 No documents uploaded yet.", reply_markup=admin_menu_keyboard())
         return
 
-    await message.answer(_documents_overview_message(docs), reply_markup=admin_menu_keyboard())
-
-
-@router.message(F.text.in_(("📊 Stats",)))
-async def admin_stats(message: Message, http_client: httpx.AsyncClient) -> None:
-    try:
-        response = await http_client.get("/api/v1/admin/stats")
-        response.raise_for_status()
-        stats = response.json()
-    except Exception:
-        await message.answer("⚠️ Failed to fetch stats.", reply_markup=admin_menu_keyboard())
-        return
-
-    await message.answer(
-        f"📊 Stats:\n\n"
-        f"👥 Total users: {stats.get('total_users', 0)}\n"
-        f"💬 Total messages: {stats.get('total_messages', 0)}\n"
-        f"📚 Documents: {stats.get('total_documents', 0)}\n"
-        f"🧩 Chunks: {stats.get('total_chunks', 0)}",
-        reply_markup=admin_menu_keyboard(),
-    )
+    await message.answer(_documents_overview_message(docs), reply_markup=admin_menu_keyboard(), parse_mode="HTML")
 
 
 @router.message(F.text.in_(("🔄 Reindex",)))
@@ -247,62 +218,3 @@ async def admin_documents_page(callback: CallbackQuery, http_client: httpx.Async
         docs = response.json()
     except Exception:
         await callback.answer("⚠️ Failed to fetch documents", show_alert=True)
-        return
-
-    if not docs:
-        await callback.message.edit_text("📚 No documents uploaded yet.")
-        await callback.answer()
-        return
-
-    await callback.message.edit_text(
-        _selection_message(action, docs, page=page),
-        reply_markup=admin_documents_pagination_keyboard(docs, action=action, page=page),
-    )
-    await callback.answer()
-
-
-@router.callback_query(F.data.regexp(r"^admin:(delete|reindex):doc:\d+:\d+$"))
-async def admin_document_action(callback: CallbackQuery, http_client: httpx.AsyncClient) -> None:
-    if not callback.data or not callback.message:
-        await callback.answer()
-        return
-
-    _, action, _, raw_document_id, raw_page = callback.data.split(":", maxsplit=4)
-    document_id = int(raw_document_id)
-    page = _resolve_page(raw_page)
-
-    try:
-        if action == "delete":
-            response = await http_client.delete(f"/api/v1/documents/{document_id}")
-            response.raise_for_status()
-            await callback.answer("✅ Document deleted", show_alert=True)
-        else:
-            response = await http_client.post(f"/api/v1/documents/{document_id}/reindex")
-            response.raise_for_status()
-            await callback.answer("✅ Reindexed", show_alert=True)
-    except httpx.HTTPStatusError as e:
-        await callback.answer(f"⚠️ Error: {e.response.status_code}", show_alert=True)
-        return
-
-    try:
-        response = await http_client.get("/api/v1/documents/")
-        response.raise_for_status()
-        docs = response.json()
-    except Exception:
-        await callback.answer("⚠️ Failed to refresh", show_alert=True)
-        return
-
-    if not docs:
-        await callback.message.edit_text("📚 No documents uploaded yet.")
-        return
-
-    await callback.message.edit_text(
-        _selection_message(action, docs, page=page),
-        reply_markup=admin_documents_pagination_keyboard(docs, action=action, page=page),
-    )
-
-
-@router.message(F.text == "❌ Cancel", AdminState.waiting_file)
-async def admin_cancel_action(message: Message, state: FSMContext) -> None:
-    await state.clear()
-    await message.answer("❌ Action cancelled.", reply_markup=admin_menu_keyboard())

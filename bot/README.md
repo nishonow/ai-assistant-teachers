@@ -38,4 +38,4 @@ python main.py
 - Russian / Kyrgyz interface language
 - Response language follows user's question language
 - Blocked user handling (403 → friendly message)
-- Admin panel: upload, delete, reindex docs, view stats
+- Admin panel: upload, delete, reindex docs, view stats, block/ublock users
