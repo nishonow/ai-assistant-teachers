@@ -43,7 +43,6 @@ async def _animate_thinking(status_message: Message, stop_event: asyncio.Event, 
 def _format_sources(sources: dict) -> str:
     if not sources:
         return ""
-    # Build HTML deep links: <a href="tg://resolve?domain=mugallim_bot&start=file_42">filename.pdf</a>
     links = []
     for doc_id, file_name in sources.items():
         url = f"tg://resolve?domain={BOT_USERNAME}&start=file_{doc_id}"
@@ -130,6 +129,8 @@ async def process_question_handler(
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 403:
             answer = get_text(lang, "user_blocked")
+        elif e.response.status_code == 429:
+            answer = get_text(lang, "rate_limited")
         else:
             logger.error("Backend error: %s", e)
     except httpx.RequestError as e:

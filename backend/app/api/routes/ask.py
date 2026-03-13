@@ -1,11 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from collections import defaultdict
+from time import time
 from app.database import get_db
 from app.models import User
 from app.services.rag import ask
 
 router = APIRouter(prefix="/ask", tags=["ask"])
+
+RATE_LIMIT = 5
+RATE_WINDOW = 60
+
+_request_counts: dict[str, list[float]] = defaultdict(list)
 
 class HistoryMessage(BaseModel):
     role: str
@@ -19,6 +26,14 @@ class AskRequest(BaseModel):
     username: str | None = None
     history: list[HistoryMessage] = []
 
+def _check_rate_limit(key: str) -> None:
+    now = time()
+    timestamps = _request_counts[key]
+    _request_counts[key] = [t for t in timestamps if now - t < RATE_WINDOW]
+    if len(_request_counts[key]) >= RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Try again later.")
+    _request_counts[key].append(now)
+
 @router.post("/")
 def ask_question(request: AskRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(
@@ -31,6 +46,8 @@ def ask_question(request: AskRequest, db: Session = Depends(get_db)):
 
     if user.is_blocked:
         raise HTTPException(status_code=403, detail="User is blocked")
+
+    _check_rate_limit(f"{request.platform}:{request.platform_user_id}")
 
     result = ask(
         question=request.question,
