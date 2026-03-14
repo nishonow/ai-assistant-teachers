@@ -45,7 +45,7 @@ def _format_sources(sources: dict) -> str:
         return ""
     links = []
     for doc_id, file_name in sources.items():
-        url = f"tg://resolve?domain={BOT_USERNAME}&start=file_{doc_id}"
+        url = f"https://t.me/{BOT_USERNAME}?start=file_{doc_id}"
         links.append(f'<a href="{url}">{file_name}</a>')
     return "\n\n📄 <b>Источники:</b>\n" + "\n".join(links)
 

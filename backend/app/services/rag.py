@@ -22,7 +22,7 @@ ANSWER RULES:
 STYLE:
 - Answer directly, never use meta phrases like "according to the documents", "based on the context"
 - Use <b> for key terms. First short text then use - for bullet points when necessary.
-- NEVER use markdown syntax. No **bold**, no *italic*, no # headers. HTML tags only."""
+- NEVER use markdown syntax. No **bold**, no *italic*, no # headers. HTML tags only like <b>."""
 
 
 def detect_language(question: str) -> str:
@@ -62,6 +62,10 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
     )
 
     answer = response.choices[0].message.content
+    import re
+    answer = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', answer)
+    answer = re.sub(r'\*(.*?)\*', r'\1', answer)
+    answer = re.sub(r'#{1,6}\s*', '', answer)
 
     sources = {}
     for chunk in chunks:
