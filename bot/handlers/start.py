@@ -24,16 +24,13 @@ async def start_handler(
         lang = await db.get_user_lang(message.from_user.id) or "ru"
 
         try:
+            meta = await http_client.get(f"/api/v1/documents/{doc_id}")
+            meta.raise_for_status()
+            file_name = meta.json().get("file_name", "document")
+
             async with http_client.stream("GET", f"/api/v1/documents/{doc_id}/file") as response:
                 response.raise_for_status()
                 content = await response.aread()
-                content_disposition = response.headers.get("content-disposition", "")
-                if "filename*=UTF-8''" in content_disposition:
-                    file_name = content_disposition.split("filename*=UTF-8''")[-1].strip()
-                elif 'filename="' in content_disposition:
-                    file_name = content_disposition.split('filename="')[-1].rstrip('"')
-                else:
-                    file_name = "document.pdf"
 
             await message.answer_document(BufferedInputFile(content, filename=file_name))
         except Exception:

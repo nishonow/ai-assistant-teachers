@@ -21,7 +21,8 @@ ANSWER RULES:
 
 STYLE:
 - Answer directly, never use meta phrases like "according to the documents", "based on the context"
-- Use <b> for key terms. First short text then use - for bullet points when necessary. No markdown."""
+- Use <b> for key terms. First short text then use - for bullet points when necessary.
+- NEVER use markdown syntax. No **bold**, no *italic*, no # headers. HTML tags only."""
 
 
 def detect_language(question: str) -> str:
