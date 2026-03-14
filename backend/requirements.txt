@@ -12,3 +12,4 @@ pdfplumber
 python-docx
 lingua-language-detector
 pyjwt
+bcrypt

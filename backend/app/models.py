@@ -13,6 +13,9 @@ class User(Base):
     name = Column(Text, nullable=False)
     username = Column(Text)
     is_blocked = Column(Boolean, nullable=False, default=False)
+    is_admin = Column(Boolean, nullable=False, default=False)
+    login = Column(Text, nullable=True)
+    password_hash = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
 class Document(Base):

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
+import bcrypt
 from app.database import get_db
 from app.models import User, Document, Chunk, Message
 from app.dependencies import require_admin
@@ -11,6 +12,10 @@ router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(requir
 class BlockRequest(BaseModel):
     platform_user_id: str
     platform: str = "telegram"
+
+class MakeAdminRequest(BaseModel):
+    login: str
+    password: str
 
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
@@ -67,7 +72,32 @@ def list_users(db: Session = Depends(get_db)):
             "name": u.name,
             "username": u.username,
             "is_blocked": u.is_blocked,
+            "is_admin": u.is_admin,
             "created_at": u.created_at,
         }
         for u in users
     ]
+
+@router.post("/users/{user_id}/make-admin")
+def make_admin(user_id: int, request: MakeAdminRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if db.query(User).filter(User.login == request.login, User.id != user_id).first():
+        raise HTTPException(status_code=400, detail="Login already taken")
+    user.is_admin = True
+    user.login = request.login
+    user.password_hash = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
+    db.commit()
+    return {"ok": True}
+
+@router.post("/users/{user_id}/remove-admin")
+def remove_admin(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_admin = False
+    user.login = None
+    user.password_hash = None
+    db.commit()
+    return {"ok": True}

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.models import User
 
-router = APIRouter(prefix="/users", tags=["auth"])
+router = APIRouter(prefix="/users", tags=["users"])
 
 class RegisterRequest(BaseModel):
     platform_user_id: str
