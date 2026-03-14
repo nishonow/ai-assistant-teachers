@@ -14,6 +14,8 @@ RATE_WINDOW = 60
 
 _request_counts: dict[str, list[float]] = defaultdict(list)
 
+PLATFORMS_WITH_START = {"telegram"}
+
 class HistoryMessage(BaseModel):
     role: str
     content: str
@@ -42,7 +44,17 @@ def ask_question(request: AskRequest, db: Session = Depends(get_db)):
     ).first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        if request.platform in PLATFORMS_WITH_START:
+            raise HTTPException(status_code=404, detail="User not found")
+        user = User(
+            platform=request.platform,
+            platform_user_id=request.platform_user_id,
+            name=request.name,
+            username=request.username,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
     if user.is_blocked:
         raise HTTPException(status_code=403, detail="User is blocked")
