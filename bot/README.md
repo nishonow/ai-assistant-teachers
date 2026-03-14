@@ -21,6 +21,7 @@ BOT_TOKEN=...
 POSTGRES_URL=postgresql://user:password@host/dbname
 BACKEND_URL=http://localhost:8000
 ADMIN_IDS=[123456789]
+ADMIN_SECRET_TOKEN=your-bot-static-token
 ```
 
 3. Make sure backend is running.
@@ -37,5 +38,7 @@ python main.py
 - FSM-based chat history (last 5 exchanges)
 - Russian / Kyrgyz interface language
 - Response language follows user's question language
+- Source document citations as clickable deep links
 - Blocked user handling (403 → friendly message)
-- Admin panel: upload, delete, reindex docs, view stats, block/ublock users
+- Rate limit feedback (429 → friendly message)
+- Admin panel: upload, delete, reindex docs, view stats, block/unblock users with pagination

@@ -1,14 +1,15 @@
-from sqlalchemy import Column, BigInteger, Text, Integer, ForeignKey, TIMESTAMP, Boolean, func
+from sqlalchemy import Column, BigInteger, Text, Integer, ForeignKey, TIMESTAMP, Boolean, UniqueConstraint, func
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 from app.database import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (UniqueConstraint("platform", "platform_user_id"),)
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     platform = Column(Text, nullable=False, default="telegram")
-    platform_user_id = Column(Text, nullable=False, unique=True)
+    platform_user_id = Column(Text, nullable=False)
     name = Column(Text, nullable=False)
     username = Column(Text)
     is_blocked = Column(Boolean, nullable=False, default=False)

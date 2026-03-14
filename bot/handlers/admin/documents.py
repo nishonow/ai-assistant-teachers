@@ -3,7 +3,6 @@ from pathlib import Path
 
 import httpx
 from aiogram import F, Router
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -64,7 +63,6 @@ def _documents_overview_message(documents: list[dict], limit: int = 20) -> str:
     return "\n".join(lines)
 
 
-
 @router.message(F.text.in_(("⬅️ Back to Menu",)))
 async def back_to_user_menu_from_admin(message: Message, state: FSMContext, db: Database) -> None:
     lang = await db.get_user_lang(message.from_user.id) or "ru"
@@ -75,7 +73,7 @@ async def back_to_user_menu_from_admin(message: Message, state: FSMContext, db: 
 @router.message(F.text.in_(("📤 Add File",)))
 async def admin_add_file_button(message: Message, state: FSMContext) -> None:
     await state.set_state(AdminState.waiting_file)
-    await message.answer("📤 Send a file (.txt, .pdf, .doc, .docx).", reply_markup=admin_action_keyboard())
+    await message.answer("📤 Send a file (.txt, .pdf, .docx).", reply_markup=admin_action_keyboard())
 
 
 @router.message(AdminState.waiting_file, F.text != "❌ Cancel")
@@ -86,8 +84,8 @@ async def admin_waiting_file(message: Message, state: FSMContext, http_client: h
 
     original_name = message.document.file_name or "document"
     ext = Path(original_name).suffix.lower().lstrip(".")
-    if ext not in {"txt", "pdf", "doc", "docx"}:
-        await message.answer("⚠️ Only .txt, .pdf, .doc, .docx are supported.", reply_markup=admin_action_keyboard())
+    if ext not in {"txt", "pdf", "docx"}:
+        await message.answer("⚠️ Only .txt, .pdf, .docx are supported.", reply_markup=admin_action_keyboard())
         return
 
     status_msg = await message.answer("⏳ Uploading...")
@@ -213,6 +211,62 @@ async def admin_documents_page(callback: CallbackQuery, http_client: httpx.Async
         docs = response.json()
     except Exception:
         await callback.answer("⚠️ Failed to fetch documents", show_alert=True)
+        return
+
+    if not docs:
+        await callback.message.edit_text("📚 No documents uploaded yet.")
+        await callback.answer()
+        return
+
+    await callback.message.edit_text(
+        _selection_message(action, docs, page=page),
+        reply_markup=admin_documents_pagination_keyboard(docs, action=action, page=page),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.regexp(r"^admin:(delete|reindex):doc:\d+:\d+$"))
+async def admin_document_action(callback: CallbackQuery, http_client: httpx.AsyncClient) -> None:
+    if not callback.data or not callback.message:
+        await callback.answer()
+        return
+
+    parts = callback.data.split(":", maxsplit=4)
+    _, action, _, raw_document_id, raw_page = parts
+    document_id = int(raw_document_id)
+    page = _resolve_page(raw_page)
+
+    await callback.answer()
+
+    try:
+        if action == "delete":
+            response = await http_client.delete(f"/api/v1/documents/{document_id}")
+            response.raise_for_status()
+            await callback.message.answer("✅ Document deleted")
+        else:
+            response = await http_client.post(f"/api/v1/documents/{document_id}/reindex")
+            response.raise_for_status()
+            await callback.message.answer("✅ Reindexing started")
+    except httpx.HTTPStatusError as e:
+        await callback.message.answer(f"⚠️ Error: {e.response.status_code}")
+        return
+
+    try:
+        response = await http_client.get("/api/v1/documents/")
+        response.raise_for_status()
+        docs = response.json()
+    except Exception:
+        await callback.message.answer("⚠️ Failed to refresh")
+        return
+
+    if not docs:
+        await callback.message.edit_text("📚 No documents uploaded yet.")
+        return
+
+    await callback.message.edit_text(
+        _selection_message(action, docs, page=page),
+        reply_markup=admin_documents_pagination_keyboard(docs, action=action, page=page),
+    )
 
 @router.message(F.text == "❌ Cancel", AdminState.waiting_file)
 async def admin_cancel_action(message: Message, state: FSMContext) -> None:

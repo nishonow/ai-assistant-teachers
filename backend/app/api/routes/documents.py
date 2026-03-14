@@ -10,7 +10,7 @@ import os
 
 router = APIRouter(prefix="/documents", tags=["documents"], dependencies=[Depends(require_admin)])
 
-ALLOWED_TYPES = {"pdf", "txt", "doc", "docx"}
+ALLOWED_TYPES = {"pdf", "txt", "docx"}
 
 @router.post("/upload")
 async def upload_document(
@@ -23,7 +23,10 @@ async def upload_document(
     if file_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=400, detail=f"File type not allowed. Use: {ALLOWED_TYPES}")
 
-    file_name, file_path = await save_file(file)
+    try:
+        file_name, file_path = await save_file(file)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     document = Document(
         file_name=file_name,
@@ -36,8 +39,7 @@ async def upload_document(
     db.commit()
     db.refresh(document)
 
-    background_tasks.add_task(process_document, document, db)
-
+    background_tasks.add_task(process_document, document.id)
     return {"id": document.id, "file_name": file_name, "status": document.status}
 
 @router.get("/")
@@ -76,8 +78,17 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
     document = db.query(Document).filter(Document.id == document_id).first()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
+
+    file_path = document.file_path
     db.delete(document)
     db.commit()
+
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    except OSError:
+        pass
+
     return {"message": "Document deleted"}
 
 @router.post("/{document_id}/reindex")
@@ -90,8 +101,7 @@ async def reindex_document(document_id: int, background_tasks: BackgroundTasks, 
     document.status = "pending"
     db.commit()
 
-    background_tasks.add_task(process_document, document, db)
-
+    background_tasks.add_task(process_document, document.id)
     return {"id": document.id, "status": "reindexing"}
 
 @router.get("/{document_id}/file")
