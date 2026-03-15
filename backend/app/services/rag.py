@@ -34,19 +34,20 @@ FORMATTING — STRICT RULES:
 
 
 def detect_language(question: str) -> str:
+    if len(question.strip()) < 10:
+        return "Russian"
     lang = detector.detect_language_of(question)
     return lang.name.capitalize() if lang else "Russian"
 
 
 def search_chunks(query: str, db: Session, top_k: int = 12) -> list[Chunk]:
     query_embedding = embed_text(query)
-    rows = (
-        db.query(Chunk, Chunk.embedding.cosine_distance(query_embedding).label("distance"))
+    return (
+        db.query(Chunk)
         .order_by(Chunk.embedding.cosine_distance(query_embedding))
         .limit(top_k)
         .all()
     )
-    return [chunk for chunk, distance in rows if distance < 0.45]
 
 
 def postprocess(text: str) -> str:
