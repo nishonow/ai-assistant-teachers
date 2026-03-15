@@ -274,10 +274,9 @@ export default function App() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("uploaded_by", uploadedBy);
 
       await authorizedRequest({
-        path: "/api/v1/documents/upload",
+        path: `/api/v1/documents/upload?uploaded_by=${encodeURIComponent(uploadedBy)}`,
         method: "POST",
         body: formData,
         isForm: true,
@@ -355,7 +354,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden md:grid md:h-screen md:overflow-hidden md:grid-cols-[18rem_1fr]">
+    <div className="min-h-screen overflow-x-hidden">
       <Sidebar
         items={TABS}
         activeTab={activeTab}
@@ -368,11 +367,11 @@ export default function App() {
         apiBaseUrl={API_BASE_URL}
       />
 
-      <main className="flex min-h-screen flex-col gap-3 p-4 md:h-screen md:gap-4 md:overflow-hidden md:p-6">
+      <main className="flex min-h-screen flex-col gap-3 p-4 md:ml-72 md:gap-4 md:p-6">
         <Topbar username={username} onOpenMenu={() => setSidebarOpen(true)} onRequestLogout={() => setLogoutConfirmOpen(true)} />
         <Notice notice={notice} />
 
-        <section className="panel p-4 md:min-h-0 md:flex-1 md:overflow-hidden md:p-5">
+        <section className="panel p-4 md:p-5">
           <Routes>
             <Route path="/" element={<Navigate to="/overview" replace />} />
             <Route path="/overview" element={<OverviewTab stats={stats} loading={loading.stats} onRefresh={loadStats} />} />
@@ -422,5 +421,3 @@ export default function App() {
     </div>
   );
 }
-
-

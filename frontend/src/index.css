@@ -29,12 +29,6 @@
   }
 
   @media (min-width: 768px) {
-    html,
-    body,
-    #root {
-      @apply overflow-y-hidden;
-    }
-
     input,
     select,
     textarea {
@@ -99,5 +93,13 @@
 
   .action-btn {
     @apply w-36 shrink-0;
+  }
+
+  .action-btn-doc {
+    @apply w-9 shrink-0 px-0 md:w-28 md:px-3;
+  }
+
+  .action-btn-doc span {
+    @apply hidden md:inline;
   }
 }

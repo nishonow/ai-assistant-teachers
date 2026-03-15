@@ -4,7 +4,7 @@ import Pagination from "./Pagination";
 import { formatDate } from "../lib/utils";
 import type { UserRecord } from "../lib/types";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 20;
 
 type JoinSort = "newest" | "oldest";
 
@@ -104,7 +104,7 @@ export default function UsersTab({
   };
 
   return (
-    <section className="flex min-h-0 flex-col gap-4 overflow-hidden md:h-full">
+    <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-heading text-2xl font-bold">Users</h2>
 
@@ -156,7 +156,7 @@ export default function UsersTab({
         </p>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto rounded-2xl border border-ink-600/50">
+      <div className="overflow-x-auto rounded-2xl border border-ink-600/50">
         <table className="min-w-[980px] w-full text-left text-sm">
           <thead className="sticky top-0 z-10 bg-ink-800/60 text-slate-300">
             <tr>

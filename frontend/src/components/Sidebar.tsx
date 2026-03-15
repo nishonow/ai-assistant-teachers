@@ -22,7 +22,7 @@ export default function Sidebar({ items, activeTab, onSelect, open, onClose, api
   return (
     <>
       <aside
-        className={`sidebar-shell fixed left-0 top-0 z-40 flex h-screen w-72 flex-col p-5 transition-transform duration-200 md:sticky md:top-0 md:translate-x-0 ${
+        className={`sidebar-shell fixed left-0 top-0 z-40 flex h-screen w-72 flex-col overflow-hidden p-5 transition-transform duration-200 md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -36,7 +36,7 @@ export default function Sidebar({ items, activeTab, onSelect, open, onClose, api
           </button>
         </div>
 
-        <nav className="mt-5 flex-1 space-y-2 overflow-y-auto">
+        <nav className="mt-5 flex-1 space-y-2">
           {items.map((item) => {
             const Icon = ICONS[item.id];
             const active = activeTab === item.id;

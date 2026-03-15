@@ -1,10 +1,9 @@
 import { Download, RotateCw, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import Pagination from "./Pagination";
-import { formatDate } from "../lib/utils";
 import type { DocumentRecord } from "../lib/types";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 20;
 
 function DocumentStatus({ value }: { value: string }) {
   return value === "ready" ? (
@@ -50,7 +49,7 @@ export default function DocumentsTab({
   }, [documents, currentPage]);
 
   return (
-    <section className="flex min-h-0 flex-col gap-4 overflow-hidden md:h-full">
+    <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-heading text-2xl font-bold">Documents</h2>
         <button className="btn-muted" type="button" onClick={onRefresh} disabled={loading}>
@@ -60,24 +59,23 @@ export default function DocumentsTab({
 
       <p className="text-xs text-slate-400">Showing {pageDocuments.length} of {documents.length} documents</p>
 
-      <div className="min-h-0 flex-1 overflow-auto rounded-2xl border border-ink-600/50">
-        <table className="min-w-[1080px] w-full text-left text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-ink-600/50">
+        <table className="w-full table-fixed text-left text-sm">
           <thead className="sticky top-0 z-10 bg-ink-800/60 text-slate-300">
             <tr>
-              <th className="px-3 py-3">ID</th>
-              <th className="px-3 py-3">File Name</th>
-              <th className="px-3 py-3">Type</th>
-              <th className="px-3 py-3">Status</th>
-              <th className="px-3 py-3">Chunks</th>
-              <th className="px-3 py-3">Uploaded By</th>
-              <th className="px-3 py-3">Created</th>
-              <th className="px-3 py-3">Actions</th>
+              <th className="w-14 px-2 py-3">ID</th>
+              <th className="w-[30%] px-3 py-3">File Name</th>
+              <th className="hidden px-2 py-3 lg:table-cell">Type</th>
+              <th className="px-2 py-3">Status</th>
+              <th className="hidden px-2 py-3 md:table-cell">Chunks</th>
+              <th className="px-2 py-3">Uploaded By</th>
+              <th className="w-[10.5rem] px-2 py-3 md:w-[23.5rem]">Actions</th>
             </tr>
           </thead>
           <tbody>
             {pageDocuments.length === 0 ? (
               <tr>
-                <td className="px-3 py-8 text-center text-slate-400" colSpan={8}>
+                <td className="px-3 py-8 text-center text-slate-400" colSpan={7}>
                   No documents found.
                 </td>
               </tr>
@@ -89,47 +87,48 @@ export default function DocumentsTab({
 
                 return (
                   <tr key={doc.id} className="border-t border-ink-600/40">
-                    <td className="px-3 py-3">{doc.id}</td>
-                    <td className="max-w-[260px] truncate px-3 py-3" title={doc.file_name}>
-                      {doc.file_name}
+                    <td className="px-2 py-3">{doc.id}</td>
+                    <td className="px-3 py-3" title={doc.file_name}>
+                      <p className="truncate">{doc.file_name}</p>
                     </td>
-                    <td className="px-3 py-3">{doc.file_type}</td>
-                    <td className="px-3 py-3">
+                    <td className="hidden px-2 py-3 lg:table-cell">{doc.file_type}</td>
+                    <td className="px-2 py-3">
                       <DocumentStatus value={doc.status} />
                     </td>
-                    <td className="px-3 py-3">{doc.chunk_count ?? 0}</td>
-                    <td className="px-3 py-3">{doc.uploaded_by}</td>
-                    <td className="px-3 py-3">{formatDate(doc.created_at)}</td>
-                    <td className="px-3 py-3">
+                    <td className="hidden px-2 py-3 md:table-cell">{doc.chunk_count ?? 0}</td>
+                    <td className="px-2 py-3">
+                      <p className="truncate">{doc.uploaded_by || "admin"}</p>
+                    </td>
+                    <td className="px-2 py-3">
                       <div className="action-row">
                         <button
-                          className="btn-muted action-btn"
+                          className="btn-muted action-btn action-btn-doc"
                           type="button"
                           onClick={() => onDownload(doc)}
                           disabled={actionLoading === downloadKey}
                         >
                           <Download size={13} />
-                          {actionLoading === downloadKey ? "Please wait..." : "Download"}
+                          <span>{actionLoading === downloadKey ? "Please wait..." : "Download"}</span>
                         </button>
 
                         <button
-                          className="btn-warn action-btn"
+                          className="btn-warn action-btn action-btn-doc"
                           type="button"
                           onClick={() => onReindex(doc)}
                           disabled={actionLoading === reindexKey}
                         >
                           <RotateCw size={13} />
-                          {actionLoading === reindexKey ? "Please wait..." : "Reindex"}
+                          <span>{actionLoading === reindexKey ? "Please wait..." : "Reindex"}</span>
                         </button>
 
                         <button
-                          className="btn-danger action-btn"
+                          className="btn-danger action-btn action-btn-doc"
                           type="button"
                           onClick={() => onDelete(doc)}
                           disabled={actionLoading === deleteKey}
                         >
                           <Trash2 size={13} />
-                          {actionLoading === deleteKey ? "Please wait..." : "Delete"}
+                          <span>{actionLoading === deleteKey ? "Please wait..." : "Delete"}</span>
                         </button>
                       </div>
                     </td>

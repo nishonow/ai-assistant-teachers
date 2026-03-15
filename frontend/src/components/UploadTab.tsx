@@ -22,7 +22,7 @@ export default function UploadTab({ loading, onUpload }: UploadTabProps) {
   };
 
   return (
-    <section className="space-y-4 md:h-full md:overflow-auto md:pr-1">
+    <section className="space-y-4">
       <h2 className="font-heading text-2xl font-bold">Upload Document</h2>
 
       <article className="panel max-w-2xl p-5">

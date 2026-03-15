@@ -26,10 +26,8 @@ export interface DocumentRecord {
   id: number;
   file_name: string;
   file_type: string;
-  file_path?: string;
   uploaded_by: string;
   status: string;
-  created_at: string | null;
   chunk_count?: number;
 }
 

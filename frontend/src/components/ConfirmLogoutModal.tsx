@@ -11,8 +11,8 @@ export default function ConfirmLogoutModal({ open, loading = false, onCancel, on
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-brand-400/30 bg-ink-700/95 p-5 shadow-panel ring-1 ring-ink-950/50">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/85 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl border border-ink-500 bg-ink-900/98 p-5 shadow-panel ring-1 ring-black/60">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <p className="font-heading text-xl font-bold">Confirm Logout</p>
@@ -36,3 +36,4 @@ export default function ConfirmLogoutModal({ open, loading = false, onCancel, on
     </div>
   );
 }
+

@@ -74,7 +74,7 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
             if doc:
                 sources[chunk.document_id] = doc.file_name
 
-    db.add(Message(user_id=user_id, platform=platform, question=question))
+    db.add(Message(user_id=user_id, platform=platform, question=question, answer=answer))
     db.commit()
 
     return {"answer": answer, "sources": sources}
