@@ -1,3 +1,4 @@
+import re
 from sqlalchemy.orm import Session
 from openai import OpenAI
 from lingua import LanguageDetectorBuilder
@@ -6,34 +7,53 @@ from app.models import Chunk, Message, Document
 from app.services.embeddings import embed_text
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
 detector = LanguageDetectorBuilder.from_all_languages().build()
 
-SYSTEM_PROMPT = """You are Mugallim AI, a legal assistant for teachers in Kyrgyzstan.
-You help teachers understand their rights based on labor law documents.
+SYSTEM_PROMPT = """You are Mugallim AI, a legal assistant for teachers in Kyrgyzstan. You help teachers understand their rights based on official legal documents.
 
-ANSWER RULES:
-- For legal questions: answer ONLY from the provided document context
-- For greetings, small talk, questions about yourself: answer naturally and briefly
-- For questions about chat history: use the provided chat history to answer
-- If legal question is not in context: say you don't have that information in the documents
-- Never say "I can't answer" for non-legal questions
+QUESTION CLASSIFICATION:
+First, classify the question as one of:
+- LEGAL: questions about labor rights, leave, salary, dismissal, education law, workplace rules, complaints, contracts
+- GENERAL: greetings, small talk, questions about yourself, questions about the conversation history
 
-STYLE:
-- Answer directly, never use meta phrases like "according to the documents", "based on the context"
-- Use <b> for key terms. First short text then use - for bullet points when necessary.
-- NEVER use markdown syntax. No **bold**, no *italic*, no # headers. HTML tags only like <b>."""
+FOR LEGAL QUESTIONS:
+- Answer ONLY using the provided document context
+- If the answer is not in the context, say: "I don't have that information in the documents"
+- Never fabricate laws, articles, or rules not present in the context
+
+FOR GENERAL QUESTIONS:
+- Ignore the document context completely
+- Answer naturally and briefly (3-4 sentences max)
+
+FORMATTING — STRICT RULES:
+- Use ONLY HTML tags for formatting. Never use markdown
+- Forbidden: **bold**, *italic*, # headers, numbered lists with dots, --- separators
+- Allowed: <b>term</b> for key terms, - for bullet points
+- Structure: one short paragraph first, then bullet points only if needed
+- Never start with "According to", "Based on", "The documents state" or similar phrases"""
 
 
 def detect_language(question: str) -> str:
     lang = detector.detect_language_of(question)
     return lang.name.capitalize() if lang else "Russian"
 
-def search_chunks(query: str, db: Session, top_k: int = 5) -> list[Chunk]:
+
+def search_chunks(query: str, db: Session, top_k: int = 12) -> list[Chunk]:
     query_embedding = embed_text(query)
-    return db.query(Chunk).order_by(
-        Chunk.embedding.cosine_distance(query_embedding)
-    ).limit(top_k).all()
+    rows = (
+        db.query(Chunk, Chunk.embedding.cosine_distance(query_embedding).label("distance"))
+        .order_by(Chunk.embedding.cosine_distance(query_embedding))
+        .limit(top_k)
+        .all()
+    )
+    return [chunk for chunk, distance in rows if distance < 0.45]
+
+
+def postprocess(text: str) -> str:
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    text = re.sub(r'\*(.*?)\*', r'\1', text)
+    text = re.sub(r'#{1,6}\s*', '', text)
+    return text
 
 
 def ask(question: str, user_id: int, platform: str, history: list[dict], db: Session) -> dict:
@@ -51,8 +71,11 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
 
     chunks = search_chunks(question, db)
     context = "\n\n".join([chunk.chunk_text for chunk in chunks]) if chunks else ""
-    user_content = f"Document context:\n{context}\n\nQuestion: {question}\n\nRemember: respond in {detected_lang}." if context else f"{question}\n\nRemember: respond in {detected_lang}."
-
+    user_content = (
+        f"Document context:\n{context}\n\nQuestion: {question}\n\nRemember: respond in {detected_lang}."
+        if context else
+        f"{question}\n\nRemember: respond in {detected_lang}."
+    )
     messages.append({"role": "user", "content": user_content})
 
     response = client.chat.completions.create(
@@ -61,11 +84,7 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
         temperature=0.2
     )
 
-    answer = response.choices[0].message.content
-    import re
-    answer = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', answer)
-    answer = re.sub(r'\*(.*?)\*', r'\1', answer)
-    answer = re.sub(r'#{1,6}\s*', '', answer)
+    answer = postprocess(response.choices[0].message.content)
 
     sources = {}
     for chunk in chunks:
