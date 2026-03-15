@@ -32,14 +32,47 @@ def detect_language(question: str) -> str:
     return lang.name.capitalize() if lang else "Russian"
 
 
-def search_chunks(query: str, db: Session, top_k: int = 12) -> list[Chunk]:
-    query_embedding = embed_text(query)
-    return (
-        db.query(Chunk)
-        .order_by(Chunk.embedding.cosine_distance(query_embedding))
-        .limit(top_k)
-        .all()
+def generate_hypothetical_answer(question: str) -> str:
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": "Generate a short hypothetical document passage that would answer the following question. Write it as if it's extracted from an official policy or legal document. 2-3 sentences max. No preamble."
+            },
+            {"role": "user", "content": question}
+        ],
+        temperature=0
     )
+    return response.choices[0].message.content.strip()
+
+
+def search_chunks(query: str, hyde_text: str, db: Session, top_k_per_doc: int = 4) -> list[Chunk]:
+    query_embedding = embed_text(query)
+    hyde_embedding = embed_text(hyde_text)
+
+    document_ids = [
+        row[0] for row in db.query(Document.id).filter(Document.status == "indexed").all()
+    ]
+
+    seen_ids = set()
+    results = []
+
+    for doc_id in document_ids:
+        for embedding in [query_embedding, hyde_embedding]:
+            chunks = (
+                db.query(Chunk)
+                .filter(Chunk.document_id == doc_id)
+                .order_by(Chunk.embedding.cosine_distance(embedding))
+                .limit(top_k_per_doc)
+                .all()
+            )
+            for chunk in chunks:
+                if chunk.id not in seen_ids:
+                    seen_ids.add(chunk.id)
+                    results.append(chunk)
+
+    return results
 
 
 def postprocess(text: str) -> str:
@@ -51,6 +84,8 @@ def postprocess(text: str) -> str:
 
 def ask(question: str, user_id: int, platform: str, history: list[dict], db: Session) -> dict:
     detected_lang = detect_language(question)
+    hyde_text = generate_hypothetical_answer(question)
+    chunks = search_chunks(question, hyde_text, db)
 
     messages = [
         {
@@ -62,7 +97,6 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
     for msg in history:
         messages.append({"role": msg["role"], "content": msg["content"]})
 
-    chunks = search_chunks(question, db)
     context = "\n\n".join([chunk.chunk_text for chunk in chunks]) if chunks else ""
     user_content = (
         f"Document context:\n{context}\n\nQuestion: {question}\n\nRemember: respond in {detected_lang}."
