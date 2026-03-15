@@ -22,11 +22,23 @@
       radial-gradient(700px 320px at 108% 100%, rgba(83, 246, 220, 0.08), transparent 68%);
   }
 
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
   @media (min-width: 768px) {
     html,
     body,
     #root {
       @apply overflow-y-hidden;
+    }
+
+    input,
+    select,
+    textarea {
+      font-size: 14px;
     }
   }
 }
@@ -65,7 +77,8 @@
   }
 
   .input {
-    @apply mt-1 w-full rounded-xl border border-ink-500 bg-ink-900/65 px-3 py-2 text-slate-100 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none;
+    @apply mt-1 w-full rounded-xl border border-ink-500 bg-ink-900/65 px-3 py-2 text-base text-slate-100 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none md:text-sm;
+    @apply file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-ink-950 hover:file:bg-brand-400;
   }
 
   .sidebar-shell {
@@ -88,5 +101,3 @@
     @apply w-36 shrink-0;
   }
 }
-
-
