@@ -1,4 +1,5 @@
 import re
+import json
 from sqlalchemy.orm import Session
 from openai import OpenAI
 from lingua import LanguageDetectorBuilder
@@ -22,7 +23,15 @@ FORMATTING — STRICT RULES:
 - Forbidden: **bold**, *italic*, # headers, numbered lists with dots, --- separators
 - Allowed: <b>term</b> for key terms, - for bullet points
 - Structure: one short paragraph first, then bullet points only if needed
-- Never start with "According to", "Based on", "The documents state" or similar phrases"""
+- Never start with "According to", "Based on", "The documents state" or similar phrases
+
+RESPONSE FORMAT — CRITICAL:
+You must always respond with valid JSON in this exact structure:
+{
+  "answer": "your answer here using HTML formatting",
+  "used_doc_ids": [1, 3]
+}
+used_doc_ids must contain only the document IDs you actually used to answer. Empty list [] for general/small talk questions."""
 
 
 def detect_language(question: str) -> str:
@@ -60,14 +69,14 @@ def search_chunks(query: str, hyde_text: str, db: Session, top_k_per_doc: int = 
 
     for doc_id in document_ids:
         for embedding in [query_embedding, hyde_embedding]:
-            chunks = (
+            rows = (
                 db.query(Chunk)
                 .filter(Chunk.document_id == doc_id)
                 .order_by(Chunk.embedding.cosine_distance(embedding))
                 .limit(top_k_per_doc)
                 .all()
             )
-            for chunk in chunks:
+            for chunk in rows:
                 if chunk.id not in seen_ids:
                     seen_ids.add(chunk.id)
                     results.append(chunk)
@@ -87,6 +96,18 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
     hyde_text = generate_hypothetical_answer(question)
     chunks = search_chunks(question, hyde_text, db)
 
+    doc_map: dict[int, str] = {}
+    for chunk in chunks:
+        if chunk.document_id not in doc_map:
+            doc = db.query(Document).filter(Document.id == chunk.document_id).first()
+            if doc:
+                doc_map[chunk.document_id] = doc.file_name
+
+    context_parts = []
+    for chunk in chunks:
+        context_parts.append(f"[doc_id:{chunk.document_id}] {chunk.chunk_text}")
+    context = "\n\n".join(context_parts)
+
     messages = [
         {
             "role": "system",
@@ -97,7 +118,6 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
     for msg in history:
         messages.append({"role": msg["role"], "content": msg["content"]})
 
-    context = "\n\n".join([chunk.chunk_text for chunk in chunks]) if chunks else ""
     user_content = (
         f"Document context:\n{context}\n\nQuestion: {question}\n\nRemember: respond in {detected_lang}."
         if context else
@@ -108,17 +128,20 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=messages,
-        temperature=0.2
+        temperature=0.2,
+        response_format={"type": "json_object"}
     )
 
-    answer = postprocess(response.choices[0].message.content)
+    raw = response.choices[0].message.content
+    try:
+        parsed = json.loads(raw)
+        answer = postprocess(parsed.get("answer", ""))
+        used_doc_ids = parsed.get("used_doc_ids", [])
+    except (json.JSONDecodeError, AttributeError):
+        answer = postprocess(raw)
+        used_doc_ids = list(doc_map.keys())
 
-    sources = {}
-    for chunk in chunks:
-        if chunk.document_id not in sources:
-            doc = db.query(Document).filter(Document.id == chunk.document_id).first()
-            if doc:
-                sources[chunk.document_id] = doc.file_name
+    sources = {doc_id: doc_map[doc_id] for doc_id in used_doc_ids if doc_id in doc_map}
 
     db.add(Message(user_id=user_id, platform=platform, question=question, answer=answer))
     db.commit()
