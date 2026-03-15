@@ -60,7 +60,7 @@ export default function DocumentsTab({
       <p className="text-xs text-slate-400">Showing {pageDocuments.length} of {documents.length} documents</p>
 
       <div className="overflow-x-auto rounded-2xl border border-ink-600/50">
-        <table className="w-full table-fixed text-left text-sm">
+        <table className="min-w-[980px] w-full text-left text-sm">
           <thead className="sticky top-0 z-10 bg-ink-800/60 text-slate-300">
             <tr>
               <th className="w-14 px-2 py-3">ID</th>

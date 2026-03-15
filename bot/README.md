@@ -19,7 +19,7 @@ pip install -r requirements.txt
 ```
 BOT_TOKEN=...
 POSTGRES_URL=postgresql://user:password@host/dbname
-BACKEND_URL=http://localhost:8000
+BACKEND_URL=<your-backend-base-url>
 ADMIN_IDS=[123456789]
 ADMIN_SECRET_TOKEN=your-bot-static-token
 ```
@@ -39,6 +39,6 @@ python main.py
 - Russian / Kyrgyz interface language
 - Response language follows user's question language
 - Source document citations as clickable deep links
-- Blocked user handling (403 → friendly message)
-- Rate limit feedback (429 → friendly message)
+- Blocked user handling (403 -> friendly message)
+- Rate limit feedback (429 -> friendly message)
 - Admin panel: upload, delete, reindex docs, view stats, block/unblock users with pagination

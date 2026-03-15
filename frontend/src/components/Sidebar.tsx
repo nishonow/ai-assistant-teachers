@@ -8,7 +8,6 @@ interface SidebarProps {
   onSelect: (tab: TabId) => void;
   open: boolean;
   onClose: () => void;
-  apiBaseUrl: string;
 }
 
 const ICONS: Record<TabId, LucideIcon> = {
@@ -18,7 +17,7 @@ const ICONS: Record<TabId, LucideIcon> = {
   upload: Upload,
 };
 
-export default function Sidebar({ items, activeTab, onSelect, open, onClose, apiBaseUrl }: SidebarProps) {
+export default function Sidebar({ items, activeTab, onSelect, open, onClose }: SidebarProps) {
   return (
     <>
       <aside
@@ -53,11 +52,6 @@ export default function Sidebar({ items, activeTab, onSelect, open, onClose, api
             );
           })}
         </nav>
-
-        <div className="mt-4 border-t border-ink-600/80 pt-4 text-xs text-slate-400">
-          <p className="font-heading uppercase tracking-[0.15em]">API Endpoint</p>
-          <p className="mt-2 break-all">{apiBaseUrl}</p>
-        </div>
       </aside>
 
       <div

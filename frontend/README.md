@@ -4,7 +4,7 @@ Responsive dark-mode admin panel built with React + Vite + Tailwind CSS + TypeSc
 
 ## Features
 
-- JWT login (`POST /api/v1/auth/login`)
+- JWT login support
 - Sidebar navigation with icons: Overview, Users, Documents, Upload Document
 - Users management:
   - Block / Unblock user
@@ -23,7 +23,7 @@ Responsive dark-mode admin panel built with React + Vite + Tailwind CSS + TypeSc
 Create `.env` in `frontend/` if needed:
 
 ```bash
-VITE_API_BASE_URL=https://api2.nishonow.com
+VITE_API_BASE_URL=<your-backend-base-url>
 ```
 
 ## Run

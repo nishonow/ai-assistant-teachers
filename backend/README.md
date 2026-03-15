@@ -1,4 +1,4 @@
-# Mugallim AI — Backend
+# Mugallim AI â€” Backend
 
 FastAPI backend for Mugallim AI, a legal assistant for teachers in Kyrgyzstan.
 
@@ -37,26 +37,13 @@ CREATE EXTENSION IF NOT EXISTS vector;
 uvicorn app.main:app --reload
 ```
 
-Docs at `http://localhost:8000/docs`
+## API Scope
 
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /api/v1/auth/login | Admin login → JWT token |
-| POST | /api/v1/users/register | Register user on /start |
-| POST | /api/v1/ask/ | Ask a question (RAG) |
-| GET | /api/v1/documents/ | List documents |
-| POST | /api/v1/documents/upload | Upload document (max 20MB, pdf/txt/docx) |
-| DELETE | /api/v1/documents/{id} | Delete document |
-| POST | /api/v1/documents/{id}/reindex | Reindex document |
-| GET | /api/v1/documents/{id}/file | Download document file |
-| GET | /api/v1/admin/stats | Usage stats |
-| GET | /api/v1/admin/users | List users |
-| POST | /api/v1/admin/users/block | Block user |
-| POST | /api/v1/admin/users/unblock | Unblock user |
-| POST | /api/v1/admin/users/{id}/make-admin | Grant admin access |
-| POST | /api/v1/admin/users/{id}/remove-admin | Revoke admin access |
+- Authentication for admin users
+- User registration and management
+- RAG question answering
+- Document upload, listing, download, delete, and reindex
+- Admin stats and moderation actions
 
 ## Database Tables
 
@@ -70,16 +57,15 @@ Docs at `http://localhost:8000/docs`
 
 ## Auth
 
-- Admin endpoints require `Authorization: Bearer <token>`
-- Web admin panel: login via `POST /api/v1/auth/login` → use returned JWT
-- Telegram bot: uses static `ADMIN_SECRET_TOKEN` from `.env`, no login needed
-- Both token types are accepted on all protected endpoints
+- Admin endpoints require bearer token auth
+- Web admin panel uses JWT auth
+- Telegram bot uses static admin token from `.env`
+- Both token types are accepted on protected endpoints
 - Super admin credentials are in `.env`, additional admins managed via web panel
 
 ## Notes
 
-- Telegram users register on `/start`, other platforms auto-register on first message
-- Blocked users get 403 on `/ask`
+- Telegram users register when they start chat, other platforms auto-register on first message
+- Blocked users get 403 on question requests
 - Rate limit: 5 requests per 60 seconds per user
 - File uploads: max 20MB, supported formats: pdf, txt, docx
-- Deployed at `https://api2.nishonow.com`

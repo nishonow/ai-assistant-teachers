@@ -10,7 +10,7 @@ import DocumentsTab from "./components/DocumentsTab";
 import UploadTab from "./components/UploadTab";
 import MakeAdminModal from "./components/MakeAdminModal";
 import ConfirmLogoutModal from "./components/ConfirmLogoutModal";
-import { API_BASE_URL, apiRequest, ApiRequestError, type ApiRequestOptions } from "./lib/api";
+import { apiRequest, ApiRequestError, type ApiRequestOptions } from "./lib/api";
 import { clearToken, getStoredAuth, saveToken } from "./lib/utils";
 import type {
   DocumentRecord,
@@ -364,7 +364,6 @@ export default function App() {
           navigate(TAB_PATHS[tab]);
           setSidebarOpen(false);
         }}
-        apiBaseUrl={API_BASE_URL}
       />
 
       <main className="flex min-h-screen flex-col gap-3 p-4 md:ml-72 md:gap-4 md:p-6">

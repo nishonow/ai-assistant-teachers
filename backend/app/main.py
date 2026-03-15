@@ -7,9 +7,18 @@ from app.api.routes import documents, ask, admin, users, auth
 
 app = FastAPI(title="Legal AI Backend")
 
+ALLOWED_ORIGINS = [
+    "http://localhost",
+    "http://localhost:5173",
+    "http://127.0.0.1",
+    "http://127.0.0.1:5173",
+    "https://ai-assistant-teachers.vercel.app",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
