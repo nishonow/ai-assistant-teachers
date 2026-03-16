@@ -89,7 +89,7 @@ def search_chunks(query: str, hyde_text: str, db: Session) -> list[tuple[Chunk, 
             d_query = 1.0
 
         d_hyde = hyde_scores[chunk_id][1] if chunk_id in hyde_scores else 1.0
-        combined = 0.7 * d_query + 0.3 * d_hyde
+        combined = 0.9 * d_query + 0.1 * d_hyde
         scored.append((chunk, combined))
 
     scored.sort(key=lambda x: x[1])

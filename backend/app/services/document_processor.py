@@ -51,7 +51,9 @@ async def process_document(document_id: int):
 
         text = extract_text(document.file_path, document.file_type)
         chunks = split_text(text)
-        embeddings = embed_chunks(chunks)
+
+        prefixed_chunks = [f"Document: {document.file_name}\n{chunk}" for chunk in chunks]
+        embeddings = embed_chunks(prefixed_chunks)
 
         for i, (chunk_text, embedding) in enumerate(zip(chunks, embeddings)):
             session.add(Chunk(
