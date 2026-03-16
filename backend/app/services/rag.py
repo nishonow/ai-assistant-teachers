@@ -28,13 +28,13 @@ FORMATTING — STRICT RULES:
 - Never start with "According to", "Based on", "The documents state" or similar phrases"""
 
 ALLOWED_ROLES = {"user", "assistant"}
-TOP_K_RETRIEVAL = 50
+TOP_K_RETRIEVAL = 100
 TOP_K_CONTEXT = 10
 MAX_CHUNKS_PER_DOC = 3
 NO_CONTEXT_THRESHOLD = 0.93
 SOURCE_THRESHOLD = 0.95
-QUERY_WEIGHT = 0.85
-HYDE_WEIGHT = 0.15
+QUERY_WEIGHT = 0.7
+HYDE_WEIGHT = 0.3
 
 
 def detect_language(question: str) -> str:
