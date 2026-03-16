@@ -29,6 +29,7 @@ export interface DocumentRecord {
   uploaded_by: string;
   status: string;
   chunk_count?: number;
+  created_at?: string | null;
 }
 
 export interface StatsResponse {

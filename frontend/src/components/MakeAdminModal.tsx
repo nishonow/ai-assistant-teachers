@@ -29,8 +29,8 @@ export default function MakeAdminModal({ user, loading, onClose, onSubmit }: Mak
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/85 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-ink-500 bg-ink-900/98 p-6 shadow-panel ring-1 ring-black/60">
+    <div className="modal-backdrop">
+      <div className="modal-card max-w-lg p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <p className="font-heading text-xs uppercase tracking-[0.15em] text-brand-300">Privilege Update</p>
@@ -80,3 +80,4 @@ export default function MakeAdminModal({ user, loading, onClose, onSubmit }: Mak
     </div>
   );
 }
+

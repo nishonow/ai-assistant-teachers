@@ -11,15 +11,17 @@ export default function Notice({ notice }: NoticeProps) {
   const success = notice.type === "success";
 
   return (
-    <div
-      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm ${
-        success
-          ? "border-emerald-400/35 bg-emerald-400/10 text-emerald-200"
-          : "border-rose-400/35 bg-rose-400/10 text-rose-200"
-      }`}
-    >
-      {success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-      <span>{notice.message}</span>
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[80] w-[calc(100vw-2rem)] max-w-sm md:bottom-6 md:right-6">
+      <div
+        className={`pointer-events-auto flex items-start gap-2 rounded-xl border px-3 py-2 text-sm shadow-panel backdrop-blur-sm ${
+          success
+            ? "border-emerald-400/35 bg-emerald-400/15 text-emerald-100"
+            : "border-rose-400/35 bg-rose-500/15 text-rose-100"
+        }`}
+      >
+        {success ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" /> : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
+        <span>{notice.message}</span>
+      </div>
     </div>
   );
 }

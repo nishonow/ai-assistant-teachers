@@ -145,6 +145,10 @@ export default function App() {
     }
   }, [authorizedRequest, showNotice]);
 
+  const refreshOverview = useCallback(async () => {
+    await Promise.all([loadStats(), loadUsers(), loadDocuments()]);
+  }, [loadStats, loadUsers, loadDocuments]);
+
   useEffect(() => {
     if (!token) return;
     void loadStats();
@@ -292,15 +296,51 @@ export default function App() {
       setLoading((prev) => ({ ...prev, upload: false }));
     }
   };
+  const watchReindexCompletion = useCallback(
+    async (documentId: number, fileName: string): Promise<void> => {
+      const pollIntervalMs = 2500;
+      const maxAttempts = 48;
 
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+
+        try {
+          const data = await authorizedRequest<{ status?: string }>({
+            path: `/api/v1/documents/${documentId}`,
+          });
+          const status = data.status?.toLowerCase();
+
+          if (status === "indexed") {
+            showNotice("success", `${fileName} indexed successfully.`);
+            await loadDocuments();
+            await loadStats();
+            return;
+          }
+
+          if (status === "failed") {
+            showNotice("error", `${fileName} indexing failed.`);
+            await loadDocuments();
+            return;
+          }
+        } catch {
+          // Ignore transient polling errors and continue until timeout.
+        }
+      }
+
+      showNotice("error", `${fileName} indexing is taking longer than expected.`);
+      await loadDocuments();
+    },
+    [authorizedRequest, loadDocuments, loadStats, showNotice]
+  );
   const handleReindexDocument = async (doc: DocumentRecord): Promise<void> => {
     const key = `reindex-${doc.id}`;
     setActionLoading(key);
 
     try {
       await authorizedRequest({ path: `/api/v1/documents/${doc.id}/reindex`, method: "POST" });
-      showNotice("success", `${doc.file_name} reindex started.`);
+      showNotice("success", `${doc.file_name} indexing started.`);
       await loadDocuments();
+      void watchReindexCompletion(doc.id, doc.file_name);
     } catch (error) {
       showNotice("error", error instanceof Error ? error.message : "Reindex failed.");
     } finally {
@@ -373,7 +413,18 @@ export default function App() {
         <section className="panel p-4 md:p-5">
           <Routes>
             <Route path="/" element={<Navigate to="/overview" replace />} />
-            <Route path="/overview" element={<OverviewTab stats={stats} loading={loading.stats} onRefresh={loadStats} />} />
+            <Route
+              path="/overview"
+              element={
+                <OverviewTab
+                  stats={stats}
+                  users={users}
+                  documents={documents}
+                  loading={loading.stats || loading.users || loading.documents}
+                  onRefresh={refreshOverview}
+                />
+              }
+            />
             <Route
               path="/users"
               element={
