@@ -15,10 +15,10 @@ detector = LanguageDetectorBuilder.from_all_languages().build()
 SYSTEM_PROMPT = """You are Mugallim AI, an AI assistant that answers questions based on uploaded documents.
 
 RULES:
-- For questions answerable from the document context: answer ONLY from the context, never from your own knowledge
-- For greetings, small talk, questions about yourself: answer naturally and briefly, ignore the context
-- If the question is document-related but the answer is not in the context: say "I don't have that information in the documents"
-- Never fabricate information not present in the context
+- Answer questions using the provided document context
+- For greetings, small talk, questions about yourself: answer naturally and briefly
+- If context is partially relevant, provide the best answer from closest passages; use "I don't have..." only when context is clearly unrelated or empty.
+- Do not fabricate specific laws, articles, or rules that are not in the context
 
 FORMATTING — STRICT RULES:
 - Use ONLY HTML tags. Never use markdown under any circumstances
@@ -31,10 +31,6 @@ ALLOWED_ROLES = {"user", "assistant"}
 TOP_K_RETRIEVAL = 100
 TOP_K_CONTEXT = 10
 MAX_CHUNKS_PER_DOC = 3
-NO_CONTEXT_THRESHOLD = 0.93
-SOURCE_THRESHOLD = 0.95
-QUERY_WEIGHT = 0.7
-HYDE_WEIGHT = 0.3
 
 
 def detect_language(question: str) -> str:
@@ -93,7 +89,7 @@ def search_chunks(query: str, hyde_text: str, db: Session) -> list[tuple[Chunk, 
             d_query = 1.0
 
         d_hyde = hyde_scores[chunk_id][1] if chunk_id in hyde_scores else 1.0
-        combined = QUERY_WEIGHT * d_query + HYDE_WEIGHT * d_hyde
+        combined = 0.7 * d_query + 0.3 * d_hyde
         scored.append((chunk, combined))
 
     scored.sort(key=lambda x: x[1])
@@ -124,12 +120,10 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
     hyde_text = generate_hypothetical_answer(question)
     scored_chunks = search_chunks(question, hyde_text, db)
 
-    top_score = scored_chunks[0][1] if scored_chunks else 1.0
-    no_relevant_context = not scored_chunks or top_score > NO_CONTEXT_THRESHOLD
-
     logger.info(
-        "question=%r lang=%s top_score=%.4f no_context=%s chunks=%d",
-        question, detected_lang, top_score, no_relevant_context, len(scored_chunks)
+        "question=%r lang=%s chunks=%d top_score=%.4f",
+        question, detected_lang, len(scored_chunks),
+        scored_chunks[0][1] if scored_chunks else 1.0
     )
     for chunk, score in scored_chunks:
         logger.info("  chunk_id=%s doc_id=%s score=%.4f", chunk.id, chunk.document_id, score)
@@ -144,12 +138,12 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
     for msg in [m for m in history if m.get("role") in ALLOWED_ROLES]:
         messages.append({"role": msg["role"], "content": msg["content"]})
 
-    if no_relevant_context:
-        user_content = f"{question}\n\nRemember: respond in {detected_lang}."
-    else:
-        context = "\n\n".join([chunk.chunk_text for chunk, _ in scored_chunks])
-        user_content = f"Document context:\n{context}\n\nQuestion: {question}\n\nRemember: respond in {detected_lang}."
-
+    context = "\n\n".join([chunk.chunk_text for chunk, _ in scored_chunks]) if scored_chunks else ""
+    user_content = (
+        f"Document context:\n{context}\n\nQuestion: {question}\n\nRemember: respond in {detected_lang}."
+        if context else
+        f"{question}\n\nRemember: respond in {detected_lang}."
+    )
     messages.append({"role": "user", "content": user_content})
 
     response = client.chat.completions.create(
@@ -161,11 +155,12 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
     answer = postprocess(response.choices[0].message.content)
 
     sources = {}
-    if not no_relevant_context:
+    if scored_chunks:
+        top_score = scored_chunks[0][1]
         ordered_doc_ids = []
         seen: set[int] = set()
         for chunk, score in scored_chunks:
-            if score <= top_score + 0.03 and score < SOURCE_THRESHOLD and chunk.document_id not in seen:
+            if score <= top_score + 0.03 and chunk.document_id not in seen:
                 seen.add(chunk.document_id)
                 ordered_doc_ids.append(chunk.document_id)
 
