@@ -28,11 +28,13 @@ FORMATTING — STRICT RULES:
 - Never start with "According to", "Based on", "The documents state" or similar phrases"""
 
 ALLOWED_ROLES = {"user", "assistant"}
-TOP_K_RETRIEVAL = 20
+TOP_K_RETRIEVAL = 50
 TOP_K_CONTEXT = 10
 MAX_CHUNKS_PER_DOC = 3
-NO_CONTEXT_THRESHOLD = 0.55
-SOURCE_THRESHOLD = 0.50
+NO_CONTEXT_THRESHOLD = 0.93
+SOURCE_THRESHOLD = 0.95
+QUERY_WEIGHT = 0.85
+HYDE_WEIGHT = 0.15
 
 
 def detect_language(question: str) -> str:
@@ -91,7 +93,7 @@ def search_chunks(query: str, hyde_text: str, db: Session) -> list[tuple[Chunk, 
             d_query = 1.0
 
         d_hyde = hyde_scores[chunk_id][1] if chunk_id in hyde_scores else 1.0
-        combined = 0.7 * d_query + 0.3 * d_hyde
+        combined = QUERY_WEIGHT * d_query + HYDE_WEIGHT * d_hyde
         scored.append((chunk, combined))
 
     scored.sort(key=lambda x: x[1])
@@ -163,7 +165,7 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
         ordered_doc_ids = []
         seen: set[int] = set()
         for chunk, score in scored_chunks:
-            if score < SOURCE_THRESHOLD and chunk.document_id not in seen:
+            if score <= top_score + 0.03 and score < SOURCE_THRESHOLD and chunk.document_id not in seen:
                 seen.add(chunk.document_id)
                 ordered_doc_ids.append(chunk.document_id)
 
