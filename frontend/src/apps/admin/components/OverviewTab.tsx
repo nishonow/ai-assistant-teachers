@@ -1,4 +1,4 @@
-import {
+﻿import {
   BarChart3,
   FileStack,
   MessageSquare,
@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { DocumentRecord, StatsResponse, UserRecord } from "../lib/types";
+import type { DocumentRecord, StatsResponse, UserRecord } from "../../../core/types";
 
 interface StatCardProps {
   icon: LucideIcon;
@@ -440,3 +440,4 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
     </section>
   );
 }
+

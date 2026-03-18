@@ -1,4 +1,4 @@
-interface PaginationProps {
+﻿interface PaginationProps {
   page: number;
   totalPages: number;
   onPageChange: (next: number) => void;
@@ -27,3 +27,4 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
     </div>
   );
 }
+

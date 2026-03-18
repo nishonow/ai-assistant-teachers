@@ -1,8 +1,8 @@
-import { Ban, Search, ShieldCheck, ShieldOff, SlidersHorizontal } from "lucide-react";
+﻿import { Ban, Search, ShieldCheck, ShieldOff, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import Pagination from "./Pagination";
-import { formatDate } from "../lib/utils";
-import type { UserRecord } from "../lib/types";
+import { formatDate } from "../../../core/utils";
+import type { UserRecord } from "../../../core/types";
 
 const PAGE_SIZE = 20;
 
@@ -251,3 +251,4 @@ export default function UsersTab({
     </section>
   );
 }
+

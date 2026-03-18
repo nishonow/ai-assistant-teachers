@@ -1,4 +1,4 @@
-import { LogOut, Menu } from "lucide-react";
+﻿import { LogOut, Menu } from "lucide-react";
 
 interface TopbarProps {
   username: string;
@@ -35,3 +35,4 @@ export default function Topbar({ username, onOpenMenu, onRequestLogout }: Topbar
     </header>
   );
 }
+

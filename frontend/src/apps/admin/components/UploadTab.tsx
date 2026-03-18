@@ -1,4 +1,4 @@
-import { UploadCloud } from "lucide-react";
+﻿import { UploadCloud } from "lucide-react";
 import type { FormEvent } from "react";
 
 interface UploadTabProps {
@@ -48,4 +48,5 @@ export default function UploadTab({ loading, onUpload }: UploadTabProps) {
     </section>
   );
 }
+
 

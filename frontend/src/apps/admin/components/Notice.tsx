@@ -1,5 +1,5 @@
-import { AlertCircle, CheckCircle2 } from "lucide-react";
-import type { NoticeState } from "../lib/types";
+﻿import { AlertCircle, CheckCircle2 } from "lucide-react";
+import type { NoticeState } from "../../../core/types";
 
 interface NoticeProps {
   notice: NoticeState | null;
@@ -25,3 +25,4 @@ export default function Notice({ notice }: NoticeProps) {
     </div>
   );
 }
+

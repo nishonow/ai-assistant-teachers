@@ -1,7 +1,7 @@
-import { KeyRound, ShieldCheck, UserRound, X } from "lucide-react";
+﻿import { KeyRound, ShieldCheck, UserRound, X } from "lucide-react";
 import { useMemo } from "react";
 import type { FormEvent } from "react";
-import type { MakeAdminPayload, UserRecord } from "../lib/types";
+import type { MakeAdminPayload, UserRecord } from "../../../core/types";
 
 interface MakeAdminModalProps {
   user: UserRecord | null;
@@ -80,4 +80,5 @@ export default function MakeAdminModal({ user, loading, onClose, onSubmit }: Mak
     </div>
   );
 }
+
 

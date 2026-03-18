@@ -1,8 +1,18 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&family=Cormorant+SC:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Geologica:wght@300;400;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes landingMarquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
 
 @layer base {
   :root {
@@ -110,5 +120,35 @@
   .action-btn-doc span {
     @apply hidden md:inline;
   }
-}
 
+  .scroll-area {
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(83, 246, 220, 0.45) rgba(13, 27, 45, 0.55);
+    scrollbar-gutter: stable;
+  }
+
+  .scroll-area::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .scroll-area::-webkit-scrollbar-track {
+    background: rgba(13, 27, 45, 0.55);
+    border-radius: 9999px;
+  }
+
+  .scroll-area::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(83, 246, 220, 0.6), rgba(0, 199, 171, 0.6));
+    border-radius: 9999px;
+    border: 2px solid rgba(13, 27, 45, 0.55);
+  }
+
+  .scroll-area::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(83, 246, 220, 0.8), rgba(0, 199, 171, 0.8));
+  }
+
+  .landing-marquee-track {
+    animation: landingMarquee 22s linear infinite;
+  }
+}

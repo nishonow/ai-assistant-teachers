@@ -1,4 +1,4 @@
-export type TabId = "overview" | "users" | "documents" | "upload";
+﻿export type TabId = "overview" | "users" | "documents" | "upload";
 
 export interface TabItem {
   id: TabId;
@@ -42,6 +42,12 @@ export interface StatsResponse {
 
 export interface LoginResponse {
   accessToken: string;
+  role?: "user" | "admin";
+  user?: {
+    id?: string;
+    username?: string;
+    displayName?: string;
+  };
 }
 
 export interface MakeAdminPayload {
@@ -50,9 +56,9 @@ export interface MakeAdminPayload {
 }
 
 export interface LoadingState {
-  auth: boolean;
   stats: boolean;
   users: boolean;
   documents: boolean;
   upload: boolean;
 }
+

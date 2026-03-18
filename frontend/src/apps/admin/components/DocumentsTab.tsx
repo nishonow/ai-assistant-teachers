@@ -1,7 +1,7 @@
-import { Download, RotateCw, Trash2 } from "lucide-react";
+﻿import { Download, RotateCw, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import Pagination from "./Pagination";
-import type { DocumentRecord } from "../lib/types";
+import type { DocumentRecord } from "../../../core/types";
 
 const PAGE_SIZE = 20;
 
@@ -144,3 +144,4 @@ export default function DocumentsTab({
     </section>
   );
 }
+

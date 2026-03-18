@@ -1,6 +1,7 @@
-import { FileStack, LayoutDashboard, Upload, Users, X } from "lucide-react";
+﻿import { FileStack, LayoutDashboard, MessageSquare, Upload, Users, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { TabId, TabItem } from "../lib/types";
+import { Link } from "react-router-dom";
+import type { TabId, TabItem } from "../../../core/types";
 
 interface SidebarProps {
   items: TabItem[];
@@ -52,6 +53,13 @@ export default function Sidebar({ items, activeTab, onSelect, open, onClose }: S
             );
           })}
         </nav>
+
+        <div className="border-t border-ink-600/60 pt-4">
+          <Link to="/app" onClick={onClose} className="sidebar-item">
+            <MessageSquare size={16} />
+            <span>Go To App</span>
+          </Link>
+        </div>
       </aside>
 
       <div

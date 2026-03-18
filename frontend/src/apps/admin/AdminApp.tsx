@@ -1,28 +1,26 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import Sidebar from "./components/Sidebar";
-import Topbar from "./components/Topbar";
-import Notice from "./components/Notice";
-import LoginPage from "./components/LoginPage";
-import OverviewTab from "./components/OverviewTab";
-import UsersTab from "./components/UsersTab";
-import DocumentsTab from "./components/DocumentsTab";
-import UploadTab from "./components/UploadTab";
-import MakeAdminModal from "./components/MakeAdminModal";
-import ConfirmLogoutModal from "./components/ConfirmLogoutModal";
-import { apiRequest, ApiRequestError, type ApiRequestOptions } from "./lib/api";
-import { clearToken, getStoredAuth, saveToken } from "./lib/utils";
+import { useAuth } from "../../core/auth";
+import { apiRequest, ApiRequestError, type ApiRequestOptions } from "../../core/api";
 import type {
   DocumentRecord,
   LoadingState,
-  LoginResponse,
   MakeAdminPayload,
   NoticeState,
   StatsResponse,
   TabId,
   TabItem,
   UserRecord,
-} from "./lib/types";
+} from "../../core/types";
+import ConfirmLogoutModal from "./components/ConfirmLogoutModal";
+import DocumentsTab from "./components/DocumentsTab";
+import MakeAdminModal from "./components/MakeAdminModal";
+import Notice from "./components/Notice";
+import OverviewTab from "./components/OverviewTab";
+import Sidebar from "./components/Sidebar";
+import Topbar from "./components/Topbar";
+import UploadTab from "./components/UploadTab";
+import UsersTab from "./components/UsersTab";
 
 const TABS: TabItem[] = [
   { id: "overview", label: "Overview" },
@@ -32,14 +30,13 @@ const TABS: TabItem[] = [
 ];
 
 const TAB_PATHS: Record<TabId, string> = {
-  overview: "/overview",
-  users: "/users",
-  documents: "/documents",
-  upload: "/upload",
+  overview: "/admin/overview",
+  users: "/admin/users",
+  documents: "/admin/documents",
+  upload: "/admin/upload",
 };
 
 const INITIAL_LOADING: LoadingState = {
-  auth: false,
   stats: false,
   users: false,
   documents: false,
@@ -47,32 +44,31 @@ const INITIAL_LOADING: LoadingState = {
 };
 
 function getTabFromPath(pathname: string): TabId {
-  if (pathname.startsWith("/users")) return "users";
-  if (pathname.startsWith("/documents")) return "documents";
-  if (pathname.startsWith("/upload")) return "upload";
+  if (pathname.startsWith("/admin/users")) return "users";
+  if (pathname.startsWith("/admin/documents")) return "documents";
+  if (pathname.startsWith("/admin/upload")) return "upload";
   return "overview";
 }
 
-export default function App() {
+export default function AdminApp() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { session, logout: clearSession } = useAuth();
 
-  const stored = useMemo(() => getStoredAuth(), []);
+  const token = session?.token || "";
+  const username = session?.user.username || "admin";
 
-  const [token, setToken] = useState<string>(stored.token);
-  const [username, setUsername] = useState<string>(stored.username);
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
 
   const [loading, setLoading] = useState<LoadingState>(INITIAL_LOADING);
-  const [actionLoading, setActionLoading] = useState<string>("");
-  const [loginError, setLoginError] = useState<string>("");
+  const [actionLoading, setActionLoading] = useState("");
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [makeAdminUser, setMakeAdminUser] = useState<UserRecord | null>(null);
-  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState<boolean>(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   const activeTab = useMemo(() => getTabFromPath(location.pathname), [location.pathname]);
 
@@ -85,18 +81,21 @@ export default function App() {
   }, [notice]);
 
   const logout = useCallback(() => {
-    clearToken();
-    setToken("");
-    setUsername("admin");
+    clearSession();
     setStats(null);
     setUsers([]);
     setDocuments([]);
+    setSidebarOpen(false);
     setLogoutConfirmOpen(false);
-    navigate("/overview", { replace: true });
-  }, [navigate]);
+    navigate("/", { replace: true });
+  }, [clearSession, navigate]);
 
   const authorizedRequest = useCallback(
     async <T,>(args: ApiRequestOptions): Promise<T> => {
+      if (!token) {
+        throw new Error("Missing auth token.");
+      }
+
       try {
         return await apiRequest<T>({ ...args, token });
       } catch (error) {
@@ -155,33 +154,6 @@ export default function App() {
     void loadUsers();
     void loadDocuments();
   }, [token, loadStats, loadUsers, loadDocuments]);
-
-  const handleLogin = async (nextUsername: string, password: string): Promise<void> => {
-    setLoading((prev) => ({ ...prev, auth: true }));
-    setLoginError("");
-
-    try {
-      const data = await apiRequest<LoginResponse>({
-        path: "/api/v1/auth/login",
-        method: "POST",
-        body: { username: nextUsername, password },
-      });
-
-      if (!data?.accessToken) {
-        throw new Error("No access token received from backend.");
-      }
-
-      saveToken(data.accessToken, nextUsername);
-      setToken(data.accessToken);
-      setUsername(nextUsername);
-      showNotice("success", "Login successful.");
-      navigate("/overview", { replace: true });
-    } catch (error) {
-      setLoginError(error instanceof Error ? error.message : "Login failed.");
-    } finally {
-      setLoading((prev) => ({ ...prev, auth: false }));
-    }
-  };
 
   const handleToggleBlock = async (user: UserRecord): Promise<void> => {
     const key = `block-${user.id}`;
@@ -287,7 +259,7 @@ export default function App() {
       });
 
       showNotice("success", `${file.name} uploaded successfully.`);
-      navigate("/documents");
+      navigate("/admin/documents");
       await loadDocuments();
       await loadStats();
     } catch (error) {
@@ -296,6 +268,7 @@ export default function App() {
       setLoading((prev) => ({ ...prev, upload: false }));
     }
   };
+
   const watchReindexCompletion = useCallback(
     async (documentId: number, fileName: string): Promise<void> => {
       const pollIntervalMs = 2500;
@@ -332,6 +305,7 @@ export default function App() {
     },
     [authorizedRequest, loadDocuments, loadStats, showNotice]
   );
+
   const handleReindexDocument = async (doc: DocumentRecord): Promise<void> => {
     const key = `reindex-${doc.id}`;
     setActionLoading(key);
@@ -389,8 +363,8 @@ export default function App() {
     }
   };
 
-  if (!token) {
-    return <LoginPage loading={loading.auth} error={loginError} onSubmit={handleLogin} />;
+  if (!session) {
+    return <Navigate to="/login" replace />;
   }
 
   return (
@@ -412,9 +386,9 @@ export default function App() {
 
         <section className="panel p-4 md:p-5">
           <Routes>
-            <Route path="/" element={<Navigate to="/overview" replace />} />
+            <Route index element={<Navigate to="overview" replace />} />
             <Route
-              path="/overview"
+              path="overview"
               element={
                 <OverviewTab
                   stats={stats}
@@ -426,7 +400,7 @@ export default function App() {
               }
             />
             <Route
-              path="/users"
+              path="users"
               element={
                 <UsersTab
                   users={users}
@@ -441,7 +415,7 @@ export default function App() {
               }
             />
             <Route
-              path="/documents"
+              path="documents"
               element={
                 <DocumentsTab
                   documents={documents}
@@ -454,8 +428,8 @@ export default function App() {
                 />
               }
             />
-            <Route path="/upload" element={<UploadTab loading={loading.upload} onUpload={handleUploadDocument} />} />
-            <Route path="*" element={<Navigate to="/overview" replace />} />
+            <Route path="upload" element={<UploadTab loading={loading.upload} onUpload={handleUploadDocument} />} />
+            <Route path="*" element={<Navigate to="overview" replace />} />
           </Routes>
         </section>
       </main>
@@ -471,3 +445,5 @@ export default function App() {
     </div>
   );
 }
+
+

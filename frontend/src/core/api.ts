@@ -1,4 +1,4 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://api2.nishonow.com";
+﻿export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://api2.nishonow.com";
 
 type RequestMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 type ResponseType = "json" | "blob";
@@ -63,3 +63,4 @@ export async function apiRequest<T = unknown>(options: ApiRequestOptions): Promi
 
   return data as T;
 }
+
