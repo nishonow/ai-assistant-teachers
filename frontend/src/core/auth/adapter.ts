@@ -29,6 +29,16 @@ function buildSessionFromResponse(response: LoginResponse, fallbackIdentifier: s
   };
 }
 
+export async function fetchCurrentSession(token: string): Promise<AuthSession> {
+  const response = await apiRequest<LoginResponse>({
+    path: "/api/v1/auth/me",
+    token,
+  });
+
+  const fallbackIdentifier = response.user?.username || "user";
+  return buildSessionFromResponse(response, fallbackIdentifier, "user");
+}
+
 export async function loginWithAdapter(input: LoginInput): Promise<AuthSession> {
   const username = input.username.trim();
   const password = input.password.trim();

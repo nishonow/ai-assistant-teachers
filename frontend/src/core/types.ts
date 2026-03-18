@@ -51,8 +51,8 @@ export interface LoginResponse {
 }
 
 export interface MakeAdminPayload {
-  login: string;
-  password: string;
+  login?: string;
+  password?: string;
 }
 
 export interface LoadingState {

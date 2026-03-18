@@ -1,14 +1,26 @@
-﻿import { SendHorizontal } from "lucide-react";
-import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { SendHorizontal } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 interface ChatComposerProps {
   disabled: boolean;
   onSubmit: (value: string) => Promise<void>;
 }
 
+const MAX_TEXTAREA_HEIGHT = 220;
+
 export default function ChatComposer({ disabled, onSubmit }: ChatComposerProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    const element = textareaRef.current;
+    if (!element) return;
+
+    element.style.height = "0px";
+    const nextHeight = Math.min(element.scrollHeight, MAX_TEXTAREA_HEIGHT);
+    element.style.height = `${nextHeight}px`;
+    element.style.overflowY = element.scrollHeight > MAX_TEXTAREA_HEIGHT ? "auto" : "hidden";
+  }, [value]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -52,24 +64,29 @@ export default function ChatComposer({ disabled, onSubmit }: ChatComposerProps) 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-ink-700/70 bg-ink-900/80 p-3 md:p-4">
-      <div className="mx-auto flex w-full max-w-4xl items-end gap-3 rounded-2xl border border-ink-600/80 bg-ink-800/75 p-2">
+    <form
+      onSubmit={handleSubmit}
+      className="border-t border-[#21384b] bg-[#08111c]/96 px-3 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 md:px-6 md:pb-6"
+    >
+      <div className="mx-auto flex w-full max-w-4xl items-end gap-3 rounded-[28px] border border-[#284863] bg-[#0d1827] px-3 py-3">
         <textarea
           ref={textareaRef}
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Message assistant..."
+          placeholder="Message Mugallim AI..."
           rows={1}
-          className="max-h-40 min-h-[44px] flex-1 resize-y bg-transparent px-2 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none"
-          disabled={disabled}
+          className="min-h-[24px] max-h-[220px] flex-1 resize-none bg-transparent px-2 py-[10px] text-sm leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none"
         />
-        <button type="submit" className="btn-primary" disabled={disabled || !value.trim()}>
+        <button
+          type="submit"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#8ef1e5] text-[#10221d] transition hover:bg-[#b7fbf3] disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={disabled || !value.trim()}
+          aria-label="Send message"
+        >
           <SendHorizontal size={16} />
-          Send
         </button>
       </div>
     </form>
   );
 }
-

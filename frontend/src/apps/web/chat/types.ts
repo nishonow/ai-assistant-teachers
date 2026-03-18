@@ -1,9 +1,26 @@
-﻿export type ChatMessageRole = "user" | "assistant";
+export type ChatMessageRole = "user" | "assistant";
+
+export interface ChatSource {
+  id: string;
+  documentId?: number | null;
+  title: string;
+  snippet: string;
+}
 
 export interface ChatMessage {
   id: string;
   role: ChatMessageRole;
   content: string;
+  createdAt?: string;
+  sources?: ChatSource[];
+}
+
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  updatedAt: string;
+  lastMessagePreview: string;
+  messageCount: number;
 }
 
 export interface Conversation {
@@ -15,6 +32,5 @@ export interface Conversation {
 
 export interface AskApiResponse {
   answer: string;
-  sources?: string[];
+  sources?: ChatSource[];
 }
-

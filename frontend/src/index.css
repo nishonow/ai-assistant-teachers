@@ -1,4 +1,4 @@
-﻿@import url("https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&family=Cormorant+SC:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Geologica:wght@300;400;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&family=Cormorant+SC:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Geologica:wght@300;400;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -27,6 +27,7 @@
 
   body {
     @apply min-h-screen bg-ink-950 text-slate-100 font-body;
+    overscroll-behavior-y: none;
     background-image:
       radial-gradient(720px 340px at -8% -6%, rgba(23, 223, 193, 0.14), transparent 70%),
       radial-gradient(700px 320px at 108% 100%, rgba(83, 246, 220, 0.08), transparent 68%);
@@ -123,6 +124,7 @@
 
   .scroll-area {
     scroll-behavior: smooth;
+    overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: rgba(83, 246, 220, 0.45) rgba(13, 27, 45, 0.55);
     scrollbar-gutter: stable;
@@ -151,4 +153,56 @@
   .landing-marquee-track {
     animation: landingMarquee 22s linear infinite;
   }
+
+  .message-rich {
+    @apply text-[15px] leading-7 tracking-[0.002em] text-slate-200;
+  }
+
+  .message-rich p + p {
+    @apply mt-3;
+  }
+
+  .message-rich ul,
+  .message-rich ol {
+    @apply my-3 space-y-2 pl-6;
+  }
+
+  .message-rich ul {
+    @apply list-disc;
+  }
+
+  .message-rich ol {
+    @apply list-decimal;
+  }
+
+  .message-rich li {
+    @apply pl-1 text-slate-200;
+  }
+
+  .message-rich a {
+    @apply text-brand-300 underline underline-offset-4 hover:text-brand-400;
+  }
+
+  .message-rich b,
+  .message-rich strong {
+    @apply font-semibold text-slate-50;
+  }
+
+  .message-rich blockquote {
+    @apply my-3 border-l-2 border-brand-400/50 pl-4 text-[15px] italic text-slate-300;
+  }
+
+  .message-rich code {
+    @apply rounded-md bg-[#102033] px-1.5 py-0.5 font-mono text-[13px] text-brand-300;
+  }
+
+  .message-rich pre {
+    @apply my-3 overflow-x-auto rounded-2xl border border-[#284863] bg-[#08111c] p-4;
+  }
+
+  .message-rich pre code {
+    @apply bg-transparent p-0 text-[13px] leading-5 text-slate-200;
+  }
 }
+
+

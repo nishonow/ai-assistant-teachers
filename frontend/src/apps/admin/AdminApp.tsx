@@ -180,19 +180,19 @@ export default function AdminApp() {
   const handleMakeAdmin = async ({ login, password }: MakeAdminPayload): Promise<void> => {
     if (!makeAdminUser) return;
 
-    if (!login.trim() || !password.trim()) {
-      showNotice("error", "Login and password are required.");
-      return;
-    }
-
     const key = `admin-${makeAdminUser.id}`;
     setActionLoading(key);
 
     try {
+      if (makeAdminUser.platform !== "web" && (!login?.trim() || !password?.trim())) {
+        showNotice("error", "Login and password are required.");
+        return;
+      }
+
       await authorizedRequest({
         path: `/api/v1/admin/users/${makeAdminUser.id}/make-admin`,
         method: "POST",
-        body: { login, password },
+        body: makeAdminUser.platform === "web" ? {} : { login, password },
       });
       showNotice("success", `${makeAdminUser.name || "User"} is now admin.`);
       setMakeAdminUser(null);
@@ -203,6 +203,33 @@ export default function AdminApp() {
       setActionLoading("");
     }
   };
+
+  const requestMakeAdmin = useCallback(
+    async (user: UserRecord) => {
+      if (user.platform !== "web") {
+        setMakeAdminUser(user);
+        return;
+      }
+
+      const key = `admin-${user.id}`;
+      setActionLoading(key);
+
+      try {
+        await authorizedRequest({
+          path: `/api/v1/admin/users/${user.id}/make-admin`,
+          method: "POST",
+          body: {},
+        });
+        showNotice("success", `${user.name || "User"} is now admin.`);
+        await loadUsers();
+      } catch (error) {
+        showNotice("error", error instanceof Error ? error.message : "Failed to grant admin.");
+      } finally {
+        setActionLoading("");
+      }
+    },
+    [authorizedRequest, loadUsers, showNotice]
+  );
 
   const matchesCurrentAdmin = useCallback(
     (value: string | null | undefined): boolean => {
@@ -408,7 +435,7 @@ export default function AdminApp() {
                   actionLoading={actionLoading}
                   onRefresh={loadUsers}
                   onToggleBlock={handleToggleBlock}
-                  onMakeAdmin={setMakeAdminUser}
+                  onMakeAdmin={requestMakeAdmin}
                   onRevokeAdmin={handleRevokeAdmin}
                   isCurrentAdminUser={isCurrentAdminUser}
                 />

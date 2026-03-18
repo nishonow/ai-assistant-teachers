@@ -52,3 +52,50 @@ class Message(Base):
     question = Column(Text, nullable=True)
     answer = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
+class ChatConversation(Base):
+    __tablename__ = "chat_conversations"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    title = Column(Text, nullable=False, default="New chat")
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    messages = relationship(
+        "ChatConversationMessage",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="ChatConversationMessage.id",
+    )
+
+
+class ChatConversationMessage(Base):
+    __tablename__ = "chat_conversation_messages"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    conversation_id = Column(BigInteger, ForeignKey("chat_conversations.id", ondelete="CASCADE"), nullable=False)
+    role = Column(Text, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    conversation = relationship("ChatConversation", back_populates="messages")
+    sources = relationship(
+        "ChatConversationMessageSource",
+        back_populates="message",
+        cascade="all, delete-orphan",
+        order_by="ChatConversationMessageSource.id",
+    )
+
+
+class ChatConversationMessageSource(Base):
+    __tablename__ = "chat_conversation_message_sources"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    message_id = Column(BigInteger, ForeignKey("chat_conversation_messages.id", ondelete="CASCADE"), nullable=False)
+    document_id = Column(BigInteger, nullable=True)
+    title = Column(Text, nullable=False)
+    snippet = Column(Text, nullable=False)
+
+    message = relationship("ChatConversationMessage", back_populates="sources")

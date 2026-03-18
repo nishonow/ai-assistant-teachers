@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from app.database import engine
 from app import models
-from app.api.routes import documents, ask, admin, users, auth
+from app.api.routes import admin, ask, auth, conversations, documents, users
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
@@ -54,6 +54,7 @@ async def startup():
     models.Base.metadata.create_all(bind=engine)
 
 app.include_router(ask.router, prefix="/api/v1")
+app.include_router(conversations.router, prefix="/api/v1")
 app.include_router(documents.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")

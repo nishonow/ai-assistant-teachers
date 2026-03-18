@@ -5,6 +5,7 @@ export default function WebApp() {
   return (
     <Routes>
       <Route index element={<ChatPage />} />
+      <Route path="chat/:conversationId" element={<ChatPage />} />
       <Route path="*" element={<Navigate to="/app" replace />} />
     </Routes>
   );

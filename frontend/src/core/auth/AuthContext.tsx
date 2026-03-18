@@ -1,5 +1,5 @@
 ﻿import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { loginWithAdapter, registerWithAdapter } from "./adapter";
+import { fetchCurrentSession, loginWithAdapter, registerWithAdapter } from "./adapter";
 import { clearAuthSession, loadAuthSession, saveAuthSession } from "./storage";
 import type { AuthSession, LoginInput, RegisterInput } from "./types";
 
@@ -19,12 +19,51 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [session, setSession] = useState<AuthSession | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(() => loadAuthSession());
   const [isHydrating, setIsHydrating] = useState(true);
 
   useEffect(() => {
-    setSession(loadAuthSession());
-    setIsHydrating(false);
+    let cancelled = false;
+
+    async function hydrateSession() {
+      const storedSession = loadAuthSession();
+      if (!storedSession) {
+        if (!cancelled) {
+          setSession(null);
+          setIsHydrating(false);
+        }
+        return;
+      }
+
+      if (storedSession.kind !== "backend") {
+        if (!cancelled) {
+          setSession(storedSession);
+          setIsHydrating(false);
+        }
+        return;
+      }
+
+      try {
+        const nextSession = await fetchCurrentSession(storedSession.token);
+        if (cancelled) return;
+        saveAuthSession(nextSession);
+        setSession(nextSession);
+      } catch {
+        if (cancelled) return;
+        clearAuthSession();
+        setSession(null);
+      } finally {
+        if (!cancelled) {
+          setIsHydrating(false);
+        }
+      }
+    }
+
+    void hydrateSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(async (input: LoginInput): Promise<AuthSession> => {

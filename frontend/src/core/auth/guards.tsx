@@ -29,7 +29,7 @@ export function RequireAuth() {
   const { isHydrating, session } = useAuth();
   const location = useLocation();
 
-  if (isHydrating) {
+  if (isHydrating && !session) {
     return <FullScreenLoader />;
   }
 

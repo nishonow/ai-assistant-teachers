@@ -40,14 +40,32 @@ async def _animate_thinking(status_message: Message, stop_event: asyncio.Event, 
         index += 1
 
 
-def _format_sources(sources: dict) -> str:
+def _format_sources(sources) -> str:
     if not sources:
         return ""
+
     links = []
-    for doc_id, file_name in sources.items():
-        url = f"https://t.me/{BOT_USERNAME}?start=file_{doc_id}"
-        links.append(f'<a href="{url}">{file_name}</a>')
+
+    if isinstance(sources, dict):
+        for doc_id, file_name in sources.items():
+            url = f"https://t.me/{BOT_USERNAME}?start=file_{doc_id}"
+            links.append(f'<a href="{url}">{file_name}</a>')
+    elif isinstance(sources, list):
+        for source in sources:
+            if not isinstance(source, dict):
+                continue
+            doc_id = source.get("documentId")
+            title = source.get("title")
+            if not doc_id or not title:
+                continue
+            url = f"https://t.me/{BOT_USERNAME}?start=file_{doc_id}"
+            links.append(f'<a href="{url}">{title}</a>')
+
+    if not links:
+        return ""
+
     return "\n\n📄 <b>Источники:</b>\n" + "\n".join(links)
+
 
 @router.message(F.text.in_(("🌐 Язык", "🌐 Тил")))
 async def choose_language_handler(message: Message, db: Database) -> None:

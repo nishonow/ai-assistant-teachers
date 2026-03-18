@@ -14,8 +14,8 @@ class BlockRequest(BaseModel):
     platform: str = "telegram"
 
 class MakeAdminRequest(BaseModel):
-    login: str
-    password: str
+    login: str | None = None
+    password: str | None = None
 
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
@@ -71,6 +71,7 @@ def list_users(db: Session = Depends(get_db)):
             "platform_user_id": u.platform_user_id,
             "name": u.name,
             "username": u.username,
+            "login": u.login,
             "is_blocked": u.is_blocked,
             "is_admin": u.is_admin,
             "created_at": u.created_at,
@@ -83,11 +84,22 @@ def make_admin(user_id: int, request: MakeAdminRequest, db: Session = Depends(ge
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if db.query(User).filter(User.login == request.login, User.id != user_id).first():
+
+    if user.platform == "web":
+        user.is_admin = True
+        db.commit()
+        return {"ok": True}
+
+    login = (request.login or "").strip()
+    password = (request.password or "").strip()
+    if not login or not password:
+        raise HTTPException(status_code=400, detail="Login and password are required")
+    if db.query(User).filter(User.login == login, User.id != user_id).first():
         raise HTTPException(status_code=400, detail="Login already taken")
+
     user.is_admin = True
-    user.login = request.login
-    user.password_hash = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
+    user.login = login
+    user.password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     db.commit()
     return {"ok": True}
 

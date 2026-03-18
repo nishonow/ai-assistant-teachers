@@ -1,0 +1,206 @@
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import desc, func
+from sqlalchemy.orm import Session, selectinload
+
+from app.database import get_db
+from app.dependencies import require_web_user
+from app.models import ChatConversation, ChatConversationMessage, ChatConversationMessageSource, User
+
+router = APIRouter(prefix="/conversations", tags=["conversations"])
+
+
+class ConversationSourceRequest(BaseModel):
+    documentId: int | None = None
+    title: str
+    snippet: str
+
+
+class ConversationCreateRequest(BaseModel):
+    title: str | None = None
+
+
+class ConversationRenameRequest(BaseModel):
+    title: str
+
+
+class ConversationExchangeRequest(BaseModel):
+    question: str
+    answer: str
+    title: str | None = None
+    sources: list[ConversationSourceRequest] = []
+
+
+def _serialize_summary(conversation: ChatConversation) -> dict:
+    last_message = conversation.messages[-1].content if conversation.messages else ""
+    return {
+        "id": str(conversation.id),
+        "title": conversation.title,
+        "updatedAt": conversation.updated_at.isoformat() if conversation.updated_at else "",
+        "lastMessagePreview": last_message[:120],
+        "messageCount": len(conversation.messages),
+    }
+
+
+def _serialize_detail(conversation: ChatConversation) -> dict:
+    return {
+        "id": str(conversation.id),
+        "title": conversation.title,
+        "updatedAt": conversation.updated_at.isoformat() if conversation.updated_at else "",
+        "messages": [
+            {
+                "id": str(message.id),
+                "role": message.role,
+                "content": message.content,
+                "createdAt": message.created_at.isoformat() if message.created_at else "",
+                "sources": [
+                    {
+                        "id": str(source.id),
+                        "documentId": source.document_id,
+                        "title": source.title,
+                        "snippet": source.snippet,
+                    }
+                    for source in message.sources
+                ],
+            }
+            for message in conversation.messages
+        ],
+    }
+
+
+def _conversation_load_options():
+    return [
+        selectinload(ChatConversation.messages).selectinload(ChatConversationMessage.sources),
+    ]
+
+
+def _get_user_conversation(db: Session, conversation_id: int, user_id: int) -> ChatConversation:
+    conversation = (
+        db.query(ChatConversation)
+        .options(*_conversation_load_options())
+        .filter(ChatConversation.id == conversation_id, ChatConversation.user_id == user_id)
+        .first()
+    )
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return conversation
+
+
+@router.get("/")
+def list_conversations(current_user: User = Depends(require_web_user), db: Session = Depends(get_db)):
+    conversations = (
+        db.query(ChatConversation)
+        .options(*_conversation_load_options())
+        .filter(ChatConversation.user_id == current_user.id)
+        .order_by(desc(ChatConversation.updated_at), desc(ChatConversation.id))
+        .all()
+    )
+    return [_serialize_summary(conversation) for conversation in conversations]
+
+
+@router.post("/")
+def create_conversation(
+    request: ConversationCreateRequest,
+    current_user: User = Depends(require_web_user),
+    db: Session = Depends(get_db),
+):
+    conversation = ChatConversation(user_id=current_user.id, title=(request.title or "New chat").strip() or "New chat")
+    db.add(conversation)
+    db.commit()
+    db.refresh(conversation)
+    return _serialize_detail(conversation)
+
+
+@router.delete("/")
+def delete_all_conversations(current_user: User = Depends(require_web_user), db: Session = Depends(get_db)):
+    db.query(ChatConversation).filter(ChatConversation.user_id == current_user.id).delete(synchronize_session=False)
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/{conversation_id}")
+def get_conversation(conversation_id: int, current_user: User = Depends(require_web_user), db: Session = Depends(get_db)):
+    conversation = _get_user_conversation(db, conversation_id, current_user.id)
+    return _serialize_detail(conversation)
+
+
+@router.patch("/{conversation_id}")
+def rename_conversation(
+    conversation_id: int,
+    request: ConversationRenameRequest,
+    current_user: User = Depends(require_web_user),
+    db: Session = Depends(get_db),
+):
+    conversation = _get_user_conversation(db, conversation_id, current_user.id)
+    title = request.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Title is required")
+
+    conversation.title = title[:120]
+    conversation.updated_at = func.now()
+    db.commit()
+
+    refreshed = _get_user_conversation(db, conversation.id, current_user.id)
+    return _serialize_detail(refreshed)
+
+
+@router.delete("/{conversation_id}")
+def delete_conversation(
+    conversation_id: int,
+    current_user: User = Depends(require_web_user),
+    db: Session = Depends(get_db),
+):
+    conversation = _get_user_conversation(db, conversation_id, current_user.id)
+    db.delete(conversation)
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/{conversation_id}/exchange")
+def save_exchange(
+    conversation_id: int,
+    request: ConversationExchangeRequest,
+    current_user: User = Depends(require_web_user),
+    db: Session = Depends(get_db),
+):
+    conversation = _get_user_conversation(db, conversation_id, current_user.id)
+
+    question = request.question.strip()
+    answer = request.answer.strip()
+    if not question or not answer:
+        raise HTTPException(status_code=400, detail="Question and answer are required")
+
+    user_message = ChatConversationMessage(
+        conversation_id=conversation.id,
+        role="user",
+        content=question,
+    )
+    assistant_message = ChatConversationMessage(
+        conversation_id=conversation.id,
+        role="assistant",
+        content=answer,
+    )
+    db.add(user_message)
+    db.add(assistant_message)
+    db.flush()
+
+    for source in request.sources:
+        db.add(
+            ChatConversationMessageSource(
+                message_id=assistant_message.id,
+                document_id=source.documentId,
+                title=source.title.strip(),
+                snippet=source.snippet.strip(),
+            )
+        )
+
+    if request.title is not None:
+        next_title = request.title.strip()
+        if next_title:
+            conversation.title = next_title
+
+    conversation.updated_at = func.now()
+    db.commit()
+
+    refreshed = _get_user_conversation(db, conversation.id, current_user.id)
+    return _serialize_detail(refreshed)
