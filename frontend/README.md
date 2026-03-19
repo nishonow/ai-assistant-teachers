@@ -1,29 +1,42 @@
-# Frontend Admin Panel
+﻿# Frontend
 
-Responsive dark-mode admin panel built with React + Vite + Tailwind CSS + TypeScript (TSX).
+React + Vite + TypeScript frontend for Mugallim AI.
+
+It includes two main UI areas:
+- public web app for users
+- protected admin panel
+
+## Main Routes
+
+Public:
+- `/`
+- `/login`
+- `/register`
+
+Protected user app:
+- `/app`
+- `/app/chat/:conversationId`
+
+Protected admin app:
+- `/admin/*`
 
 ## Features
 
-- JWT login support
-- Sidebar navigation with icons: Overview, Users, Documents, Upload Document
-- Users management:
-  - Block / Unblock user
-  - Make Admin popup (asks for login and password)
-  - Revoke Admin
-- Documents management:
-  - List documents
-  - Download file
-  - Reindex document
-  - Delete document
-- Upload document (`pdf`, `txt`, `docx`)
-- Logout confirmation modal
+- shared login for web users and admins
+- saved conversations
+- rename chat
+- delete one chat
+- delete all history
+- sources panel
+- source download from cited results
+- responsive web chat and admin UI
 
-## Configure API
+## Environment
 
 Create `.env` in `frontend/` if needed:
 
-```bash
-VITE_API_BASE_URL=<your-backend-base-url>
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
 ## Run
@@ -34,9 +47,9 @@ npm install
 npm run dev
 ```
 
-## Build
+## Check
 
 ```bash
+npx tsc --noEmit
 npm run build
-npm run preview
 ```

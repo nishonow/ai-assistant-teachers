@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&family=Cormorant+SC:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Geologica:wght@300;400;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&family=Cormorant+SC:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Geologica:wght@300;400;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -154,23 +154,42 @@
   }
 
   .scroll-area::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
   }
 
   .scroll-area::-webkit-scrollbar-track {
-    background: rgba(13, 27, 45, 0.55);
+    background: rgba(13, 27, 45, 0.42);
     border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
   }
 
   .scroll-area::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, rgba(83, 246, 220, 0.6), rgba(0, 199, 171, 0.6));
     border-radius: 9999px;
-    border: 2px solid rgba(13, 27, 45, 0.55);
+    border: 3px solid rgba(13, 27, 45, 0.42);
+    background-clip: padding-box;
   }
 
   .scroll-area::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(180deg, rgba(83, 246, 220, 0.8), rgba(0, 199, 171, 0.8));
+  }
+
+  .scroll-area::-webkit-scrollbar-button,
+  .scroll-area::-webkit-scrollbar-button:single-button,
+  .scroll-area::-webkit-scrollbar-button:vertical:start:decrement,
+  .scroll-area::-webkit-scrollbar-button:vertical:end:increment,
+  .scroll-area::-webkit-scrollbar-button:horizontal:start:decrement,
+  .scroll-area::-webkit-scrollbar-button:horizontal:end:increment {
+    display: none;
+    width: 0;
+    height: 0;
+    -webkit-appearance: none;
+  }
+
+  .scroll-area::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   .landing-marquee-track {
@@ -193,6 +212,50 @@
     animation: subtlePulse 1.8s ease-in-out infinite;
     background-color: rgba(14, 28, 43, 0.98);
     transform: translateY(-1px);
+  }
+
+  .chat-input-scroll {
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(83, 246, 220, 0.45) rgba(13, 27, 45, 0.4);
+  }
+
+  .chat-input-scroll::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .chat-input-scroll::-webkit-scrollbar-track {
+    background: rgba(13, 27, 45, 0.32);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .chat-input-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(83, 246, 220, 0.58), rgba(0, 199, 171, 0.5));
+    border-radius: 9999px;
+    border: 2px solid rgba(13, 27, 45, 0.32);
+    background-clip: padding-box;
+  }
+
+  .chat-input-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(83, 246, 220, 0.72), rgba(0, 199, 171, 0.62));
+  }
+
+  .chat-input-scroll::-webkit-scrollbar-button,
+  .chat-input-scroll::-webkit-scrollbar-button:single-button,
+  .chat-input-scroll::-webkit-scrollbar-button:vertical:start:decrement,
+  .chat-input-scroll::-webkit-scrollbar-button:vertical:end:increment,
+  .chat-input-scroll::-webkit-scrollbar-button:horizontal:start:decrement,
+  .chat-input-scroll::-webkit-scrollbar-button:horizontal:end:increment {
+    display: none;
+    width: 0;
+    height: 0;
+    -webkit-appearance: none;
+  }
+
+  .chat-input-scroll::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   .message-rich {
@@ -245,3 +308,7 @@
     @apply bg-transparent p-0 text-[13px] leading-5 text-slate-200;
   }
 }
+
+
+
+

@@ -12,6 +12,7 @@ export {
   createConversation,
   deleteAllConversations,
   deleteConversation,
+  downloadConversationSource,
   getConversation,
   listConversations,
   renameConversation,

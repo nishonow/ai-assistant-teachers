@@ -28,6 +28,12 @@ interface RenameConversationPayload {
   title: string;
 }
 
+interface DownloadConversationSourcePayload {
+  session: AuthSession;
+  conversationId: string;
+  documentId: number;
+}
+
 export async function askAssistant({ question, session, history }: AskPayload): Promise<AskApiResponse> {
   return await apiRequest<AskApiResponse>({
     path: "/api/v1/ask/",
@@ -112,5 +118,17 @@ export async function saveConversationExchange({
     method: "POST",
     token: session.token,
     body: { question, answer, title, sources },
+  });
+}
+
+export async function downloadConversationSource({
+  session,
+  conversationId,
+  documentId,
+}: DownloadConversationSourcePayload): Promise<Blob> {
+  return await apiRequest<Blob>({
+    path: `/api/v1/conversations/${conversationId}/sources/${documentId}/download`,
+    token: session.token,
+    responseType: "blob",
   });
 }

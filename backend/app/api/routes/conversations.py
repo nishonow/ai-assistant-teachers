@@ -1,11 +1,14 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.dependencies import require_web_user
-from app.models import ChatConversation, ChatConversationMessage, ChatConversationMessageSource, User
+from app.models import ChatConversation, ChatConversationMessage, ChatConversationMessageSource, Document, User
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
@@ -122,6 +125,35 @@ def delete_all_conversations(current_user: User = Depends(require_web_user), db:
 def get_conversation(conversation_id: int, current_user: User = Depends(require_web_user), db: Session = Depends(get_db)):
     conversation = _get_user_conversation(db, conversation_id, current_user.id)
     return _serialize_detail(conversation)
+
+
+@router.get("/{conversation_id}/sources/{document_id}/download")
+def download_conversation_source(
+    conversation_id: int,
+    document_id: int,
+    current_user: User = Depends(require_web_user),
+    db: Session = Depends(get_db),
+):
+    conversation = _get_user_conversation(db, conversation_id, current_user.id)
+    has_cited_document = any(
+        source.document_id == document_id
+        for message in conversation.messages
+        for source in message.sources
+    )
+    if not has_cited_document:
+        raise HTTPException(status_code=404, detail="Source not found in this conversation")
+
+    document = db.query(Document).filter(Document.id == document_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if not os.path.exists(document.file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    return FileResponse(
+        path=document.file_path,
+        filename=document.file_name,
+        media_type="application/octet-stream",
+    )
 
 
 @router.patch("/{conversation_id}")

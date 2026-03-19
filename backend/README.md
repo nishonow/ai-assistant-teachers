@@ -1,24 +1,34 @@
-# Mugallim AI â€” Backend
+﻿# Backend
 
-FastAPI backend for Mugallim AI, a legal assistant for teachers in Kyrgyzstan.
+FastAPI backend for Mugallim AI.
 
-## Stack
+It handles:
+- web and admin authentication
+- Telegram-compatible APIs
+- document upload and indexing
+- saved web conversations
+- RAG question answering
+- admin endpoints
 
-- FastAPI + SQLAlchemy
-- PostgreSQL + pgvector
-- OpenAI (`text-embedding-3-small` + `gpt-4o-mini`)
-- lingua-language-detector
-- bcrypt
+## Main Areas
+
+- `auth` - login, register, session
+- `users` - platform user registration
+- `documents` - upload, list, delete, reindex, download
+- `conversations` - saved chat history and sources
+- `ask` / `services/rag.py` - retrieval and answer generation
+- `admin` - stats and moderation actions
 
 ## Setup
 
-1. Install dependencies:
 ```bash
+cd backend
 pip install -r requirements.txt
 ```
 
-2. Create `.env`:
-```
+Create `.env` in `backend/`:
+
+```env
 POSTGRES_URL=postgresql://user:password@host/dbname
 OPENAI_API_KEY=sk-...
 ADMIN_SECRET_TOKEN=your-bot-static-token
@@ -27,45 +37,21 @@ ADMIN_PASSWORD=your-password
 JWT_SECRET=your-jwt-secret
 ```
 
-3. Enable pgvector:
+Enable pgvector:
+
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-4. Run:
+Run:
+
 ```bash
 uvicorn app.main:app --reload
 ```
 
-## API Scope
-
-- Authentication for admin users
-- User registration and management
-- RAG question answering
-- Document upload, listing, download, delete, and reindex
-- Admin stats and moderation actions
-
-## Database Tables
-
-| Table | Purpose |
-|-------|---------|
-| `users` | All platform users (telegram, web, etc.) |
-| `bot_users` | Telegram-specific data (lang preference) |
-| `messages` | Message count + question per user for stats |
-| `documents` | Uploaded documents |
-| `chunks` | Document chunks with embeddings |
-
-## Auth
-
-- Admin endpoints require bearer token auth
-- Web admin panel uses JWT auth
-- Telegram bot uses static admin token from `.env`
-- Both token types are accepted on protected endpoints
-- Super admin credentials are in `.env`, additional admins managed via web panel
-
 ## Notes
 
-- Telegram users register when they start chat, other platforms auto-register on first message
-- Blocked users get 403 on question requests
-- Rate limit: 5 requests per 60 seconds per user
-- File uploads: max 20MB, supported formats: pdf, txt, docx
+- web users register through `/api/v1/auth/register`
+- Telegram users register through bot flow and `/api/v1/users/register`
+- web conversations and assistant sources are stored in dedicated chat tables
+- schema is currently created with SQLAlchemy `create_all()`

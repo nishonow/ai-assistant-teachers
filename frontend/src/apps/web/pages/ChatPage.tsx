@@ -1,8 +1,10 @@
-import { BookOpenText, Check, MessageSquarePlus, MoreHorizontal, PanelLeft, Pencil, Trash2, X } from "lucide-react";
+﻿import { BookOpenText, Check, MessageSquarePlus, MoreHorizontal, PanelLeft, Pencil, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import ToastNotice from "../../../core/components/ToastNotice";
 import { useAuth } from "../../../core/auth";
+import type { NoticeState } from "../../../core/types";
 import {
   askAssistant,
   ChatComposer,
@@ -13,6 +15,7 @@ import {
   DeleteConversationModal,
   DeleteAllHistoryModal,
   deleteConversation,
+  downloadConversationSource,
   getConversation,
   listConversations,
   renameConversation,
@@ -72,7 +75,6 @@ export default function ChatPage() {
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileSourcesOpen, setMobileSourcesOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -84,7 +86,13 @@ export default function ChatPage() {
   const [renamePending, setRenamePending] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const [downloadPendingId, setDownloadPendingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<NoticeState | null>(null);
   const mobileActionsRef = useRef<HTMLDivElement | null>(null);
+
+  const showNotice = useCallback((type: NoticeState["type"], message: string) => {
+    setNotice({ type, message });
+  }, []);
 
   const syncActiveConversation = useCallback((conversation: Conversation) => {
     setActiveConversationId(conversation.id);
@@ -102,7 +110,6 @@ export default function ChatPage() {
       if (!session) return;
 
       setIsLoadingList(true);
-      setError("");
 
       try {
         const items = await listConversations(session);
@@ -127,7 +134,7 @@ export default function ChatPage() {
         syncActiveConversation(conversation);
       } catch (requestError) {
         if (cancelled) return;
-        setError(requestError instanceof Error ? requestError.message : "Could not load conversations.");
+        showNotice("error", requestError instanceof Error ? requestError.message : "Could not load conversations.");
         if (routeConversationId) {
           navigate("/app", { replace: true });
           setActiveConversationId(null);
@@ -147,7 +154,7 @@ export default function ChatPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeConversation?.messages.length, activeConversationId, navigate, pending, routeConversationId, session, syncActiveConversation]);
+  }, [activeConversation?.messages.length, activeConversationId, navigate, pending, routeConversationId, session, showNotice, syncActiveConversation]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -164,29 +171,37 @@ export default function ChatPage() {
     };
   }, [mobileActionsOpen]);
 
+  useEffect(() => {
+    if (!notice) return;
+
+    const timer = window.setTimeout(() => {
+      setNotice(null);
+    }, 3200);
+
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
   const handleSelectConversation = useCallback(
     async (conversationId: string) => {
       if (!session || conversationId === activeConversationId) return;
 
       setIsLoadingConversation(true);
       setActiveConversationId(conversationId);
-      setError("");
 
       try {
         const conversation = await getConversation(session, conversationId);
         syncActiveConversation(conversation);
         navigate(`/app/chat/${conversationId}`);
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "Could not open conversation.");
+        showNotice("error", requestError instanceof Error ? requestError.message : "Could not open conversation.");
       } finally {
         setIsLoadingConversation(false);
       }
     },
-    [activeConversationId, navigate, session, syncActiveConversation],
+    [activeConversationId, navigate, session, showNotice, syncActiveConversation],
   );
 
   const handleStartDraftConversation = useCallback(() => {
-    setError("");
     setActiveConversationId(null);
     setActiveConversation(null);
     setActiveSources([]);
@@ -201,7 +216,6 @@ export default function ChatPage() {
     async (prompt: string) => {
       if (!session || pending) return;
 
-      setError("");
       setPending(true);
 
       let conversation = activeConversation;
@@ -211,7 +225,7 @@ export default function ChatPage() {
           conversation = await createConversation({ session });
           isFreshConversation = true;
         } catch (requestError) {
-          setError(requestError instanceof Error ? requestError.message : "Could not start a new conversation.");
+          showNotice("error", requestError instanceof Error ? requestError.message : "Could not start a new conversation.");
           setPending(false);
           return;
         }
@@ -260,15 +274,15 @@ export default function ChatPage() {
           });
           syncActiveConversation(persistedConversation);
         } catch (saveError) {
-          setError(saveError instanceof Error ? `${saveError.message} Conversation was not saved.` : "Conversation was not saved.");
+          showNotice("error", saveError instanceof Error ? `${saveError.message} Conversation was not saved.` : "Conversation was not saved.");
         }
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "Request failed.");
+        showNotice("error", requestError instanceof Error ? requestError.message : "Request failed.");
       } finally {
         setPending(false);
       }
     },
-    [activeConversation, navigate, pending, session, syncActiveConversation],
+    [activeConversation, navigate, pending, session, showNotice, syncActiveConversation],
   );
 
   const handleConfirmLogout = () => {
@@ -294,12 +308,11 @@ export default function ChatPage() {
 
     const title = renameValue.trim();
     if (!title) {
-      setError("Conversation title cannot be empty.");
+      showNotice("error", "Conversation title cannot be empty.");
       return;
     }
 
     setRenamePending(true);
-    setError("");
 
     try {
       const renamedConversation = await renameConversation({
@@ -311,17 +324,16 @@ export default function ChatPage() {
       setRenameOpen(false);
       setRenameValue("");
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not rename conversation.");
+      showNotice("error", requestError instanceof Error ? requestError.message : "Could not rename conversation.");
     } finally {
       setRenamePending(false);
     }
-  }, [activeConversationId, renameValue, session, syncActiveConversation]);
+  }, [activeConversationId, renameValue, session, showNotice, syncActiveConversation]);
 
   const handleDeleteConversation = useCallback(async () => {
     if (!session || !activeConversationId) return;
 
     setDeletePending(true);
-    setError("");
 
     const remaining = conversations.filter((item) => item.id !== activeConversationId);
 
@@ -345,18 +357,17 @@ export default function ChatPage() {
       syncActiveConversation(nextConversation);
       navigate(`/app/chat/${remaining[0].id}`, { replace: true });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not delete conversation.");
+      showNotice("error", requestError instanceof Error ? requestError.message : "Could not delete conversation.");
     } finally {
       setDeletePending(false);
       setIsLoadingConversation(false);
     }
-  }, [activeConversationId, conversations, navigate, session, syncActiveConversation]);
+  }, [activeConversationId, conversations, navigate, session, showNotice, syncActiveConversation]);
 
   const handleDeleteAllConversations = useCallback(async () => {
     if (!session) return;
 
     setDeleteAllPending(true);
-    setError("");
 
     try {
       await deleteAllConversations(session);
@@ -371,11 +382,41 @@ export default function ChatPage() {
       setMobileSidebarOpen(false);
       navigate("/app", { replace: true });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not delete chat history.");
+      showNotice("error", requestError instanceof Error ? requestError.message : "Could not delete chat history.");
     } finally {
       setDeleteAllPending(false);
     }
-  }, [navigate, session]);
+  }, [navigate, session, showNotice]);
+
+  const handleDownloadSource = useCallback(
+    async (source: ChatSource) => {
+      if (!session || !activeConversationId || !source.documentId) return;
+
+      setDownloadPendingId(source.id);
+
+      try {
+        const blob = await downloadConversationSource({
+          session,
+          conversationId: activeConversationId,
+          documentId: source.documentId,
+        });
+
+        const objectUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = objectUrl;
+        anchor.download = source.title || `source-${source.documentId}`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(objectUrl);
+      } catch (requestError) {
+        showNotice("error", requestError instanceof Error ? requestError.message : "Could not download source.");
+      } finally {
+        setDownloadPendingId(null);
+      }
+    },
+    [activeConversationId, session, showNotice],
+  );
 
   if (!session) {
     return null;
@@ -520,15 +561,19 @@ export default function ChatPage() {
             messages={activeConversation?.messages ?? []}
             pending={pending}
             loading={isLoadingConversation || (Boolean(routeConversationId) && isLoadingList)}
-            error={error}
           />
           <ChatComposer disabled={pending || isLoadingList || isLoadingConversation} onSubmit={handleSend} />
         </main>
 
         <SourcesPanel
+          activeConversationId={activeConversationId}
           activeConversationTitle={activeConversation?.title ?? "New chat"}
+          downloadPendingId={downloadPendingId}
           mobileOpen={mobileSourcesOpen}
           sources={activeSources}
+          onDownloadSource={(source) => {
+            void handleDownloadSource(source);
+          }}
           onCloseMobile={() => setMobileSourcesOpen(false)}
         />
       </div>
@@ -551,6 +596,7 @@ export default function ChatPage() {
         }}
       />
       <WebLogoutConfirmModal open={logoutConfirmOpen} onCancel={() => setLogoutConfirmOpen(false)} onConfirm={handleConfirmLogout} />
+      <ToastNotice notice={notice} />
     </div>
   );
 }

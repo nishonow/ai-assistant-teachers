@@ -1,44 +1,40 @@
-# Mugallim AI — Telegram Bot
+﻿# Telegram Bot
 
-Aiogram 3 Telegram bot for Mugallim AI, a legal assistant for teachers in Kyrgyzstan.
+Aiogram bot for Mugallim AI.
 
-## Stack
+The bot uses the backend for question answering and source retrieval.
 
-- Aiogram 3
-- asyncpg (bot_users table)
-- httpx (backend communication)
+## Features
+
+- asks questions through backend RAG
+- supports Russian and Kyrgyz UI
+- shows sources from backend answers
+- supports bot-side admin actions
 
 ## Setup
 
-1. Install dependencies:
 ```bash
+cd bot
 pip install -r requirements.txt
 ```
 
-2. Create `.env`:
-```
+Create `.env` in `bot/`:
+
+```env
 BOT_TOKEN=...
 POSTGRES_URL=postgresql://user:password@host/dbname
-BACKEND_URL=<your-backend-base-url>
+BACKEND_URL=http://127.0.0.1:8000
 ADMIN_IDS=[123456789]
 ADMIN_SECRET_TOKEN=your-bot-static-token
 ```
 
-3. Make sure backend is running.
+Run:
 
-4. Run:
 ```bash
 python main.py
 ```
 
-## Features
+## Notes
 
-- RAG-powered Q&A via backend
-- Animated thinking indicator
-- FSM-based chat history (last 5 exchanges)
-- Russian / Kyrgyz interface language
-- Response language follows user's question language
-- Source document citations as clickable deep links
-- Blocked user handling (403 -> friendly message)
-- Rate limit feedback (429 -> friendly message)
-- Admin panel: upload, delete, reindex docs, view stats, block/unblock users with pagination
+- bot uses the same backend knowledge base as the web app
+- bot admin flow is separate from the web admin UI

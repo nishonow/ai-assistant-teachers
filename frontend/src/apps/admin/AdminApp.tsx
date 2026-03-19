@@ -2,6 +2,7 @@
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../core/auth";
 import { apiRequest, ApiRequestError, type ApiRequestOptions } from "../../core/api";
+import ToastNotice from "../../core/components/ToastNotice";
 import type {
   DocumentRecord,
   LoadingState,
@@ -15,7 +16,6 @@ import type {
 import ConfirmLogoutModal from "./components/ConfirmLogoutModal";
 import DocumentsTab from "./components/DocumentsTab";
 import MakeAdminModal from "./components/MakeAdminModal";
-import Notice from "./components/Notice";
 import OverviewTab from "./components/OverviewTab";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
@@ -409,7 +409,7 @@ export default function AdminApp() {
 
       <main className="flex min-h-screen flex-col gap-3 p-4 md:ml-72 md:gap-4 md:p-6">
         <Topbar username={username} onOpenMenu={() => setSidebarOpen(true)} onRequestLogout={() => setLogoutConfirmOpen(true)} />
-        <Notice notice={notice} />
+        <ToastNotice notice={notice} />
 
         <section className="panel p-4 md:p-5">
           <Routes>
@@ -472,5 +472,7 @@ export default function AdminApp() {
     </div>
   );
 }
+
+
 
 

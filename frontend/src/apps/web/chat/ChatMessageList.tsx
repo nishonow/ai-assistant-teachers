@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { Check, Copy } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import AssistantMessageContent from "./AssistantMessageContent";
 import type { ChatMessage } from "./types";
@@ -7,13 +8,13 @@ interface ChatMessageListProps {
   messages: ChatMessage[];
   pending: boolean;
   loading: boolean;
-  error: string;
 }
 
-export default function ChatMessageList({ messages, pending, loading, error }: ChatMessageListProps) {
+export default function ChatMessageList({ messages, pending, loading }: ChatMessageListProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const previousLengthRef = useRef(0);
   const previousPendingRef = useRef(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!messages.length && !pending) {
@@ -32,6 +33,25 @@ export default function ChatMessageList({ messages, pending, loading, error }: C
     previousLengthRef.current = messages.length;
     previousPendingRef.current = pending;
   }, [messages.length, pending]);
+
+  useEffect(() => {
+    if (!copiedMessageId) return;
+
+    const timer = window.setTimeout(() => {
+      setCopiedMessageId(null);
+    }, 1800);
+
+    return () => window.clearTimeout(timer);
+  }, [copiedMessageId]);
+
+  const handleCopy = async (messageId: string, content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageId(messageId);
+    } catch {
+      setCopiedMessageId(null);
+    }
+  };
 
   if (loading && !messages.length) {
     return (
@@ -58,29 +78,43 @@ export default function ChatMessageList({ messages, pending, loading, error }: C
   }
 
   return (
-    <div className="scroll-area flex-1 overflow-y-auto px-3 py-5 md:px-6">
-      <div className="mx-auto w-full max-w-4xl space-y-5">
+    <div className="scroll-area flex-1 overflow-y-auto px-3 py-4 md:px-6 md:py-5">
+      <div className="mx-auto w-full max-w-4xl space-y-3.5 md:space-y-4">
         {messages.map((message) => (
           <article
             key={message.id}
             className={[
-              "chat-card-enter rounded-[24px] px-4 py-3 text-sm",
+              "chat-card-enter rounded-[22px] px-3.5 py-2.5 text-sm",
               message.role === "user"
-                ? "ml-auto max-w-[86%] border border-brand-400/35 bg-brand-500/15 text-slate-100 md:max-w-[52%]"
-                : "mr-auto max-w-[94%] border border-[#284863] bg-[#0d1827] text-slate-200 md:max-w-[74%]",
+                ? "ml-auto max-w-[82%] border border-brand-400/35 bg-brand-500/15 text-slate-100 md:max-w-[48%]"
+                : "mr-auto max-w-[90%] border border-[#284863] bg-[#0d1827] text-slate-200 md:max-w-[70%]",
             ].join(" ")}
           >
-            <p className="mb-1 text-[11px] uppercase tracking-[0.14em] text-slate-500">{message.role === "user" ? "You" : "Assistant"}</p>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">{message.role === "user" ? "You" : "Assistant"}</p>
+              {message.role === "assistant" ? (
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-full border border-[#284863] bg-[#0a1624] px-2 py-1 text-[11px] uppercase tracking-[0.12em] text-slate-400 transition-colors hover:bg-[#102033] hover:text-slate-200"
+                  onClick={() => {
+                    void handleCopy(message.id, message.content);
+                  }}
+                >
+                  {copiedMessageId === message.id ? <Check size={12} /> : <Copy size={12} />}
+                  {copiedMessageId === message.id ? "Copied" : "Copy"}
+                </button>
+              ) : null}
+            </div>
             {message.role === "assistant" ? (
               <AssistantMessageContent content={message.content} />
             ) : (
-              <p className="whitespace-pre-wrap leading-7">{message.content}</p>
+              <p className="whitespace-pre-wrap leading-6">{message.content}</p>
             )}
           </article>
         ))}
 
         {pending ? (
-          <div className="chat-card-enter mr-auto max-w-[74%] rounded-[24px] border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm text-slate-300">
+          <div className="chat-card-enter mr-auto max-w-[70%] rounded-[22px] border border-[#284863] bg-[#0d1827] px-3.5 py-2.5 text-sm text-slate-300">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-brand-300" />
@@ -90,10 +124,6 @@ export default function ChatMessageList({ messages, pending, loading, error }: C
               <span>Assistant is thinking...</span>
             </div>
           </div>
-        ) : null}
-
-        {error ? (
-          <div className="max-w-3xl rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</div>
         ) : null}
 
         <div ref={bottomRef} />
