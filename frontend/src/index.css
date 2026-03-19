@@ -26,6 +26,39 @@
   }
 }
 
+@keyframes drawerSlideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawerSlideRight {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawerFade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
 @keyframes subtlePulse {
   0%,
   100% {
@@ -33,7 +66,6 @@
   }
 
   50% {
-    border-color: rgba(83, 246, 220, 0.38);
   }
 }
 
@@ -72,11 +104,11 @@
   }
 
   .modal-backdrop {
-    @apply fixed inset-0 z-50 grid place-items-center bg-ink-950/60 p-4 backdrop-blur-[2px];
+    @apply fixed inset-0 z-50 grid place-items-center bg-ink-950/60 p-4;
   }
 
   .modal-card {
-    @apply w-full rounded-2xl border border-ink-500/75 bg-gradient-to-b from-ink-800/95 to-ink-900/90 shadow-panel ring-1 ring-white/10;
+    @apply w-full rounded-2xl border border-ink-500/75 bg-gradient-to-b from-ink-800/95 to-ink-900/90 ring-1 ring-white/10;
   }
 
   .btn {
@@ -113,7 +145,7 @@
   }
 
   .sidebar-shell {
-    @apply border-r border-ink-600/70 bg-gradient-to-b from-ink-900 via-[#0a182a] to-[#081422] shadow-panel;
+    @apply border-r border-ink-600/70 bg-gradient-to-b from-ink-900 via-[#0a182a] to-[#081422];
   }
 
   .sidebar-item {
@@ -197,14 +229,12 @@
 
   .chat-composer-shell {
     transition:
-      border-color 180ms ease,
       background-color 180ms ease;
   }
 
   .chat-composer-shell:focus-within {
     animation: none;
     background-color: rgba(14, 28, 43, 0.98);
-    border-color: rgba(83, 246, 220, 0.38);
   }
 
   .chat-input-scroll {
@@ -249,6 +279,23 @@
 
   .chat-input-scroll::-webkit-scrollbar-corner {
     background: transparent;
+  }
+
+
+  .drawer-overlay-enter {
+    animation: drawerFade 220ms ease-out both;
+  }
+
+  .drawer-sheet-left {
+    animation: drawerSlideLeft 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .drawer-sheet-right {
+    animation: drawerSlideRight 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .drawer-sheet-surface {
+    background: linear-gradient(180deg, rgba(10, 20, 32, 0.99) 0%, rgba(7, 15, 25, 0.99) 100%);
   }
 
   .message-rich {

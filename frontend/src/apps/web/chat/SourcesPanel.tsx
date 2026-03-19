@@ -38,7 +38,7 @@ function SourcesContent({
     <>
       {showHeader ? (
         <header className="flex h-[72px] flex-col justify-center border-b border-[#21384b] px-5">
-          <h2 className="font-heading text-sm uppercase tracking-[0.15em] text-slate-300">Источники</h2>
+          <h2 className="font-heading text-sm uppercase tracking-[0.15em] text-slate-300">{"Источники"}</h2>
           <div className="mt-1 flex items-center justify-between gap-3">
             <p className="truncate text-xs text-slate-500">{activeConversationTitle}</p>
             {sources.length ? (
@@ -56,10 +56,10 @@ function SourcesContent({
             {sources.map((source) => (
               <article
                 key={source.id}
-                className="chat-card-enter rounded-3xl border border-[#284863] bg-[linear-gradient(180deg,_rgba(14,28,43,0.98)_0%,_rgba(10,21,34,0.98)_100%)] p-4 transition-colors hover:border-[#3a6988]"
+                className="chat-card-enter rounded-[26px] border border-[#284863] bg-[#0d1827] p-4 transition-colors hover:border-[#3a6988]"
               >
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 grid h-11 w-11 place-items-center rounded-2xl border border-[#305169] bg-[linear-gradient(180deg,_#14314a_0%,_#0f1d2d_100%)] text-[#9af5ea]">
+                  <div className="mt-0.5 grid h-11 w-11 place-items-center rounded-2xl border border-[#305169] bg-[#102033] text-[#9af5ea]">
                     <FileText size={15} />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -79,7 +79,7 @@ function SourcesContent({
                         {getSourceExtension(source.title)}
                       </span>
                     </div>
-                    <p className="mt-2 text-xs uppercase tracking-[0.14em] text-slate-500">Указанный документ</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.14em] text-slate-500">{"Указанный документ"}</p>
                     <div className="mt-4 flex items-center justify-between gap-3">
                       <div className="text-xs leading-5 text-slate-500">
                         {source.documentId ? `Документ #${source.documentId}` : "Прикреплённый источник"}
@@ -101,7 +101,7 @@ function SourcesContent({
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-[#284863] bg-[#0d1827]/70 p-4 text-sm leading-6 text-slate-400">
-            Здесь появятся источники для последнего ответа ассистента.
+            {"Здесь появятся источники для последнего ответа ассистента."}
           </div>
         )}
       </div>
@@ -133,15 +133,15 @@ export default function SourcesPanel({
 
       {mobileOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <button type="button" className="absolute inset-0 bg-black/60" onClick={onCloseMobile} aria-label="Закрыть источники" />
+          <button type="button" className="drawer-overlay-enter absolute inset-0 bg-black/62" onClick={onCloseMobile} aria-label={"Закрыть источники"} />
 
-          <aside className="absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col border-l border-[#21384b] bg-[#09111d] shadow-panel">
-            <div className="flex h-[72px] items-center justify-between border-b border-[#21384b] px-4">
+          <aside className="drawer-sheet-right drawer-sheet-surface absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden rounded-l-[28px] border-l border-[#21384b]">
+            <div className="flex h-[72px] items-center justify-between border-b border-[#21384b] bg-[#0a1624] px-4">
               <div className="flex items-center gap-2 text-slate-200">
                 <BookOpenText size={16} />
-                <span className="text-sm font-semibold">Источники</span>
+                <span className="text-sm font-semibold">{"Источники"}</span>
               </div>
-              <button type="button" className="btn-muted p-2" onClick={onCloseMobile} aria-label="Закрыть панель источников">
+              <button type="button" className="btn-muted p-2" onClick={onCloseMobile} aria-label={"Закрыть панель источников"}>
                 <X size={16} />
               </button>
             </div>

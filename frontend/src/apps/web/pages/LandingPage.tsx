@@ -35,7 +35,7 @@ export default function LandingPage() {
               </div>
               <div>
                 <p className="font-heading text-lg tracking-[0.08em] text-[#f5fffd]">Mugallim AI</p>
-                <p className="text-xs uppercase tracking-[0.18em] text-[#88b8c7]">Учителя / Права / Ясность</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-[#88b8c7]">{"Учителя / Права / Ясность"}</p>
               </div>
             </div>
 
@@ -46,7 +46,7 @@ export default function LandingPage() {
               className="inline-flex items-center justify-center gap-2 rounded-full border border-[#2f5a72] bg-[#112235] px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#d9fffa] transition hover:border-[#58dacc] hover:bg-[#16304b]"
             >
               <MessageCircle size={14} />
-              Открыть Telegram-бота
+              {"Открыть Telegram-бота"}
             </a>
           </div>
         </header>
@@ -55,15 +55,15 @@ export default function LandingPage() {
           <div className="rounded-[32px] border border-[#1f3245] bg-[radial-gradient(circle_at_top_left,_rgba(80,214,197,0.18),_transparent_32%),linear-gradient(180deg,_rgba(8,15,25,0.96)_0%,_rgba(6,10,16,0.98)_100%)] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.28)] md:p-8 lg:p-10">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#30556a] bg-[#102133] px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-[#a2f3e7]">
               <Sparkles size={12} />
-              Юридическая помощь учителям
+              {"Юридическая помощь учителям"}
             </div>
 
             <h1 className="mt-6 max-w-3xl font-heading text-[3rem] leading-[0.92] text-[#f7fffd] md:text-[4.4rem]">
-              Серьёзная помощь для работников школы, без юридического тумана.
+              {"Серьёзная помощь для работников школы, без юридического тумана."}
             </h1>
 
             <p className="mt-6 max-w-xl text-sm leading-7 text-slate-300 md:text-base">
-              Задавайте сложные трудовые и рабочие вопросы простым языком. Используйте веб-приложение для спокойных диалогов или открывайте Telegram-бота, когда нужен быстрый ответ.
+              {"Задавайте сложные трудовые и рабочие вопросы простым языком. Используйте веб-приложение для спокойных диалогов или открывайте Telegram-бота, когда нужен быстрый ответ."}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -100,7 +100,7 @@ export default function LandingPage() {
             <aside className="rounded-[30px] border border-[#1f3245] bg-[#08111c] p-5 md:p-6">
               <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[#8fcbbf]">
                 <ShieldCheck size={13} />
-                Частые ситуации
+                {"Частые ситуации"}
               </div>
 
               <div className="mt-4 grid gap-2">
@@ -117,15 +117,15 @@ export default function LandingPage() {
             </aside>
 
             <aside className="rounded-[30px] border border-[#36576a] bg-[linear-gradient(180deg,_rgba(15,30,47,0.95)_0%,_rgba(7,15,25,0.98)_100%)] p-5 md:p-6">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[#8dc6d8]">Два способа войти</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[#8dc6d8]">{"Два способа войти"}</p>
               <div className="mt-4 space-y-3">
                 <div className="rounded-2xl border border-[#284863] bg-[#0d1928] p-4">
-                  <p className="text-sm font-semibold text-[#f3fffd]">Веб-чат</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-400">Подходит для длинных сессий, сохранённых диалогов и спокойного рабочего пространства.</p>
+                  <p className="text-sm font-semibold text-[#f3fffd]">{"Веб-чат"}</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-400">{"Подходит для длинных сессий, сохранённых диалогов и спокойного рабочего пространства."}</p>
                 </div>
                 <div className="rounded-2xl border border-[#284863] bg-[#0d1928] p-4">
-                  <p className="text-sm font-semibold text-[#f3fffd]">Telegram-бот</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-400">Подходит, когда нужен быстрый ответ на ходу.</p>
+                  <p className="text-sm font-semibold text-[#f3fffd]">{"Telegram-бот"}</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-400">{"Подходит, когда нужен быстрый ответ на ходу."}</p>
                 </div>
               </div>
             </aside>

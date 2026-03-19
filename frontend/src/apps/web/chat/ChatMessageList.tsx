@@ -71,7 +71,7 @@ export default function ChatMessageList({ messages, pending, loading }: ChatMess
       <div className="grid flex-1 place-items-center px-6 py-10">
         <div className="max-w-xl text-center">
           <h2 className="font-heading text-3xl text-slate-100">Что вы хотите узнать?</h2>
-          <p className="mt-3 text-sm leading-7 text-slate-400">Начните диалог, и Mugallim AI ответит, опираясь на вашу загруженную базу знаний.</p>
+          <p className="mt-3 text-sm leading-7 text-slate-400">Начните диалог и задайте свой вопрос.</p>
         </div>
       </div>
     );
@@ -92,21 +92,25 @@ export default function ChatMessageList({ messages, pending, loading }: ChatMess
           >
             <div className="mb-1 flex items-center justify-between gap-3">
               <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">{message.role === "user" ? "Вы" : "Ассистент"}</p>
-              {message.role === "assistant" ? (
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-[#284863] bg-[#0a1624] px-2 py-1 text-[11px] uppercase tracking-[0.12em] text-slate-400 transition-colors hover:bg-[#102033] hover:text-slate-200"
-                  onClick={() => {
-                    void handleCopy(message.id, message.content);
-                  }}
-                >
-                  {copiedMessageId === message.id ? <Check size={12} /> : <Copy size={12} />}
-                  {copiedMessageId === message.id ? "Скопировано" : "Копировать"}
-                </button>
-              ) : null}
+              {message.role === "assistant" ? <span /> : null}
             </div>
             {message.role === "assistant" ? (
-              <AssistantMessageContent content={message.content} />
+              <>
+                <AssistantMessageContent content={message.content} />
+                <div className="mt-3 flex items-center justify-start">
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#284863] bg-transparent text-slate-400 transition-colors hover:bg-[#102033] hover:text-slate-200"
+                    onClick={() => {
+                      void handleCopy(message.id, message.content);
+                    }}
+                    aria-label={copiedMessageId === message.id ? "Скопировано" : "Копировать"}
+                    title={copiedMessageId === message.id ? "Скопировано" : "Копировать"}
+                  >
+                    {copiedMessageId === message.id ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+                </div>
+              </>
             ) : (
               <p className="whitespace-pre-wrap leading-6">{message.content}</p>
             )}

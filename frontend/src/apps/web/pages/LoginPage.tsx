@@ -59,15 +59,15 @@ export default function LoginPage() {
         <section className="rounded-[32px] border border-[#1f3245] bg-[radial-gradient(circle_at_top_left,_rgba(73,210,193,0.16),_transparent_30%),linear-gradient(180deg,_rgba(8,15,25,0.98)_0%,_rgba(6,11,18,0.98)_100%)] p-6 md:p-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#2b5066] bg-[#0f1f31] px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-[#98f7ea]">
             <ShieldCheck size={12} />
-            Веб-доступ
+            {"Веб-доступ"}
           </div>
 
           <h1 className="mt-6 max-w-md font-heading text-4xl leading-[0.94] text-[#f7fffd] md:text-5xl">
-            Вернитесь в своё рабочее пространство.
+            {"Вернитесь в своё рабочее пространство."}
           </h1>
 
           <p className="mt-5 max-w-md text-sm leading-7 text-slate-300">
-            Войдите, чтобы продолжить свои веб-диалоги и пользоваться ассистентом в более спокойном и удобном рабочем пространстве.
+            {"Войдите, чтобы продолжить свои веб-диалоги и пользоваться ассистентом в более спокойном и удобном рабочем пространстве."}
           </p>
 
           <div className="mt-8 space-y-3">
@@ -88,20 +88,20 @@ export default function LoginPage() {
             className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#35556e] bg-[#0d1827] px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#ddfffa] transition hover:border-[#72dccc] hover:bg-[#14253a]"
           >
             <MessageCircle size={14} />
-            Открыть Telegram-бота
+            {"Открыть Telegram-бота"}
           </a>
         </section>
 
         <section className="rounded-[32px] border border-[#1f3245] bg-[#08111c]/96 p-6 shadow-[0_28px_80px_rgba(0,0,0,0.3)] md:p-8 lg:p-10">
           <div className="max-w-md">
             <p className="font-heading text-xs uppercase tracking-[0.22em] text-[#8fcbbf]">Mugallim AI</p>
-            <h2 className="mt-2 font-heading text-3xl text-[#f7fffd]">Вход</h2>
-            <p className="mt-2 text-sm text-slate-400">Используйте email или имя пользователя и продолжайте с того места, где остановились.</p>
+            <h2 className="mt-2 font-heading text-3xl text-[#f7fffd]">{"Вход"}</h2>
+            <p className="mt-2 text-sm text-slate-400">{"Используйте email или имя пользователя и продолжайте с того места, где остановились."}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-8 max-w-md space-y-5">
             <label className="block text-sm text-slate-300">
-              Email или имя пользователя
+              {"Email или имя пользователя"}
               <div className="relative mt-2">
                 <UserRound size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
@@ -115,7 +115,7 @@ export default function LoginPage() {
             </label>
 
             <label className="block text-sm text-slate-300">
-              Пароль
+              {"Пароль"}
               <div className="relative mt-2">
                 <LockKeyhole size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
@@ -136,9 +136,9 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-6 text-sm text-slate-400">
-            Нет аккаунта?{" "}
+            {"Нет аккаунта? "}
             <Link to="/register" className="text-[#9af5ea] hover:text-[#c8fff8]">
-              Регистрация
+              {"Регистрация"}
             </Link>
           </p>
         </section>
