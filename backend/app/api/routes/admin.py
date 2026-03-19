@@ -4,7 +4,7 @@ from sqlalchemy import func
 from pydantic import BaseModel
 import bcrypt
 from app.database import get_db
-from app.models import User, Document, Chunk, Message
+from app.models import User, Document, Chunk, Message, ChatConversation, ChatConversationMessage
 from app.dependencies import require_admin
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -21,6 +21,8 @@ class MakeAdminRequest(BaseModel):
 def get_stats(db: Session = Depends(get_db)):
     total_users = db.query(func.count(User.id)).scalar()
     total_messages = db.query(func.count(Message.id)).scalar()
+    saved_web_messages = db.query(func.count(ChatConversationMessage.id)).scalar()
+    saved_web_conversations = db.query(func.count(ChatConversation.id)).scalar()
     total_documents = db.query(func.count(Document.id)).scalar()
     total_chunks = db.query(func.count(Chunk.id)).scalar()
 
@@ -32,6 +34,8 @@ def get_stats(db: Session = Depends(get_db)):
     return {
         "total_users": total_users,
         "total_messages": total_messages,
+        "saved_web_messages": saved_web_messages,
+        "saved_web_conversations": saved_web_conversations,
         "total_documents": total_documents,
         "total_chunks": total_chunks,
         "by_platform": {platform: count for platform, count in messages_by_platform},

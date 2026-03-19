@@ -74,21 +74,21 @@ export default function ChatComposer({ disabled, onSubmit }: ChatComposerProps) 
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Message Mugallim AI..."
+          placeholder="Напишите Mugallim AI..."
           rows={1}
-          className="chat-input-scroll min-h-[22px] max-h-[220px] flex-1 resize-none bg-transparent px-2 py-[6px] text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[24px] md:py-[8px] md:text-sm"
+          className="chat-input-scroll min-h-[22px] max-h-[220px] flex-1 resize-none bg-transparent px-2 py-[6px] text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[24px] md:py-[8px]"
         />
         <button
           type="submit"
           className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#8ef1e5] text-[#10221d] transition duration-200 hover:scale-[1.03] hover:bg-[#b7fbf3] disabled:cursor-not-allowed disabled:opacity-50 md:h-10 md:w-10"
           disabled={disabled || !value.trim()}
-          aria-label="Send message"
+          aria-label="Отправить сообщение"
         >
           <SendHorizontal size={16} />
         </button>
       </div>
       <p className="mx-auto mt-1.5 w-full max-w-4xl px-2 text-center text-[10px] leading-4 text-slate-500 md:mt-2 md:text-xs md:leading-5">
-        Mugallim AI can make mistakes. Please check the cited sources. Your chats are saved to improve future use.
+        Mugallim AI может ошибаться. Пожалуйста, проверяйте указанные источники. Ваши чаты сохраняются для удобства дальнейшего использования.
       </p>
     </form>
   );

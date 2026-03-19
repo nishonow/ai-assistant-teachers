@@ -1,4 +1,4 @@
-﻿@import url("https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&family=Cormorant+SC:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Geologica:wght@300;400;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&family=Cormorant+SC:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Geologica:wght@300;400;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -49,7 +49,8 @@
   }
 
   body {
-    @apply min-h-screen bg-ink-950 text-slate-100 font-body;
+    @apply bg-ink-950 text-slate-100 font-body;
+    min-height: 100svh;
     overscroll-behavior-y: none;
     background-image:
       radial-gradient(720px 340px at -8% -6%, rgba(23, 223, 193, 0.14), transparent 70%),
@@ -62,13 +63,7 @@
     font-size: 16px;
   }
 
-  @media (min-width: 768px) {
-    input,
-    select,
-    textarea {
-      font-size: 14px;
-    }
-  }
+
 }
 
 @layer components {
@@ -113,7 +108,7 @@
   }
 
   .input {
-    @apply mt-1 w-full rounded-xl border border-ink-500 bg-ink-900/65 px-3 py-2 text-base text-slate-100 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none md:text-sm;
+    @apply mt-1 w-full rounded-xl border border-ink-500 bg-ink-900/65 px-3 py-2 text-base text-slate-100 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none;
     @apply file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-ink-950 hover:file:bg-brand-400;
   }
 
@@ -201,17 +196,15 @@
   }
 
   .chat-composer-shell {
-    animation: softRise 260ms ease-out both;
     transition:
       border-color 180ms ease,
-      background-color 180ms ease,
-      transform 180ms ease;
+      background-color 180ms ease;
   }
 
   .chat-composer-shell:focus-within {
-    animation: subtlePulse 1.8s ease-in-out infinite;
+    animation: none;
     background-color: rgba(14, 28, 43, 0.98);
-    transform: translateY(-1px);
+    border-color: rgba(83, 246, 220, 0.38);
   }
 
   .chat-input-scroll {
@@ -311,4 +304,23 @@
 
 
 
+
+
+
+
+
+@media (max-width: 767px) {
+  .scroll-area,
+  .chat-input-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scroll-area::-webkit-scrollbar,
+  .chat-input-scroll::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
 

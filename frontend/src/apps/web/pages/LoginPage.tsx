@@ -9,9 +9,9 @@ interface LoginLocationState {
 }
 
 const LOGIN_NOTES = [
-  "Saved web conversations",
-  "Direct access to the assistant",
-  "Telegram remains available separately",
+  "Сохранённые веб-диалоги",
+  "Прямой доступ к ассистенту",
+  "Telegram остаётся доступным отдельно",
 ];
 
 export default function LoginPage() {
@@ -47,27 +47,27 @@ export default function LoginPage() {
 
       navigate(session.user.role === "admin" ? "/admin" : "/app", { replace: true });
     } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : "Login failed.");
+      setError(loginError instanceof Error ? loginError.message : "Не удалось войти.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-[#04070d] px-4 py-6 text-slate-100 md:px-6">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-6xl gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+    <main className="min-h-[100svh] bg-[#04070d] px-4 py-6 text-slate-100 md:min-h-screen md:px-6">
+      <div className="mx-auto grid min-h-[calc(100svh-3rem)] w-full max-w-6xl gap-4 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] lg:grid-cols-[0.95fr_1.05fr] md:min-h-[calc(100vh-3rem)]">
         <section className="rounded-[32px] border border-[#1f3245] bg-[radial-gradient(circle_at_top_left,_rgba(73,210,193,0.16),_transparent_30%),linear-gradient(180deg,_rgba(8,15,25,0.98)_0%,_rgba(6,11,18,0.98)_100%)] p-6 md:p-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#2b5066] bg-[#0f1f31] px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-[#98f7ea]">
             <ShieldCheck size={12} />
-            Web access
+            Веб-доступ
           </div>
 
           <h1 className="mt-6 max-w-md font-heading text-4xl leading-[0.94] text-[#f7fffd] md:text-5xl">
-            Return to your workspace.
+            Вернитесь в своё рабочее пространство.
           </h1>
 
           <p className="mt-5 max-w-md text-sm leading-7 text-slate-300">
-            Sign in to continue your web conversations and use the assistant in a calmer, larger workspace.
+            Войдите, чтобы продолжить свои веб-диалоги и пользоваться ассистентом в более спокойном и удобном рабочем пространстве.
           </p>
 
           <div className="mt-8 space-y-3">
@@ -88,20 +88,20 @@ export default function LoginPage() {
             className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#35556e] bg-[#0d1827] px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#ddfffa] transition hover:border-[#72dccc] hover:bg-[#14253a]"
           >
             <MessageCircle size={14} />
-            Open Telegram Bot
+            Открыть Telegram-бота
           </a>
         </section>
 
         <section className="rounded-[32px] border border-[#1f3245] bg-[#08111c]/96 p-6 shadow-[0_28px_80px_rgba(0,0,0,0.3)] md:p-8 lg:p-10">
           <div className="max-w-md">
             <p className="font-heading text-xs uppercase tracking-[0.22em] text-[#8fcbbf]">Mugallim AI</p>
-            <h2 className="mt-2 font-heading text-3xl text-[#f7fffd]">Login</h2>
-            <p className="mt-2 text-sm text-slate-400">Use your email or username and continue where you left off.</p>
+            <h2 className="mt-2 font-heading text-3xl text-[#f7fffd]">Вход</h2>
+            <p className="mt-2 text-sm text-slate-400">Используйте email или имя пользователя и продолжайте с того места, где остановились.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-8 max-w-md space-y-5">
             <label className="block text-sm text-slate-300">
-              Email or username
+              Email или имя пользователя
               <div className="relative mt-2">
                 <UserRound size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
@@ -115,7 +115,7 @@ export default function LoginPage() {
             </label>
 
             <label className="block text-sm text-slate-300">
-              Password
+              Пароль
               <div className="relative mt-2">
                 <LockKeyhole size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
@@ -131,14 +131,14 @@ export default function LoginPage() {
             {error ? <p className="rounded-2xl border border-rose-400/35 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</p> : null}
 
             <button type="submit" className="btn-primary w-full rounded-full py-3" disabled={loading}>
-              {loading ? "Signing in..." : "Login"}
+              {loading ? "Вход..." : "Войти"}
             </button>
           </form>
 
           <p className="mt-6 text-sm text-slate-400">
-            No account?{" "}
+            Нет аккаунта?{" "}
             <Link to="/register" className="text-[#9af5ea] hover:text-[#c8fff8]">
-              Register
+              Регистрация
             </Link>
           </p>
         </section>

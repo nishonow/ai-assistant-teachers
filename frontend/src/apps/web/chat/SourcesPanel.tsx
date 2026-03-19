@@ -23,7 +23,7 @@ interface SourcesContentProps {
 
 function getSourceExtension(title: string): string {
   const extension = title.split(".").pop()?.trim().toUpperCase();
-  return extension && extension.length <= 5 ? extension : "FILE";
+  return extension && extension.length <= 5 ? extension : "ФАЙЛ";
 }
 
 function SourcesContent({
@@ -38,10 +38,14 @@ function SourcesContent({
     <>
       {showHeader ? (
         <header className="flex h-[72px] flex-col justify-center border-b border-[#21384b] px-5">
-          <h2 className="font-heading text-sm uppercase tracking-[0.15em] text-slate-300">Sources</h2>
+          <h2 className="font-heading text-sm uppercase tracking-[0.15em] text-slate-300">Источники</h2>
           <div className="mt-1 flex items-center justify-between gap-3">
             <p className="truncate text-xs text-slate-500">{activeConversationTitle}</p>
-            {sources.length ? <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-slate-500">{sources.length} file{sources.length > 1 ? "s" : ""}</span> : null}
+            {sources.length ? (
+              <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-slate-500">
+                {sources.length} {sources.length === 1 ? "файл" : "файла"}
+              </span>
+            ) : null}
           </div>
         </header>
       ) : null}
@@ -75,10 +79,10 @@ function SourcesContent({
                         {getSourceExtension(source.title)}
                       </span>
                     </div>
-                    <p className="mt-2 text-xs uppercase tracking-[0.14em] text-slate-500">Cited document</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.14em] text-slate-500">Указанный документ</p>
                     <div className="mt-4 flex items-center justify-between gap-3">
                       <div className="text-xs leading-5 text-slate-500">
-                        {source.documentId ? `Document #${source.documentId}` : "Attached source"}
+                        {source.documentId ? `Документ #${source.documentId}` : "Прикреплённый источник"}
                       </div>
                       <button
                         type="button"
@@ -87,7 +91,7 @@ function SourcesContent({
                         onClick={() => onDownloadSource(source)}
                       >
                         <Download size={14} />
-                        {downloadPendingId === source.id ? "Downloading..." : "Download"}
+                        {downloadPendingId === source.id ? "Скачивание..." : "Скачать"}
                       </button>
                     </div>
                   </div>
@@ -97,7 +101,7 @@ function SourcesContent({
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-[#284863] bg-[#0d1827]/70 p-4 text-sm leading-6 text-slate-400">
-            Sources for the latest assistant answer will appear here.
+            Здесь появятся источники для последнего ответа ассистента.
           </div>
         )}
       </div>
@@ -129,15 +133,15 @@ export default function SourcesPanel({
 
       {mobileOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <button type="button" className="absolute inset-0 bg-black/60" onClick={onCloseMobile} aria-label="Close sources" />
+          <button type="button" className="absolute inset-0 bg-black/60" onClick={onCloseMobile} aria-label="Закрыть источники" />
 
           <aside className="absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col border-l border-[#21384b] bg-[#09111d] shadow-panel">
             <div className="flex h-[72px] items-center justify-between border-b border-[#21384b] px-4">
               <div className="flex items-center gap-2 text-slate-200">
                 <BookOpenText size={16} />
-                <span className="text-sm font-semibold">Sources</span>
+                <span className="text-sm font-semibold">Источники</span>
               </div>
-              <button type="button" className="btn-muted p-2" onClick={onCloseMobile} aria-label="Close sources panel">
+              <button type="button" className="btn-muted p-2" onClick={onCloseMobile} aria-label="Закрыть панель источников">
                 <X size={16} />
               </button>
             </div>

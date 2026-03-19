@@ -1,4 +1,4 @@
-﻿import { BookOpenText, Check, MessageSquarePlus, MoreHorizontal, PanelLeft, Pencil, Trash2, X } from "lucide-react";
+import { BookOpenText, Check, MessageSquarePlus, MoreHorizontal, PanelLeft, Pencil, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -134,7 +134,7 @@ export default function ChatPage() {
         syncActiveConversation(conversation);
       } catch (requestError) {
         if (cancelled) return;
-        showNotice("error", requestError instanceof Error ? requestError.message : "Could not load conversations.");
+        showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось загрузить диалоги.");
         if (routeConversationId) {
           navigate("/app", { replace: true });
           setActiveConversationId(null);
@@ -193,7 +193,7 @@ export default function ChatPage() {
         syncActiveConversation(conversation);
         navigate(`/app/chat/${conversationId}`);
       } catch (requestError) {
-        showNotice("error", requestError instanceof Error ? requestError.message : "Could not open conversation.");
+        showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось открыть диалог.");
       } finally {
         setIsLoadingConversation(false);
       }
@@ -225,7 +225,7 @@ export default function ChatPage() {
           conversation = await createConversation({ session });
           isFreshConversation = true;
         } catch (requestError) {
-          showNotice("error", requestError instanceof Error ? requestError.message : "Could not start a new conversation.");
+          showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось начать новый диалог.");
           setPending(false);
           return;
         }
@@ -252,7 +252,7 @@ export default function ChatPage() {
           session,
           history: optimisticConversation.messages,
         });
-        const answer = response.answer || "No answer returned.";
+        const answer = response.answer || "Ответ не был получен.";
         const sources = response.sources || [];
         const answeredConversation: Conversation = {
           ...optimisticConversation,
@@ -274,10 +274,13 @@ export default function ChatPage() {
           });
           syncActiveConversation(persistedConversation);
         } catch (saveError) {
-          showNotice("error", saveError instanceof Error ? `${saveError.message} Conversation was not saved.` : "Conversation was not saved.");
+          showNotice(
+            "error",
+            saveError instanceof Error ? `${saveError.message} Диалог не был сохранён.` : "Диалог не был сохранён.",
+          );
         }
       } catch (requestError) {
-        showNotice("error", requestError instanceof Error ? requestError.message : "Request failed.");
+        showNotice("error", requestError instanceof Error ? requestError.message : "Запрос не выполнен.");
       } finally {
         setPending(false);
       }
@@ -308,7 +311,7 @@ export default function ChatPage() {
 
     const title = renameValue.trim();
     if (!title) {
-      showNotice("error", "Conversation title cannot be empty.");
+      showNotice("error", "Название диалога не может быть пустым.");
       return;
     }
 
@@ -324,7 +327,7 @@ export default function ChatPage() {
       setRenameOpen(false);
       setRenameValue("");
     } catch (requestError) {
-      showNotice("error", requestError instanceof Error ? requestError.message : "Could not rename conversation.");
+      showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось переименовать диалог.");
     } finally {
       setRenamePending(false);
     }
@@ -357,7 +360,7 @@ export default function ChatPage() {
       syncActiveConversation(nextConversation);
       navigate(`/app/chat/${remaining[0].id}`, { replace: true });
     } catch (requestError) {
-      showNotice("error", requestError instanceof Error ? requestError.message : "Could not delete conversation.");
+      showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось удалить диалог.");
     } finally {
       setDeletePending(false);
       setIsLoadingConversation(false);
@@ -382,7 +385,7 @@ export default function ChatPage() {
       setMobileSidebarOpen(false);
       navigate("/app", { replace: true });
     } catch (requestError) {
-      showNotice("error", requestError instanceof Error ? requestError.message : "Could not delete chat history.");
+      showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось удалить историю чатов.");
     } finally {
       setDeleteAllPending(false);
     }
@@ -410,7 +413,7 @@ export default function ChatPage() {
         anchor.remove();
         URL.revokeObjectURL(objectUrl);
       } catch (requestError) {
-        showNotice("error", requestError instanceof Error ? requestError.message : "Could not download source.");
+        showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось скачать источник.");
       } finally {
         setDownloadPendingId(null);
       }
@@ -461,7 +464,7 @@ export default function ChatPage() {
                           handleCancelRename();
                         }
                       }}
-                      className="w-[180px] rounded-xl border border-[#284863] bg-[#0d1827] px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand-400 focus:outline-none md:w-[260px]"
+                      className="w-[180px] rounded-xl border border-[#284863] bg-[#0d1827] px-3 py-2 text-base text-slate-100 placeholder:text-slate-500 focus:border-brand-400 focus:outline-none md:w-[260px]"
                       maxLength={120}
                       disabled={renamePending}
                       autoFocus
@@ -484,7 +487,7 @@ export default function ChatPage() {
                   <>
                     <h1 className="truncate font-heading text-sm text-slate-100 md:text-lg">Mugallim AI</h1>
                     <p className="truncate text-[10px] uppercase tracking-[0.14em] text-slate-500 md:text-[11px] md:tracking-[0.16em]">
-                      {activeConversation?.title ?? "New chat"}
+                      {activeConversation?.title ?? "Новый чат"}
                     </p>
                   </>
                 )}
@@ -534,7 +537,7 @@ export default function ChatPage() {
                         onClick={handleStartRename}
                       >
                         <Pencil size={15} />
-                        Rename chat
+                        Переименовать чат
                       </button>
                       <button
                         type="button"
@@ -545,7 +548,7 @@ export default function ChatPage() {
                         }}
                       >
                         <Trash2 size={15} />
-                        Delete chat
+                        Удалить чат
                       </button>
                     </div>
                   ) : null}
@@ -567,7 +570,7 @@ export default function ChatPage() {
 
         <SourcesPanel
           activeConversationId={activeConversationId}
-          activeConversationTitle={activeConversation?.title ?? "New chat"}
+          activeConversationTitle={activeConversation?.title ?? "Новый чат"}
           downloadPendingId={downloadPendingId}
           mobileOpen={mobileSourcesOpen}
           sources={activeSources}
@@ -580,7 +583,7 @@ export default function ChatPage() {
 
       <DeleteConversationModal
         open={deleteConfirmOpen}
-        title={activeConversation?.title ?? "this conversation"}
+        title={activeConversation?.title ?? "этот диалог"}
         pending={deletePending}
         onCancel={() => setDeleteConfirmOpen(false)}
         onConfirm={() => {

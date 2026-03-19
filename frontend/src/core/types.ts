@@ -35,6 +35,8 @@ export interface DocumentRecord {
 export interface StatsResponse {
   total_users: number;
   total_messages: number;
+  saved_web_messages?: number;
+  saved_web_conversations?: number;
   total_documents: number;
   total_chunks: number;
   by_platform: Record<string, number>;

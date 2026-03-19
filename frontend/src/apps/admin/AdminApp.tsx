@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../core/auth";
 import { apiRequest, ApiRequestError, type ApiRequestOptions } from "../../core/api";
@@ -395,7 +395,7 @@ export default function AdminApp() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div className="min-h-[100svh] overflow-x-hidden md:min-h-screen">
       <Sidebar
         items={TABS}
         activeTab={activeTab}
@@ -407,7 +407,7 @@ export default function AdminApp() {
         }}
       />
 
-      <main className="flex min-h-screen flex-col gap-3 p-4 md:ml-72 md:gap-4 md:p-6">
+      <main className="flex min-h-[100svh] flex-col gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:ml-72 md:min-h-screen md:gap-4 md:p-6">
         <Topbar username={username} onOpenMenu={() => setSidebarOpen(true)} onRequestLogout={() => setLogoutConfirmOpen(true)} />
         <ToastNotice notice={notice} />
 
@@ -472,6 +472,7 @@ export default function AdminApp() {
     </div>
   );
 }
+
 
 
 

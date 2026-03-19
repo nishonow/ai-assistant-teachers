@@ -60,7 +60,7 @@ export default function ChatMessageList({ messages, pending, loading }: ChatMess
           <span className="inline-flex h-2.5 w-2.5 animate-pulse rounded-full bg-brand-300" />
           <span className="inline-flex h-2.5 w-2.5 animate-pulse rounded-full bg-brand-300 [animation-delay:120ms]" />
           <span className="inline-flex h-2.5 w-2.5 animate-pulse rounded-full bg-brand-300 [animation-delay:240ms]" />
-          Loading conversation...
+          Загрузка диалога...
         </div>
       </div>
     );
@@ -70,8 +70,8 @@ export default function ChatMessageList({ messages, pending, loading }: ChatMess
     return (
       <div className="grid flex-1 place-items-center px-6 py-10">
         <div className="max-w-xl text-center">
-          <h2 className="font-heading text-3xl text-slate-100">What would you like to know?</h2>
-          <p className="mt-3 text-sm leading-7 text-slate-400">Start a conversation and Mugallim AI will answer using your uploaded knowledge base.</p>
+          <h2 className="font-heading text-3xl text-slate-100">Что вы хотите узнать?</h2>
+          <p className="mt-3 text-sm leading-7 text-slate-400">Начните диалог, и Mugallim AI ответит, опираясь на вашу загруженную базу знаний.</p>
         </div>
       </div>
     );
@@ -91,7 +91,7 @@ export default function ChatMessageList({ messages, pending, loading }: ChatMess
             ].join(" ")}
           >
             <div className="mb-1 flex items-center justify-between gap-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">{message.role === "user" ? "You" : "Assistant"}</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">{message.role === "user" ? "Вы" : "Ассистент"}</p>
               {message.role === "assistant" ? (
                 <button
                   type="button"
@@ -101,7 +101,7 @@ export default function ChatMessageList({ messages, pending, loading }: ChatMess
                   }}
                 >
                   {copiedMessageId === message.id ? <Check size={12} /> : <Copy size={12} />}
-                  {copiedMessageId === message.id ? "Copied" : "Copy"}
+                  {copiedMessageId === message.id ? "Скопировано" : "Копировать"}
                 </button>
               ) : null}
             </div>
@@ -121,7 +121,7 @@ export default function ChatMessageList({ messages, pending, loading }: ChatMess
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-brand-300 [animation-delay:140ms]" />
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-brand-300 [animation-delay:280ms]" />
               </div>
-              <span>Assistant is thinking...</span>
+              <span>Mugallim AI думает...</span>
             </div>
           </div>
         ) : null}

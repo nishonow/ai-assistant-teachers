@@ -223,7 +223,9 @@ function InsightCard({ icon: Icon, label, value, hint, tone = "brand" }: Insight
 
 export default function OverviewTab({ stats, users, documents, loading, onRefresh }: OverviewTabProps) {
   const totalUsers = stats?.total_users ?? users.length;
-  const totalMessages = stats?.total_messages ?? 0;
+  const legacyMessages = stats?.total_messages ?? 0;
+  const savedWebMessages = stats?.saved_web_messages ?? 0;
+  const savedWebConversations = stats?.saved_web_conversations ?? 0;
   const totalDocuments = stats?.total_documents ?? documents.length;
   const totalChunks = stats?.total_chunks ?? 0;
 
@@ -323,7 +325,7 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-heading text-2xl font-bold">Overview</h2>
-            <p className="mt-1 text-sm text-slate-300">Real-time dashboard from users, documents, messages, and chunks tables</p>
+            <p className="mt-1 text-sm text-slate-300">Real-time dashboard from users, documents, legacy messages, saved web chats, and chunks</p>
           </div>
           <button className="btn-muted" type="button" onClick={onRefresh} disabled={loading}>
             {loading ? "Refreshing..." : "Refresh"}
@@ -340,14 +342,16 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
             New users (7d): <span className="font-semibold text-slate-100">{numberFmt.format(newUsers7d)}</span>
           </div>
           <div className="rounded-lg border border-ink-600 bg-ink-900/40 px-3 py-2 text-sm text-slate-300">
-            Top platform: <span className="font-semibold text-slate-100">{topMessagePlatform?.platform || "No data"}</span>
+            Top legacy platform: <span className="font-semibold text-slate-100">{topMessagePlatform?.platform || "No data"}</span>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard icon={Users} title="Total Users" value={totalUsers} helper="Live registered users" />
-        <StatCard icon={MessageSquare} title="Total Messages" value={totalMessages} helper="Live bot messages" />
+        <StatCard icon={MessageSquare} title="Legacy Messages" value={legacyMessages} helper="Legacy ask/message records" />
+        <StatCard icon={MessageSquare} title="Saved Web Messages" value={savedWebMessages} helper="Messages in saved web chats" />
+        <StatCard icon={MessageSquare} title="Saved Web Chats" value={savedWebConversations} helper="Persisted web conversations" />
         <StatCard icon={FileStack} title="Total Documents" value={totalDocuments} helper="Live document records" />
         <StatCard icon={BarChart3} title="Total Chunks" value={totalChunks} helper="Live knowledge chunks" />
       </div>
@@ -374,11 +378,11 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
 
       <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr]">
         <article className="panel p-4">
-          <SectionHeader title="Message Platform Distribution" subtitle={`${messagePlatformItems.length} platforms`} />
+          <SectionHeader title="Legacy Message Platform Distribution" subtitle={`${messagePlatformItems.length} platforms`} />
 
           <div className="space-y-4">
             <div className="rounded-xl border border-ink-600 bg-ink-900/55 p-3">
-              <p className="mb-2 text-xs uppercase tracking-[0.08em] text-slate-400">Message Share by Platform</p>
+              <p className="mb-2 text-xs uppercase tracking-[0.08em] text-slate-400">Legacy Message Share by Platform</p>
               <StackedMixBar items={messagePlatformItems} />
             </div>
 
@@ -407,6 +411,8 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
             <InsightCard icon={ShieldCheck} label="Admin User Rate" value={`${adminRate.toFixed(1)}%`} tone="brand" />
             <InsightCard icon={Sparkles} label="Indexed Document Rate" value={`${indexedRate.toFixed(1)}%`} tone="good" />
             <InsightCard icon={BarChart3} label="Avg Chunks / Indexed Doc" value={avgChunksPerIndexedDoc.toFixed(1)} tone="warn" />
+            <InsightCard icon={MessageSquare} label="Saved Web Messages" value={numberFmt.format(savedWebMessages)} hint="Separate from legacy messages" />
+            <InsightCard icon={MessageSquare} label="Saved Web Chats" value={numberFmt.format(savedWebConversations)} hint="Persisted user conversations" />
             <InsightCard icon={Users} label="New Users (7 Days)" value={numberFmt.format(newUsers7d)} hint="Last 7 days window" />
             <InsightCard icon={UploadCloud} label="Uploads (7 Days)" value={numberFmt.format(recentUploads7d)} hint="Last 7 days window" />
             <InsightCard
@@ -419,7 +425,7 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
               icon={MessageSquare}
               label="Top Message Platform"
               value={topMessagePlatform ? `${topMessagePlatform.platform} (${topMessagePlatform.percent.toFixed(1)}%)` : "No data"}
-              hint="Highest message share"
+              hint="Highest legacy message share"
             />
           </div>
         </article>
@@ -440,4 +446,9 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
     </section>
   );
 }
+
+
+
+
+
 

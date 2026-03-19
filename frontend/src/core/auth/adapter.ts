@@ -1,4 +1,4 @@
-﻿import { apiRequest } from "../api";
+import { apiRequest } from "../api";
 import type { LoginResponse } from "../types";
 import type { AuthSession, LoginInput, RegisterInput, UserRole } from "./types";
 
@@ -8,7 +8,7 @@ function normalizeIdentifier(value: string): string {
 
 function buildSessionFromResponse(response: LoginResponse, fallbackIdentifier: string, defaultRole: UserRole): AuthSession {
   if (!response?.accessToken) {
-    throw new Error("No access token received from backend.");
+    throw new Error("Сервер не вернул токен доступа.");
   }
 
   const role = response.role || defaultRole;
@@ -44,7 +44,7 @@ export async function loginWithAdapter(input: LoginInput): Promise<AuthSession> 
   const password = input.password.trim();
 
   if (!username || !password) {
-    throw new Error("Email/username and password are required.");
+    throw new Error("Укажите email или имя пользователя и пароль.");
   }
 
   const response = await apiRequest<LoginResponse>({
@@ -65,7 +65,7 @@ export async function registerWithAdapter(input: RegisterInput): Promise<AuthSes
   const password = input.password.trim();
 
   if (!name || !email || !password) {
-    throw new Error("Name, email and password are required.");
+    throw new Error("Укажите имя, email и пароль.");
   }
 
   const response = await apiRequest<LoginResponse>({

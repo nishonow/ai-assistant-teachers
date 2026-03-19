@@ -1,11 +1,15 @@
-﻿import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+
 import { useAuth } from "./AuthContext";
 
 function FullScreenLoader() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
+
   return (
     <div className="grid min-h-screen place-items-center px-6">
       <div className="panel max-w-sm p-6 text-center">
-        <p className="text-sm text-slate-300">Loading session...</p>
+        <p className="text-sm text-slate-300">{isAdminRoute ? "Loading session..." : "Загрузка сессии..."}</p>
       </div>
     </div>
   );
@@ -58,4 +62,3 @@ export function RequireAdmin() {
 
   return <Outlet />;
 }
-

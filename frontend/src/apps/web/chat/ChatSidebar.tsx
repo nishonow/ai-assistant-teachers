@@ -32,7 +32,7 @@ export default function ChatSidebar({
 }: ChatSidebarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const avatarLetter = username.trim().charAt(0).toUpperCase() || "U";
+  const avatarLetter = username.trim().charAt(0).toUpperCase() || "П";
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -67,14 +67,14 @@ export default function ChatSidebar({
       >
         <div className="mb-3 rounded-2xl border border-[#1e3448] bg-[#0a1624] p-3 md:border-0 md:bg-transparent md:p-0">
           <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-[#13253b]"
-            onClick={onCreateConversation}
-          >
-            <MessageSquarePlus size={16} />
-            New chat
-          </button>
+            <button
+              type="button"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-[#13253b]"
+              onClick={onCreateConversation}
+            >
+              <MessageSquarePlus size={16} />
+              Новый чат
+            </button>
             <button type="button" className="btn-muted shrink-0 md:hidden" onClick={onCloseMobile}>
               <PanelLeftClose size={16} />
             </button>
@@ -82,7 +82,7 @@ export default function ChatSidebar({
         </div>
 
         <div className="scroll-area min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
-          <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">My chats</p>
+          <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Мои чаты</p>
           {conversations.length ? (
             conversations.map((conversation) => (
               <button
@@ -100,12 +100,12 @@ export default function ChatSidebar({
                 ].join(" ")}
               >
                 <p className="truncate font-medium">{conversation.title}</p>
-                <p className="mt-1 truncate text-xs text-slate-500">{conversation.lastMessagePreview || "Start chatting"}</p>
+                <p className="mt-1 truncate text-xs text-slate-500">{conversation.lastMessagePreview || "Начните диалог"}</p>
               </button>
             ))
           ) : (
             <div className="rounded-2xl border border-dashed border-[#284863] bg-[#0d1827]/70 px-4 py-5 text-sm leading-6 text-slate-400">
-              Your saved chats will show up here after you send the first message.
+              Сохранённые чаты появятся здесь после того, как вы отправите первое сообщение.
             </div>
           )}
         </div>
@@ -129,7 +129,7 @@ export default function ChatSidebar({
                 disabled={historyPending || !hasHistory}
               >
                 <Trash2 size={15} />
-                {historyPending ? "Deleting history..." : "Delete all history"}
+                {historyPending ? "Удаление истории..." : "Удалить всю историю"}
               </button>
               <button
                 type="button"
@@ -140,7 +140,7 @@ export default function ChatSidebar({
                 }}
               >
                 <LogOut size={15} />
-                Logout
+                Выйти
               </button>
             </div>
           ) : null}
