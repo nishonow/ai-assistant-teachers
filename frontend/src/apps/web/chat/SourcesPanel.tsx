@@ -135,7 +135,7 @@ export default function SourcesPanel({
         <div className="fixed inset-0 z-50 lg:hidden">
           <button type="button" className="drawer-overlay-enter absolute inset-0 bg-black/62" onClick={onCloseMobile} aria-label={"Закрыть источники"} />
 
-          <aside className="drawer-sheet-right drawer-sheet-surface absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden rounded-l-[28px] border-l border-[#21384b]">
+          <aside className="drawer-sheet-surface absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden rounded-l-[28px] border-l border-[#21384b]">
             <div className="flex h-[72px] items-center justify-between border-b border-[#21384b] bg-[#0a1624] px-4">
               <div className="flex items-center gap-2 text-slate-200">
                 <BookOpenText size={16} />
