@@ -1,4 +1,4 @@
-﻿import { FileStack, LayoutDashboard, MessageSquare, Upload, Users, X } from "lucide-react";
+import { FileStack, LayoutDashboard, MessageSquare, Upload, Users, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { TabId, TabItem } from "../../../core/types";
@@ -22,7 +22,7 @@ export default function Sidebar({ items, activeTab, onSelect, open, onClose }: S
   return (
     <>
       <aside
-        className={`sidebar-shell fixed left-0 top-0 z-40 flex h-screen w-72 flex-col overflow-hidden p-5 transition-transform duration-200 md:translate-x-0 ${
+        className={`sidebar-shell fixed left-0 top-0 z-40 flex h-[100svh] w-72 flex-col overflow-hidden px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-[calc(1.25rem+env(safe-area-inset-top))] transition-transform duration-200 md:h-screen md:translate-x-0 md:p-5 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -36,7 +36,7 @@ export default function Sidebar({ items, activeTab, onSelect, open, onClose }: S
           </button>
         </div>
 
-        <nav className="mt-5 flex-1 space-y-2">
+        <nav className="scroll-area mt-5 flex-1 space-y-2 overflow-y-auto pr-1">
           {items.map((item) => {
             const Icon = ICONS[item.id];
             const active = activeTab === item.id;

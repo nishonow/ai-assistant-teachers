@@ -29,7 +29,7 @@ function SourcesContent({ activeConversationTitle, sources, showHeader }: Source
         {sources.length ? (
           <div className="space-y-3">
             {sources.map((source) => (
-              <article key={source.id} className="rounded-2xl border border-[#284863] bg-[#0d1827] p-3">
+              <article key={source.id} className="chat-card-enter rounded-2xl border border-[#284863] bg-[#0d1827] p-3">
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 grid h-10 w-10 place-items-center rounded-xl border border-[#305169] bg-[#122235] text-[#9af5ea]">
                     <FileText size={14} />

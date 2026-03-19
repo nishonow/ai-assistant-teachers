@@ -14,6 +14,29 @@
   }
 }
 
+@keyframes softRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes subtlePulse {
+  0%,
+  100% {
+    border-color: rgba(40, 72, 99, 1);
+  }
+
+  50% {
+    border-color: rgba(83, 246, 220, 0.38);
+  }
+}
+
 @layer base {
   :root {
     color-scheme: dark;
@@ -154,6 +177,24 @@
     animation: landingMarquee 22s linear infinite;
   }
 
+  .chat-card-enter {
+    animation: softRise 220ms ease-out both;
+  }
+
+  .chat-composer-shell {
+    animation: softRise 260ms ease-out both;
+    transition:
+      border-color 180ms ease,
+      background-color 180ms ease,
+      transform 180ms ease;
+  }
+
+  .chat-composer-shell:focus-within {
+    animation: subtlePulse 1.8s ease-in-out infinite;
+    background-color: rgba(14, 28, 43, 0.98);
+    transform: translateY(-1px);
+  }
+
   .message-rich {
     @apply text-[15px] leading-7 tracking-[0.002em] text-slate-200;
   }
@@ -204,5 +245,3 @@
     @apply bg-transparent p-0 text-[13px] leading-5 text-slate-200;
   }
 }
-
-

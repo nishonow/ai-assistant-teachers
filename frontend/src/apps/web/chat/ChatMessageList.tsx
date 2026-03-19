@@ -64,7 +64,7 @@ export default function ChatMessageList({ messages, pending, loading, error }: C
           <article
             key={message.id}
             className={[
-              "rounded-[24px] px-4 py-3 text-sm",
+              "chat-card-enter rounded-[24px] px-4 py-3 text-sm",
               message.role === "user"
                 ? "ml-auto max-w-[86%] border border-brand-400/35 bg-brand-500/15 text-slate-100 md:max-w-[52%]"
                 : "mr-auto max-w-[94%] border border-[#284863] bg-[#0d1827] text-slate-200 md:max-w-[74%]",
@@ -80,7 +80,7 @@ export default function ChatMessageList({ messages, pending, loading, error }: C
         ))}
 
         {pending ? (
-          <div className="mr-auto max-w-[74%] rounded-[24px] border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm text-slate-300">
+          <div className="chat-card-enter mr-auto max-w-[74%] rounded-[24px] border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm text-slate-300">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-brand-300" />

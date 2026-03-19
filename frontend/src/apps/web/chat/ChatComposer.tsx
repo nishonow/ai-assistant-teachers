@@ -68,7 +68,7 @@ export default function ChatComposer({ disabled, onSubmit }: ChatComposerProps) 
       onSubmit={handleSubmit}
       className="border-t border-[#21384b] bg-[#08111c]/96 px-3 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 md:px-6 md:pb-6"
     >
-      <div className="mx-auto flex w-full max-w-4xl items-end gap-3 rounded-[28px] border border-[#284863] bg-[#0d1827] px-3 py-3">
+      <div className="chat-composer-shell mx-auto flex w-full max-w-4xl items-end gap-3 rounded-[28px] border border-[#284863] bg-[#0d1827] px-3 py-3">
         <textarea
           ref={textareaRef}
           value={value}
@@ -76,11 +76,11 @@ export default function ChatComposer({ disabled, onSubmit }: ChatComposerProps) 
           onKeyDown={handleKeyDown}
           placeholder="Message Mugallim AI..."
           rows={1}
-          className="min-h-[24px] max-h-[220px] flex-1 resize-none bg-transparent px-2 py-[10px] text-sm leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none"
+          className="min-h-[24px] max-h-[220px] flex-1 resize-none bg-transparent px-2 py-[10px] text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:text-sm"
         />
         <button
           type="submit"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#8ef1e5] text-[#10221d] transition hover:bg-[#b7fbf3] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#8ef1e5] text-[#10221d] transition duration-200 hover:scale-[1.03] hover:bg-[#b7fbf3] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={disabled || !value.trim()}
           aria-label="Send message"
         >
