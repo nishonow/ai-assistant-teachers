@@ -1,4 +1,4 @@
-interface EditProfileModalProps {
+﻿interface EditProfileModalProps {
   open: boolean;
   pending: boolean;
   canEdit: boolean;
@@ -28,8 +28,8 @@ export default function EditProfileModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/72 px-4">
-      <div className="w-full max-w-md rounded-[28px] border border-[#284863] bg-[#0b1522] p-6">
+    <div className="modal-backdrop">
+      <div className="modal-card max-w-md p-6">
         <h2 className="font-heading text-xl text-slate-50">Профиль</h2>
         <p className="mt-2 text-sm leading-6 text-slate-400">
           Здесь можно изменить имя, email для входа и пароль. Если пароль менять не нужно, оставьте поле пустым.
