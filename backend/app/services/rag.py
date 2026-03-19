@@ -79,12 +79,11 @@ def detect_language(question: str) -> str:
         return lang.name.capitalize() if lang else "unknown"
     except Exception:
         logger.exception("language detection failed; falling back to script family")
-        script = _dominant_script(stripped)
-        if script == "latin":
-            return "English"
-        if script == "cyrillic":
-            return "Cyrillic"
-        return "unknown"
+        cyrillic = sum(0x0410 <= ord(char) <= 0x044F or ord(char) in {0x0401, 0x0451} for char in stripped)
+        latin = sum(0x0041 <= ord(char) <= 0x005A or 0x0061 <= ord(char) <= 0x007A for char in stripped)
+        if not (cyrillic or latin):
+            return "unknown"
+        return "Cyrillic" if cyrillic >= latin else "English"
 
 
 def _call_chat(messages: list[dict], *, temperature: float = 0, max_tokens: int | None = None) -> str:
@@ -526,43 +525,30 @@ def _prepare_history(history: list[dict], target_language: str) -> list[dict]:
     return matching_language[-MAX_HISTORY_MESSAGES:] if matching_language else recent[-2:]
 
 
-def _answer_small_talk(question: str, history: list[dict], target_language: str) -> str:
-    messages = [{"role": "system", "content": f"{build_small_talk_system_prompt()}\n- Answer in {target_language}."}]
-    messages.extend(history[-4:])
-    messages.append({"role": "user", "content": question})
-    return postprocess(_call_chat(messages, temperature=0.4))
-
-
-def _answer_with_context(question: str, history: list[dict], context: str, target_language: str) -> str:
+def _answer(question: str, history: list[dict], target_language: str, context: str = "") -> str:
+    use_context = bool(context)
     messages = [
         {
             "role": "system",
-            "content": f"{build_answer_system_prompt()}\n- Answer in {target_language}.",
+            "content": (
+                f"{build_answer_system_prompt()}\n- Answer in {target_language}."
+                if use_context
+                else f"{build_small_talk_system_prompt()}\n- Answer in {target_language}."
+            ),
         }
     ]
-    messages.extend(history)
-
-    user_content = (
-        f"Document context:\n{context}\n\nQuestion: {question}\n\nUse only supported facts from the context. Answer in {target_language}."
-        if context
-        else f"{question}\n\nIf no relevant context is available, say so briefly in {target_language}."
+    messages.extend(history if use_context else history[-4:])
+    messages.append(
+        {
+            "role": "user",
+            "content": (
+                f"Document context:\n{context}\n\nQuestion: {question}\n\nUse only supported facts from the context. Answer in {target_language}."
+                if use_context
+                else question
+            ),
+        }
     )
-    messages.append({"role": "user", "content": user_content})
-    return postprocess(_call_chat(messages, temperature=0.1))
-
-
-def _rewrite_answer_in_language(answer: str, question: str, target_language: str) -> str:
-    rewritten = _call_chat(
-        [
-            {"role": "system", "content": f"{LANGUAGE_REWRITE_SYSTEM_PROMPT}\n- Rewrite in {target_language}."},
-            {
-                "role": "user",
-                "content": f"User question:\n{question}\n\nAnswer:\n{answer}",
-            },
-        ],
-        temperature=0.1,
-    )
-    return postprocess(rewritten)
+    return postprocess(_call_chat(messages, temperature=0.1 if use_context else 0.4))
 
 
 def _is_same_language(answer: str, question: str) -> bool:
@@ -578,28 +564,14 @@ def _is_same_language(answer: str, question: str) -> bool:
         return "same_language" in label
     except Exception:
         logger.exception("language match check failed; falling back to script comparison")
-        return _has_same_script_family(question, answer)
-
-
-def _dominant_script(text: str) -> str:
-    counts = {"cyrillic": 0, "latin": 0}
-    for char in text:
-        if "А" <= char <= "я" or char in "Ёё":
-            counts["cyrillic"] += 1
-        elif ("A" <= char <= "Z") or ("a" <= char <= "z"):
-            counts["latin"] += 1
-
-    if counts["cyrillic"] == 0 and counts["latin"] == 0:
-        return "other"
-    return "cyrillic" if counts["cyrillic"] >= counts["latin"] else "latin"
-
-
-def _has_same_script_family(question: str, answer: str) -> bool:
-    question_script = _dominant_script(question)
-    answer_script = _dominant_script(re.sub(r"<[^>]+>", " ", answer))
-    if question_script == "other" or answer_script == "other":
-        return True
-    return question_script == answer_script
+        question_cyrillic = sum(0x0410 <= ord(char) <= 0x044F or ord(char) in {0x0401, 0x0451} for char in question)
+        question_latin = sum(0x0041 <= ord(char) <= 0x005A or 0x0061 <= ord(char) <= 0x007A for char in question)
+        answer_text = re.sub(r"<[^>]+>", " ", answer)
+        answer_cyrillic = sum(0x0410 <= ord(char) <= 0x044F or ord(char) in {0x0401, 0x0451} for char in answer_text)
+        answer_latin = sum(0x0041 <= ord(char) <= 0x005A or 0x0061 <= ord(char) <= 0x007A for char in answer_text)
+        if not (question_cyrillic or question_latin) or not (answer_cyrillic or answer_latin):
+            return True
+        return (question_cyrillic >= question_latin) == (answer_cyrillic >= answer_latin)
 
 
 def _ensure_answer_language(answer: str, question: str, target_language: str) -> str:
@@ -609,7 +581,15 @@ def _ensure_answer_language(answer: str, question: str, target_language: str) ->
 
     if len(cleaned) > 48 and not _is_same_language(cleaned, question):
         try:
-            return _rewrite_answer_in_language(cleaned, question, target_language)
+            return postprocess(
+                _call_chat(
+                    [
+                        {"role": "system", "content": f"{LANGUAGE_REWRITE_SYSTEM_PROMPT}\n- Rewrite in {target_language}."},
+                        {"role": "user", "content": f"User question:\n{question}\n\nAnswer:\n{cleaned}"},
+                    ],
+                    temperature=0.1,
+                )
+            )
         except Exception:
             logger.exception("answer rewrite failed; returning original answer")
             return cleaned
@@ -629,12 +609,14 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
     retrieval_context = "\n".join(f"- {turn}" for turn in retrieval_history if turn)[:MAX_RETRIEVAL_CONTEXT_CHARS].rstrip()
     intent = classify_question_intent(question)
     selected_chunks: list[Chunk] = []
+    ranked_candidates: list[dict] = []
+    ranked_documents: list[dict] = []
+    retrieval_queries: list[str] = []
     used_hyde = False
 
     if intent == "small_talk":
-        answer = _ensure_answer_language(_answer_small_talk(question, prepared_history, target_language), question, target_language)
+        answer = _ensure_answer_language(_answer(question, prepared_history, target_language), question, target_language)
         sources: list[dict] = []
-        logger.info("question=%r lang=%s intent=%s hyde=%s selected=%d", question, detected_lang, intent, used_hyde, 0)
     else:
         retrieval_queries = _build_retrieval_queries(question, detected_lang, retrieval_context)
         query_candidates: list[tuple[Chunk, float]] = []
@@ -665,39 +647,37 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
         selected_chunks = _select_context_chunks(ranked_candidates, db, selected_document_ids)
         context = _build_context(selected_chunks, db)
         answer = _ensure_answer_language(
-            _answer_with_context(question, prepared_history, context, target_language),
+            _answer(question, prepared_history, target_language, context=context),
             question,
             target_language,
         )
         sources = _build_sources(selected_chunks, db)
 
-        top_distance = ranked_candidates[0]["vector_distance"] if ranked_candidates else 1.0
-        top_overlap = ranked_candidates[0]["lexical_overlap"] if ranked_candidates else 0.0
-        logger.info(
-            "question=%r lang=%s intent=%s hyde=%s selected=%d top_distance=%.4f top_overlap=%.4f retrieval_queries=%r",
-            question,
-            detected_lang,
-            intent,
-            used_hyde,
-            len(selected_chunks),
-            top_distance,
-            top_overlap,
-            retrieval_queries,
-        )
-        for document in ranked_documents[:TOP_K_DOCS]:
-            title = document["document"].file_name if document["document"] else f"Document {document['document_id']}"
-            logger.info(
-                "  selected_doc id=%s score=%.4f overlap=%.4f candidates=%d title=%r",
-                document["document_id"],
-                document["score"],
-                document["best_overlap"],
-                document["candidate_count"],
-                title,
-            )
-        for chunk in selected_chunks:
-            logger.info("  context_chunk id=%s doc_id=%s", chunk.id, chunk.document_id)
-
     db.add(Message(user_id=user_id, platform=platform, question=question, answer=answer))
     db.commit()
+    logger.info(
+        "rag=%s",
+        {
+            "question": question,
+            "lang": detected_lang,
+            "intent": intent,
+            "hyde": used_hyde,
+            "selected": len(selected_chunks),
+            "top_distance": ranked_candidates[0]["vector_distance"] if ranked_candidates else None,
+            "top_overlap": ranked_candidates[0]["lexical_overlap"] if ranked_candidates else None,
+            "retrieval_queries": retrieval_queries,
+            "docs": [
+                {
+                    "id": document["document_id"],
+                    "score": document["score"],
+                    "overlap": document["best_overlap"],
+                    "candidates": document["candidate_count"],
+                    "title": document["document"].file_name if document["document"] else f"Document {document['document_id']}",
+                }
+                for document in ranked_documents[:TOP_K_DOCS]
+            ],
+            "chunks": [{"id": chunk.id, "doc_id": chunk.document_id} for chunk in selected_chunks],
+        },
+    )
 
     return {"answer": answer, "sources": sources}

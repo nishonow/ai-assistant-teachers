@@ -25,7 +25,11 @@ Preserve country names, institution names, document titles, and role names exact
 Normalize casual wording, typos, and everyday phrasing into the most likely formal legal or policy terms.
 If recent chat context is provided, use it only to resolve omitted subjects in the current question.
 Use the language most likely to match the uploaded documents; if unsure, keep the original language.
-Do not answer. Return only the retrieval query."""
+If helpful, return up to 3 short retrieval variants:
+- the original legal meaning
+- a more formal legal phrasing
+- a close synonym or official term
+Use one query per line. Do not answer."""
 
 LANGUAGE_REWRITE_SYSTEM_PROMPT = """Rewrite the answer into the same language and script style as the user's question.
 Preserve meaning, HTML tags, list structure, and all country, institution, document, and role names exactly.
