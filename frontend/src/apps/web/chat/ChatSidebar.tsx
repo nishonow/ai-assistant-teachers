@@ -59,26 +59,26 @@ export default function ChatSidebar({
     <>
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-40 flex h-full w-[88vw] max-w-[22rem] flex-col border-r border-[#21384b] bg-[#09111d] p-3 transition-transform duration-200 md:relative md:h-full md:w-[290px] md:max-w-none md:translate-x-0 md:border-b-0 md:border-l-0 md:border-r md:border-t-0 md:opacity-100 md:pointer-events-auto",
+          "fixed inset-y-0 left-0 z-40 flex h-full w-[88vw] max-w-[22rem] flex-col overflow-hidden border-r border-[#21384b] bg-[#09111d] px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] transition-[transform,opacity,visibility] duration-200 will-change-transform md:relative md:h-full md:w-[290px] md:max-w-none md:translate-x-0 md:border-b-0 md:border-l-0 md:border-r md:border-t-0 md:px-3 md:py-3 md:opacity-100 md:visible md:pointer-events-auto",
           isMobileOpen
-            ? "translate-x-0"
-            : "-translate-x-full pointer-events-none",
+            ? "translate-x-0 opacity-100 visible"
+            : "-translate-x-[calc(100%+1.5rem)] pointer-events-none opacity-0 invisible",
         ].join(" ")}
       >
         <div className="mb-3 rounded-2xl border border-[#1e3448] bg-[#0a1624] p-3 md:border-0 md:bg-transparent md:p-0">
-          <div className="mb-3 flex items-center justify-end md:hidden">
-            <button type="button" className="btn-muted" onClick={onCloseMobile}>
-              <PanelLeftClose size={16} />
-            </button>
-          </div>
+          <div className="flex items-center gap-2">
           <button
             type="button"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-[#13253b]"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-[#13253b]"
             onClick={onCreateConversation}
           >
             <MessageSquarePlus size={16} />
             New chat
           </button>
+            <button type="button" className="btn-muted shrink-0 md:hidden" onClick={onCloseMobile}>
+              <PanelLeftClose size={16} />
+            </button>
+          </div>
         </div>
 
         <div className="scroll-area min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
@@ -110,7 +110,7 @@ export default function ChatSidebar({
           )}
         </div>
 
-        <div className="relative mt-3 pb-[max(0rem,env(safe-area-inset-bottom))]" ref={menuRef}>
+        <div className="relative mt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]" ref={menuRef}>
           {menuOpen ? (
             <div className="absolute inset-x-0 bottom-[calc(100%+12px)] overflow-hidden rounded-2xl border border-[#284863] bg-[#0d1827] p-2">
               <div className="border-b border-[#21384b] px-3 py-2">
