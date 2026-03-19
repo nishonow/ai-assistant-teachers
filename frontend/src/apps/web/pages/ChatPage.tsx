@@ -312,11 +312,11 @@ export default function ChatPage() {
     const name = profileName.trim();
     const email = profileEmail.trim();
     if (!name) {
-      showNotice("error", "Ð£ÐºÐ°Ð¶Ð¸ÑÐµ Ð¸Ð¼Ñ.");
+      showNotice("error", "Укажите имя.");
       return;
     }
     if (!email) {
-      showNotice("error", "Ð£ÐºÐ°Ð¶Ð¸ÑÐµ email.");
+      showNotice("error", "Укажите email.");
       return;
     }
 
@@ -325,9 +325,9 @@ export default function ChatPage() {
       await updateProfile({ name, email, password: profilePassword });
       setProfileOpen(false);
       setProfilePassword("");
-      showNotice("success", "??????? ??????? ????????.");
+      showNotice("success", "Профиль успешно обновлён.");
     } catch (requestError) {
-      showNotice("error", requestError instanceof Error ? requestError.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¾Ð±Ð½Ð¾Ð²Ð¸ÑÑ Ð¿ÑÐ¾ÑÐ¸Ð»Ñ.");
+      showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось обновить профиль.");
     } finally {
       setProfilePending(false);
     }

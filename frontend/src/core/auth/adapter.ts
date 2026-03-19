@@ -1,4 +1,4 @@
-import { apiRequest } from "../api";
+﻿import { apiRequest } from "../api";
 import type { LoginResponse } from "../types";
 import type { AuthSession, LoginInput, RegisterInput, UpdateProfileInput, UserRole } from "./types";
 
@@ -8,7 +8,7 @@ function normalizeIdentifier(value: string): string {
 
 function buildSessionFromResponse(response: LoginResponse, fallbackIdentifier: string, defaultRole: UserRole): AuthSession {
   if (!response?.accessToken) {
-    throw new Error("Ð¡ÐµÑÐ²ÐµÑ Ð½Ðµ Ð²ÐµÑÐ½ÑÐ» ÑÐ¾ÐºÐµÐ½ Ð´Ð¾ÑÑÑÐ¿Ð°.");
+    throw new Error("Сервер не вернул токен доступа.");
   }
 
   const role = response.role || defaultRole;
@@ -44,7 +44,7 @@ export async function loginWithAdapter(input: LoginInput): Promise<AuthSession> 
   const password = input.password.trim();
 
   if (!username || !password) {
-    throw new Error("Ð£ÐºÐ°Ð¶Ð¸ÑÐµ email Ð¸Ð»Ð¸ Ð¸Ð¼Ñ Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»Ñ Ð¸ Ð¿Ð°ÑÐ¾Ð»Ñ.");
+    throw new Error("Укажите email или имя пользователя и пароль.");
   }
 
   const response = await apiRequest<LoginResponse>({
@@ -65,7 +65,7 @@ export async function registerWithAdapter(input: RegisterInput): Promise<AuthSes
   const password = input.password.trim();
 
   if (!name || !email || !password) {
-    throw new Error("Ð£ÐºÐ°Ð¶Ð¸ÑÐµ Ð¸Ð¼Ñ, email Ð¸ Ð¿Ð°ÑÐ¾Ð»Ñ.");
+    throw new Error("Укажите имя, email и пароль.");
   }
 
   const response = await apiRequest<LoginResponse>({
@@ -87,11 +87,11 @@ export async function updateProfileWithAdapter(token: string, input: UpdateProfi
   const password = input.password?.trim() || "";
 
   if (!name) {
-    throw new Error("Ð£ÐºÐ°Ð¶Ð¸ÑÐµ Ð¸Ð¼Ñ.");
+    throw new Error("Укажите имя.");
   }
 
   if (!email) {
-    throw new Error("Ð£ÐºÐ°Ð¶Ð¸ÑÐµ email.");
+    throw new Error("Укажите email.");
   }
 
   const response = await apiRequest<LoginResponse>({
