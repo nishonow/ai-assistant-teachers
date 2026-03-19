@@ -8,6 +8,7 @@ import type { NoticeState } from "../../../core/types";
 import {
   askAssistant,
   ChatComposer,
+  EditProfileModal,
   ChatMessageList,
   ChatSidebar,
   createConversation,
@@ -67,7 +68,7 @@ function upsertConversationSummary(conversations: ConversationSummary[], convers
 export default function ChatPage() {
   const navigate = useNavigate();
   const { conversationId: routeConversationId } = useParams<{ conversationId?: string }>();
-  const { session, logout } = useAuth();
+  const { session, logout, updateProfile } = useAuth();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
@@ -85,6 +86,11 @@ export default function ChatPage() {
   const [renameValue, setRenameValue] = useState("");
   const [renamePending, setRenamePending] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profilePassword, setProfilePassword] = useState("");
+  const [profilePending, setProfilePending] = useState(false);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [downloadPendingId, setDownloadPendingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
@@ -294,6 +300,39 @@ export default function ChatPage() {
     navigate("/", { replace: true });
   };
 
+  const handleOpenProfile = () => {
+    if (!session) return;
+    setProfileName(session.user.displayName || session.user.username);
+    setProfileEmail(session.user.username);
+    setProfilePassword("");
+    setProfileOpen(true);
+  };
+
+  const handleSaveProfile = useCallback(async () => {
+    const name = profileName.trim();
+    const email = profileEmail.trim();
+    if (!name) {
+      showNotice("error", "Ð£ÐºÐ°Ð¶Ð¸ÑÐµ Ð¸Ð¼Ñ.");
+      return;
+    }
+    if (!email) {
+      showNotice("error", "Ð£ÐºÐ°Ð¶Ð¸ÑÐµ email.");
+      return;
+    }
+
+    setProfilePending(true);
+    try {
+      await updateProfile({ name, email, password: profilePassword });
+      setProfileOpen(false);
+      setProfilePassword("");
+      showNotice("success", "??????? ??????? ????????.");
+    } catch (requestError) {
+      showNotice("error", requestError instanceof Error ? requestError.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¾Ð±Ð½Ð¾Ð²Ð¸ÑÑ Ð¿ÑÐ¾ÑÐ¸Ð»Ñ.");
+    } finally {
+      setProfilePending(false);
+    }
+  }, [profileEmail, profileName, profilePassword, showNotice, updateProfile]);
+
   const handleStartRename = () => {
     if (!activeConversation) return;
     setMobileActionsOpen(false);
@@ -344,28 +383,20 @@ export default function ChatPage() {
       await deleteConversation(session, activeConversationId);
       setDeleteConfirmOpen(false);
       setConversations(remaining);
-
-      if (!remaining.length) {
-        setActiveConversationId(null);
-        setActiveConversation(null);
-        setActiveSources([]);
-        navigate("/app", { replace: true });
-        return;
-      }
-
-      setIsLoadingConversation(true);
-      setActiveConversationId(remaining[0].id);
-
-      const nextConversation = await getConversation(session, remaining[0].id);
-      syncActiveConversation(nextConversation);
-      navigate(`/app/chat/${remaining[0].id}`, { replace: true });
+      setActiveConversationId(null);
+      setActiveConversation(null);
+      setActiveSources([]);
+      setRenameOpen(false);
+      setRenameValue("");
+      setMobileActionsOpen(false);
+      navigate("/app", { replace: true });
     } catch (requestError) {
       showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось удалить диалог.");
     } finally {
       setDeletePending(false);
       setIsLoadingConversation(false);
     }
-  }, [activeConversationId, conversations, navigate, session, showNotice, syncActiveConversation]);
+  }, [activeConversationId, conversations, navigate, session, showNotice]);
 
   const handleDeleteAllConversations = useCallback(async () => {
     if (!session) return;
@@ -437,6 +468,7 @@ export default function ChatPage() {
         onCloseMobile={() => setMobileSidebarOpen(false)}
         onCreateConversation={handleStartDraftConversation}
         onDeleteAllHistory={() => setDeleteAllConfirmOpen(true)}
+        onEditProfile={handleOpenProfile}
         onSelectConversation={(conversationId) => {
           void handleSelectConversation(conversationId);
         }}
@@ -596,6 +628,24 @@ export default function ChatPage() {
         onCancel={() => setDeleteAllConfirmOpen(false)}
         onConfirm={() => {
           void handleDeleteAllConversations();
+        }}
+      />
+      <EditProfileModal
+        open={profileOpen}
+        pending={profilePending}
+        canEdit
+        name={profileName}
+        email={profileEmail}
+        password={profilePassword}
+        onChangeName={setProfileName}
+        onChangeEmail={setProfileEmail}
+        onChangePassword={setProfilePassword}
+        onCancel={() => {
+          setProfileOpen(false);
+          setProfilePassword("");
+        }}
+        onConfirm={() => {
+          void handleSaveProfile();
         }}
       />
       <WebLogoutConfirmModal open={logoutConfirmOpen} onCancel={() => setLogoutConfirmOpen(false)} onConfirm={handleConfirmLogout} />

@@ -3,6 +3,7 @@ export { default as ChatMessageList } from "./ChatMessageList";
 export { default as ChatSidebar } from "./ChatSidebar";
 export { default as DeleteConversationModal } from "./DeleteConversationModal";
 export { default as DeleteAllHistoryModal } from "./DeleteAllHistoryModal";
+export { default as EditProfileModal } from "./EditProfileModal";
 export { default as AssistantMessageContent } from "./AssistantMessageContent";
 export { default as SourcesPanel } from "./SourcesPanel";
 export { default as WebLogoutConfirmModal } from "./WebLogoutConfirmModal";

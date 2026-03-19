@@ -22,8 +22,8 @@ export default {
         panel: "0 20px 50px rgba(2, 8, 18, 0.45)"
       },
       fontFamily: {
-        heading: ["Space Grotesk", "sans-serif"],
-        body: ["DM Sans", "sans-serif"]
+        heading: ["Inter", "sans-serif"],
+        body: ["Inter", "sans-serif"]
       }
     }
   },

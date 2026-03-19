@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&family=Cormorant+SC:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Geologica:wght@300;400;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -298,17 +298,19 @@
     background: linear-gradient(180deg, rgba(10, 20, 32, 0.99) 0%, rgba(7, 15, 25, 0.99) 100%);
   }
 
-  .message-rich {
-    @apply text-[15px] leading-7 tracking-[0.002em] text-slate-200;
+    .message-rich {
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    @apply text-[15px] leading-6 tracking-[0.002em] text-slate-200;
   }
 
   .message-rich p + p {
-    @apply mt-3;
+    @apply mt-2.5;
   }
 
   .message-rich ul,
   .message-rich ol {
-    @apply my-3 space-y-2 pl-6;
+    @apply my-2.5 space-y-1.5 pl-6;
   }
 
   .message-rich ul {
@@ -333,7 +335,7 @@
   }
 
   .message-rich blockquote {
-    @apply my-3 border-l-2 border-brand-400/50 pl-4 text-[15px] italic text-slate-300;
+    @apply my-2.5 border-l-2 border-brand-400/50 pl-4 text-[15px] italic text-slate-300;
   }
 
   .message-rich code {

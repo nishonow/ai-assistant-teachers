@@ -1,4 +1,4 @@
-import { LogOut, MessageSquarePlus, MoreHorizontal, PanelLeftClose, Trash2 } from "lucide-react";
+import { LogOut, MessageSquarePlus, MoreHorizontal, PanelLeftClose, Trash2, UserRound } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ConversationSummary } from "./types";
@@ -14,6 +14,7 @@ interface ChatSidebarProps {
   onCreateConversation: () => void;
   onSelectConversation: (id: string) => void;
   onDeleteAllHistory: () => void;
+  onEditProfile: () => void;
   onLogout: () => void;
 }
 
@@ -32,6 +33,7 @@ interface SidebarAccountMenuProps {
   setMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
   username: string;
   onDeleteAllHistory: () => void;
+  onEditProfile: () => void;
   onLogout: () => void;
 }
 
@@ -76,6 +78,7 @@ function SidebarAccountMenu({
   setMenuOpen,
   username,
   onDeleteAllHistory,
+  onEditProfile,
   onLogout,
 }: SidebarAccountMenuProps) {
   return (
@@ -85,6 +88,17 @@ function SidebarAccountMenu({
           <div className="border-b border-[#21384b] px-3 py-2">
             <p className="truncate text-sm font-semibold text-slate-100">{username}</p>
           </div>
+          <button
+            type="button"
+            className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-slate-200 transition-colors hover:bg-[#102033]"
+            onClick={() => {
+              setMenuOpen(false);
+              onEditProfile();
+            }}
+          >
+            <UserRound size={15} />
+            Профиль
+          </button>
           <button
             type="button"
             className={[
@@ -144,6 +158,7 @@ export default function ChatSidebar({
   onCreateConversation,
   onSelectConversation,
   onDeleteAllHistory,
+  onEditProfile,
   onLogout,
 }: ChatSidebarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -203,6 +218,7 @@ export default function ChatSidebar({
             setMenuOpen={setMenuOpen}
             username={username}
             onDeleteAllHistory={onDeleteAllHistory}
+            onEditProfile={onEditProfile}
             onLogout={onLogout}
           />
         </div>
@@ -244,6 +260,7 @@ export default function ChatSidebar({
                 setMenuOpen={setMenuOpen}
                 username={username}
                 onDeleteAllHistory={onDeleteAllHistory}
+                onEditProfile={onEditProfile}
                 onLogout={onLogout}
               />
             </div>

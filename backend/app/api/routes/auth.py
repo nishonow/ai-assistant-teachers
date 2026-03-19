@@ -25,6 +25,12 @@ class RegisterRequest(BaseModel):
     password: str
 
 
+class UpdateProfileRequest(BaseModel):
+    name: str
+    email: EmailStr
+    password: str | None = None
+
+
 def _create_access_token(subject: str) -> str:
     return jwt.encode(
         {"sub": subject, "exp": datetime.utcnow() + timedelta(days=30)},
@@ -149,3 +155,43 @@ def me(authorization: str = Header(...), db: Session = Depends(get_db)):
     response = _resolve_auth_subject(subject, db)
     response["accessToken"] = authorization.split(" ", 1)[1]
     return response
+
+
+@router.patch("/me")
+@router.post("/me")
+def update_me(request: UpdateProfileRequest, authorization: str = Header(...), db: Session = Depends(get_db)):
+    subject = get_token_subject_from_authorization(authorization)
+    name = request.name.strip()
+    email = request.email.strip().lower()
+    password = (request.password or "").strip()
+
+    if not name:
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
+
+    if subject == settings.ADMIN_USERNAME:
+        raise HTTPException(status_code=400, detail="Built-in admin profile cannot be edited here")
+
+    user = db.query(User).filter(User.platform == "web", User.platform_user_id == subject).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="This profile cannot be edited here")
+
+    existing = db.query(User).filter(User.platform == "web", User.platform_user_id == email).first()
+    if existing and existing.id != user.id:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    user.platform_user_id = email
+    user.username = email
+    user.name = name
+    if password:
+        user.password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    db.commit()
+    db.refresh(user)
+
+    token = _create_access_token(email)
+    return _build_auth_response(
+        token=token,
+        role="admin" if user.is_admin else "user",
+        user_id=email,
+        username=email,
+        display_name=user.name or email,
+    )

@@ -1,7 +1,7 @@
 ﻿import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { fetchCurrentSession, loginWithAdapter, registerWithAdapter } from "./adapter";
+import { fetchCurrentSession, loginWithAdapter, registerWithAdapter, updateProfileWithAdapter } from "./adapter";
 import { clearAuthSession, loadAuthSession, saveAuthSession } from "./storage";
-import type { AuthSession, LoginInput, RegisterInput } from "./types";
+import type { AuthSession, LoginInput, RegisterInput, UpdateProfileInput } from "./types";
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -9,6 +9,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (input: LoginInput) => Promise<AuthSession>;
   register: (input: RegisterInput) => Promise<AuthSession>;
+  updateProfile: (input: UpdateProfileInput) => Promise<AuthSession>;
   logout: () => void;
 }
 
@@ -85,6 +86,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setSession(null);
   }, []);
 
+  const updateProfile = useCallback(
+    async (input: UpdateProfileInput): Promise<AuthSession> => {
+      if (!session || session.kind !== "backend") {
+        throw new Error("Профиль недоступен.");
+      }
+
+      const nextSession = await updateProfileWithAdapter(session.token, input);
+      saveAuthSession(nextSession);
+      setSession(nextSession);
+      return nextSession;
+    },
+    [session],
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
@@ -92,9 +107,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: Boolean(session),
       login,
       register,
+      updateProfile,
       logout,
     }),
-    [session, isHydrating, login, register, logout]
+    [session, isHydrating, login, register, updateProfile, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,4 +1,4 @@
-import { SendHorizontal } from "lucide-react";
+﻿import { SendHorizontal } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 interface ChatComposerProps {
@@ -87,9 +87,8 @@ export default function ChatComposer({ disabled, onSubmit }: ChatComposerProps) 
           <SendHorizontal size={16} />
         </button>
       </div>
-      <p className="mx-auto mt-1 w-full max-w-4xl px-2 text-center text-[9px] leading-3 text-slate-500 md:mt-1.5 md:text-xs md:leading-5">
-        <span className="md:hidden">Проверяйте источники. Чаты сохраняются.</span>
-        <span className="hidden md:inline">Mugallim AI может ошибаться. Пожалуйста, проверяйте указанные источники. Ваши чаты сохраняются для удобства дальнейшего использования.</span>
+      <p className="mx-auto mt-1 w-full max-w-4xl px-2 text-center text-[8px] leading-3 text-slate-500 whitespace-nowrap md:mt-1.5 md:text-[11px] md:leading-4">
+        Проверяйте источники. История сохраняется.
       </p>
     </form>
   );

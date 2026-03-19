@@ -27,3 +27,9 @@ export interface RegisterInput {
   password: string;
 }
 
+export interface UpdateProfileInput {
+  name: string;
+  email: string;
+  password?: string;
+}
+

@@ -2,13 +2,23 @@ import logging
 import re
 from collections.abc import Iterable
 
-from openai import OpenAI
 from lingua import LanguageDetectorBuilder
+from openai import OpenAI
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import Chunk, Document, Message
 from app.services.embeddings import embed_text
+from app.services.rag_prompts import (
+    HYDE_SYSTEM_PROMPT,
+    INTENT_SYSTEM_PROMPT,
+    LANGUAGE_MATCH_CHECK_SYSTEM_PROMPT,
+    LANGUAGE_REWRITE_SYSTEM_PROMPT,
+    RETRIEVAL_QUERY_SYSTEM_PROMPT,
+    build_answer_system_prompt,
+    build_small_talk_system_prompt,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,63 +28,63 @@ detector = LanguageDetectorBuilder.from_all_languages().build()
 CHAT_MODEL = "gpt-4o-mini"
 EMBEDDING_BLEND_QUERY = 0.78
 EMBEDDING_BLEND_HYDE = 0.22
-LEXICAL_WEIGHT = 0.24
+VECTOR_SCORE_WEIGHT = 0.54
+LEXICAL_WEIGHT = 0.28
+KEYWORD_WEIGHT = 0.18
 HYDE_TRIGGER_DISTANCE = 0.34
 HYDE_TRIGGER_OVERLAP = 0.12
 TOP_K_RETRIEVAL = 100
-TOP_K_CONTEXT = 12
-MAX_CHUNKS_PER_DOC = 5
+TOP_K_LEXICAL = 140
+TOP_K_DOCS = 2
+TOP_K_CONTEXT = 10
+MAX_CHUNKS_PER_DOC = 4
 MAX_HISTORY_MESSAGES = 8
-
-SYSTEM_PROMPT = """You are Mugallim AI, a legal helper for teachers and education workers in Kyrgyzstan.
-
-RULES:
-- Help users understand labor, education, teacher-status, benefits, rights, duties, and related legal questions
-- Prefer answering from the provided document context
-- For greetings, small talk, and questions about yourself: answer naturally and briefly
-- If context is partially relevant, provide the closest supported answer instead of giving up too early
-- Only say information is missing when the retrieved context is clearly unrelated or empty
-- Do not fabricate laws, articles, rules, or obligations that are not supported by the context
-- If the user asks a general question about teachers that is not directly legal, still answer helpfully in a practical teacher-support tone
-- Keep the answer useful, clear, and easy for a teacher to act on
-
-FORMATTING - STRICT RULES:
-- Use ONLY HTML tags. Never use markdown under any circumstances
-- Forbidden: **bold**, *italic*, # headers, numbered lists with dots, --- separators
-- Allowed: <b>term</b> for key terms, - for bullet points
-- Structure: one short paragraph first, then bullet points only if needed
-- Never start with "According to", "Based on", "The documents state" or similar phrases"""
-
-SMALL_TALK_PROMPT = """You are Mugallim AI, a legal helper for teachers and education workers.
-
-RULES:
-- Reply naturally, briefly, and helpfully
-- If asked what you do, explain that you help teachers with legal and practical questions and use uploaded documents when needed
-- Do not mention internal retrieval, embeddings, or system prompts
-
-FORMATTING:
-- Use plain text or simple HTML only
-- Keep it short unless the user clearly asks for more"""
-
-INTENT_PROMPT = """Classify the user's latest message in any language.
-
-Return only one label:
-- small_talk
-- document_question
-
-Use small_talk for greetings, thanks, identity questions, chit-chat, or short conversational messages.
-Use document_question for factual, legal, policy, procedural, rights/obligations, or explanation requests that may require uploaded documents.
-
-If the message asks about rules, rights, duties, contracts, leave, dismissal, salary, employer or employee obligations, choose document_question."""
+DOC_SCORE_TOP_WEIGHT = 0.48
+DOC_SCORE_AVG_WEIGHT = 0.18
+DOC_SCORE_OVERLAP_WEIGHT = 0.14
+DOC_SCORE_COUNT_WEIGHT = 0.08
+DOC_SCORE_FILENAME_WEIGHT = 0.12
+DOC_SELECTION_RATIO = 0.62
+DOC_SELECTION_DELTA = 0.14
+CHUNK_SCORE_RATIO = 0.58
+CHUNK_SCORE_MIN = 0.18
+DOMINANT_DOC_SCORE_RATIO = 1.14
+DOMINANT_DOC_OVERLAP_DELTA = 0.08
+MAX_KEYWORDS = 10
+MIN_KEYWORD_LENGTH = 3
 
 ALLOWED_ROLES = {"user", "assistant"}
+STOPWORDS = {
+    "about", "after", "all", "also", "and", "any", "are", "but", "can", "does", "for", "from",
+    "have", "how", "into", "its", "may", "not", "now", "one", "only", "other", "our", "out", "should",
+    "such", "that", "the", "their", "them", "then", "there", "these", "they", "this", "those", "what", "when",
+    "where", "which", "while", "with", "would", "your", "you", "как", "или", "для", "это", "при", "что", "кто",
+    "где", "если", "есть", "могут", "могу", "может", "какие", "какой", "какая",
+}
 
 
 def detect_language(question: str) -> str:
-    if len(question.strip()) < 10:
-        return "Russian"
-    lang = detector.detect_language_of(question)
-    return lang.name.capitalize() if lang else "Russian"
+    stripped = question.strip()
+    if not stripped:
+        return "unknown"
+
+    cyrillic_count = sum(1 for char in stripped if "А" <= char <= "я" or char in "Ёё")
+    latin_count = sum(1 for char in stripped if ("A" <= char <= "Z") or ("a" <= char <= "z"))
+
+    if cyrillic_count >= max(6, latin_count * 2):
+        russian_markers = {"как", "или", "для", "это", "при", "что", "кто", "где", "если", "есть"}
+        lowered_tokens = _tokenize(stripped)
+        return "Russian" if lowered_tokens & russian_markers else "Cyrillic"
+
+    if latin_count >= max(6, cyrillic_count * 2):
+        return "Latin"
+
+    try:
+        lang = detector.detect_language_of(stripped)
+        return lang.name.capitalize() if lang else "unknown"
+    except Exception:
+        logger.exception("language detection failed; using unknown")
+        return "unknown"
 
 
 def _call_chat(messages: list[dict], *, temperature: float = 0, max_tokens: int | None = None) -> str:
@@ -94,7 +104,7 @@ def classify_question_intent(question: str) -> str:
     try:
         label = _call_chat(
             [
-                {"role": "system", "content": INTENT_PROMPT},
+                {"role": "system", "content": INTENT_SYSTEM_PROMPT},
                 {"role": "user", "content": question},
             ],
             temperature=0,
@@ -112,12 +122,37 @@ def generate_hypothetical_answer(question: str) -> str:
         [
             {
                 "role": "system",
-                "content": "Generate a short hypothetical document passage that would answer the following question. Write it as if extracted from an official policy or legal document. 2-3 sentences max. No preamble.",
+                "content": HYDE_SYSTEM_PROMPT,
             },
             {"role": "user", "content": question},
         ],
         temperature=0,
     )
+
+
+def _build_retrieval_queries(question: str, detected_lang: str) -> list[str]:
+    queries = [question.strip()]
+
+    if detected_lang == "Russian":
+        return queries
+
+    try:
+        retrieval_query = _call_chat(
+            [
+                {"role": "system", "content": RETRIEVAL_QUERY_SYSTEM_PROMPT},
+                {"role": "user", "content": question},
+            ],
+            temperature=0,
+            max_tokens=64,
+        ).strip()
+    except Exception:
+        logger.exception("retrieval query rewrite failed; using original question only")
+        return queries
+
+    if retrieval_query and retrieval_query.lower() != question.strip().lower():
+        queries.append(retrieval_query)
+
+    return queries
 
 
 def _fetch_vector_candidates(embedding: list[float], db: Session) -> list[tuple[Chunk, float]]:
@@ -136,62 +171,179 @@ def _tokenize(text: str) -> set[str]:
     return {token.lower() for token in re.findall(r"[^\W\d_]{2,}", text.lower(), flags=re.UNICODE)}
 
 
-def _lexical_overlap(question_tokens: set[str], chunk_text: str) -> float:
+def _extract_keywords(question_texts: list[str]) -> list[str]:
+    weighted_tokens: dict[str, int] = {}
+    for text in question_texts:
+        for token in re.findall(r"[^\W\d_]{3,}", text.lower(), flags=re.UNICODE):
+            if len(token) < MIN_KEYWORD_LENGTH or token in STOPWORDS:
+                continue
+            weighted_tokens[token] = weighted_tokens.get(token, 0) + 1
+
+    ranked_tokens = sorted(weighted_tokens.items(), key=lambda item: (-item[1], -len(item[0]), item[0]))
+    return [token for token, _ in ranked_tokens[:MAX_KEYWORDS]]
+
+
+def _lexical_overlap(question_tokens: set[str], text: str) -> float:
     if not question_tokens:
         return 0.0
-    chunk_tokens = _tokenize(chunk_text)
-    if not chunk_tokens:
+    text_tokens = _tokenize(text)
+    if not text_tokens:
         return 0.0
-    return len(question_tokens & chunk_tokens) / len(question_tokens)
+    return len(question_tokens & text_tokens) / len(question_tokens)
+
+
+def _max_lexical_overlap(question_texts: list[str], text: str) -> float:
+    if not question_texts:
+        return 0.0
+    return max(_lexical_overlap(_tokenize(question_text), text) for question_text in question_texts)
+
+
+def _fetch_keyword_candidates(question_texts: list[str], db: Session) -> list[tuple[Chunk, float]]:
+    keywords = _extract_keywords(question_texts)
+    if not keywords:
+        return []
+
+    conditions = [Chunk.chunk_text.ilike(f"%{keyword}%") for keyword in keywords]
+    matched_chunks = db.query(Chunk).filter(or_(*conditions)).limit(TOP_K_LEXICAL).all()
+
+    ranked_matches: list[tuple[Chunk, float]] = []
+    for chunk in matched_chunks:
+        keyword_overlap = _max_lexical_overlap(question_texts, chunk.chunk_text)
+        if keyword_overlap <= 0:
+            continue
+        pseudo_distance = max(0.0, 1.0 - keyword_overlap)
+        ranked_matches.append((chunk, pseudo_distance))
+
+    ranked_matches.sort(key=lambda item: item[1])
+    return ranked_matches
 
 
 def _merge_rank_candidates(
     *,
-    question: str,
+    question_texts: list[str],
     query_candidates: Iterable[tuple[Chunk, float]],
+    lexical_candidates: Iterable[tuple[Chunk, float]] | None = None,
     hyde_candidates: Iterable[tuple[Chunk, float]] | None = None,
 ) -> list[dict]:
     by_chunk_id: dict[int, dict] = {}
-    question_tokens = _tokenize(question)
+
+    def ensure_item(chunk: Chunk) -> dict:
+        current = by_chunk_id.get(chunk.id)
+        if current:
+            return current
+        current = {
+            "chunk": chunk,
+            "query_distance": 1.0,
+            "hyde_distance": 1.0,
+            "keyword_distance": 1.0,
+            "lexical_overlap": _max_lexical_overlap(question_texts, chunk.chunk_text),
+        }
+        by_chunk_id[chunk.id] = current
+        return current
 
     for chunk, distance in query_candidates:
-        overlap = _lexical_overlap(question_tokens, chunk.chunk_text)
-        by_chunk_id[chunk.id] = {
-            "chunk": chunk,
-            "query_distance": distance,
-            "hyde_distance": 1.0,
-            "lexical_overlap": overlap,
-        }
+        current = ensure_item(chunk)
+        current["query_distance"] = min(current["query_distance"], distance)
+        current["lexical_overlap"] = max(current["lexical_overlap"], _max_lexical_overlap(question_texts, chunk.chunk_text))
+
+    if lexical_candidates:
+        for chunk, distance in lexical_candidates:
+            current = ensure_item(chunk)
+            current["keyword_distance"] = min(current["keyword_distance"], distance)
+            current["lexical_overlap"] = max(current["lexical_overlap"], _max_lexical_overlap(question_texts, chunk.chunk_text))
 
     if hyde_candidates:
         for chunk, distance in hyde_candidates:
-            current = by_chunk_id.get(chunk.id)
-            if current:
-                current["hyde_distance"] = min(current["hyde_distance"], distance)
-                current["lexical_overlap"] = max(current["lexical_overlap"], _lexical_overlap(question_tokens, chunk.chunk_text))
-            else:
-                by_chunk_id[chunk.id] = {
-                    "chunk": chunk,
-                    "query_distance": 1.0,
-                    "hyde_distance": distance,
-                    "lexical_overlap": _lexical_overlap(question_tokens, chunk.chunk_text),
-                }
+            current = ensure_item(chunk)
+            current["hyde_distance"] = min(current["hyde_distance"], distance)
+            current["lexical_overlap"] = max(current["lexical_overlap"], _max_lexical_overlap(question_texts, chunk.chunk_text))
 
-    ranked = []
+    ranked: list[dict] = []
     for item in by_chunk_id.values():
         vector_distance = (item["query_distance"] * EMBEDDING_BLEND_QUERY) + (item["hyde_distance"] * EMBEDDING_BLEND_HYDE)
         vector_similarity = max(0.0, 1.0 - vector_distance)
-        rerank_score = (vector_similarity * (1 - LEXICAL_WEIGHT)) + (item["lexical_overlap"] * LEXICAL_WEIGHT)
+        keyword_similarity = max(0.0, 1.0 - item["keyword_distance"])
+        rerank_score = (
+            (vector_similarity * VECTOR_SCORE_WEIGHT)
+            + (item["lexical_overlap"] * LEXICAL_WEIGHT)
+            + (keyword_similarity * KEYWORD_WEIGHT)
+        )
         ranked.append(
             {
                 **item,
                 "vector_distance": vector_distance,
+                "keyword_similarity": keyword_similarity,
                 "score": rerank_score,
             }
         )
 
     ranked.sort(key=lambda item: item["score"], reverse=True)
     return ranked
+
+
+def _rank_documents(question_texts: list[str], ranked_candidates: list[dict], db: Session) -> list[dict]:
+    if not ranked_candidates:
+        return []
+
+    considered = ranked_candidates[: min(len(ranked_candidates), 56)]
+    by_document_id: dict[int, list[dict]] = {}
+
+    for item in considered:
+        by_document_id.setdefault(item["chunk"].document_id, []).append(item)
+
+    document_lookup = _load_documents_for_chunks([item["chunk"] for item in considered], db)
+    ranked_documents: list[dict] = []
+
+    for document_id, items in by_document_id.items():
+        items.sort(key=lambda candidate: candidate["score"], reverse=True)
+        strongest_items = items[:4]
+        best_score = strongest_items[0]["score"]
+        avg_score = sum(candidate["score"] for candidate in strongest_items) / len(strongest_items)
+        best_overlap = max(candidate["lexical_overlap"] for candidate in strongest_items)
+        density_score = min(len(items), 5) / 5
+        document = document_lookup.get(document_id)
+        title_text = document.file_name if document else ""
+        file_name_overlap = _max_lexical_overlap(question_texts, title_text)
+        document_score = (
+            (best_score * DOC_SCORE_TOP_WEIGHT)
+            + (avg_score * DOC_SCORE_AVG_WEIGHT)
+            + (best_overlap * DOC_SCORE_OVERLAP_WEIGHT)
+            + (density_score * DOC_SCORE_COUNT_WEIGHT)
+            + (file_name_overlap * DOC_SCORE_FILENAME_WEIGHT)
+        )
+        ranked_documents.append(
+            {
+                "document_id": document_id,
+                "document": document,
+                "score": document_score,
+                "best_overlap": best_overlap,
+                "candidate_count": len(items),
+                "file_name_overlap": file_name_overlap,
+            }
+        )
+
+    ranked_documents.sort(key=lambda item: item["score"], reverse=True)
+    return ranked_documents
+
+
+def _select_top_documents(ranked_documents: list[dict]) -> list[int]:
+    if not ranked_documents:
+        return []
+
+    if len(ranked_documents) == 1:
+        return [ranked_documents[0]["document_id"]]
+
+    best_score = ranked_documents[0]["score"]
+    second_score = ranked_documents[1]["score"]
+    best_overlap = ranked_documents[0]["best_overlap"]
+    second_overlap = ranked_documents[1]["best_overlap"]
+
+    if best_score >= second_score * DOMINANT_DOC_SCORE_RATIO and best_overlap >= second_overlap + DOMINANT_DOC_OVERLAP_DELTA:
+        return [ranked_documents[0]["document_id"]]
+
+    score_floor = max(best_score * DOC_SELECTION_RATIO, best_score - DOC_SELECTION_DELTA)
+    selected_document_ids = [item["document_id"] for item in ranked_documents if item["score"] >= score_floor][:TOP_K_DOCS]
+    return selected_document_ids or [ranked_documents[0]["document_id"]]
 
 
 def _should_use_hyde(ranked_candidates: list[dict]) -> bool:
@@ -203,19 +355,31 @@ def _should_use_hyde(ranked_candidates: list[dict]) -> bool:
         return False
     if top_item["lexical_overlap"] >= HYDE_TRIGGER_OVERLAP:
         return False
+    if top_item["keyword_similarity"] >= 0.42:
+        return False
     return True
 
 
-def _select_context_chunks(ranked_candidates: list[dict]) -> list[Chunk]:
+def _select_context_chunks(ranked_candidates: list[dict], allowed_document_ids: list[int] | None = None) -> list[Chunk]:
     doc_counts: dict[int, int] = {}
     selected: list[Chunk] = []
+    filtered_candidates = [
+        item for item in ranked_candidates if not allowed_document_ids or item["chunk"].document_id in allowed_document_ids
+    ]
+    if not filtered_candidates:
+        filtered_candidates = ranked_candidates
 
-    for item in ranked_candidates:
+    top_score = filtered_candidates[0]["score"] if filtered_candidates else 0.0
+    minimum_score = max(CHUNK_SCORE_MIN, top_score * CHUNK_SCORE_RATIO)
+
+    for item in filtered_candidates:
         chunk = item["chunk"]
         if len(selected) >= TOP_K_CONTEXT:
             break
         count = doc_counts.get(chunk.document_id, 0)
         if count >= MAX_CHUNKS_PER_DOC:
+            continue
+        if item["score"] < minimum_score and len(selected) >= min(4, TOP_K_CONTEXT):
             continue
         doc_counts[chunk.document_id] = count + 1
         selected.append(chunk)
@@ -286,29 +450,95 @@ def _prepare_history(history: list[dict]) -> list[dict]:
     return filtered[-MAX_HISTORY_MESSAGES:]
 
 
-def _answer_small_talk(question: str, detected_lang: str, history: list[dict]) -> str:
-    messages = [{"role": "system", "content": f"{SMALL_TALK_PROMPT}\n\nRespond in {detected_lang}."}]
+def _answer_small_talk(question: str, history: list[dict]) -> str:
+    messages = [{"role": "system", "content": build_small_talk_system_prompt()}]
     messages.extend(history[-4:])
     messages.append({"role": "user", "content": question})
     return postprocess(_call_chat(messages, temperature=0.4))
 
 
-def _answer_with_context(question: str, detected_lang: str, history: list[dict], context: str) -> str:
+def _answer_with_context(question: str, history: list[dict], context: str) -> str:
     messages = [
         {
             "role": "system",
-            "content": f"{SYSTEM_PROMPT}\n\nCRITICAL: You MUST respond in {detected_lang} only. No exceptions.",
+            "content": build_answer_system_prompt(),
         }
     ]
     messages.extend(history)
 
     user_content = (
-        f"Document context:\n{context}\n\nQuestion: {question}\n\nRemember: respond in {detected_lang}. If the context is somewhat relevant, provide the closest supported answer before saying information is missing."
+        f"Document context:\n{context}\n\nQuestion: {question}\n\nUse only supported facts from the context and answer in the same language as the question."
         if context
-        else f"{question}\n\nRemember: respond in {detected_lang}. If no relevant context is available, say so briefly."
+        else f"{question}\n\nIf no relevant context is available, say so briefly in the same language as the question."
     )
     messages.append({"role": "user", "content": user_content})
-    return postprocess(_call_chat(messages, temperature=0.15))
+    return postprocess(_call_chat(messages, temperature=0.1))
+
+
+def _rewrite_answer_in_language(answer: str, question: str) -> str:
+    rewritten = _call_chat(
+        [
+            {"role": "system", "content": LANGUAGE_REWRITE_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": f"User question:\n{question}\n\nAnswer:\n{answer}",
+            },
+        ],
+        temperature=0.1,
+    )
+    return postprocess(rewritten)
+
+
+def _is_same_language(answer: str, question: str) -> bool:
+    try:
+        label = _call_chat(
+            [
+                {"role": "system", "content": LANGUAGE_MATCH_CHECK_SYSTEM_PROMPT},
+                {"role": "user", "content": f"User question:\n{question}\n\nAssistant answer:\n{answer}"},
+            ],
+            temperature=0,
+            max_tokens=4,
+        ).strip().lower()
+        return "same_language" in label
+    except Exception:
+        logger.exception("language match check failed; falling back to script comparison")
+        return _has_same_script_family(question, answer)
+
+
+def _dominant_script(text: str) -> str:
+    counts = {"cyrillic": 0, "latin": 0}
+    for char in text:
+        if "А" <= char <= "я" or char in "Ёё":
+            counts["cyrillic"] += 1
+        elif ("A" <= char <= "Z") or ("a" <= char <= "z"):
+            counts["latin"] += 1
+
+    if counts["cyrillic"] == 0 and counts["latin"] == 0:
+        return "other"
+    return "cyrillic" if counts["cyrillic"] >= counts["latin"] else "latin"
+
+
+def _has_same_script_family(question: str, answer: str) -> bool:
+    question_script = _dominant_script(question)
+    answer_script = _dominant_script(re.sub(r"<[^>]+>", " ", answer))
+    if question_script == "other" or answer_script == "other":
+        return True
+    return question_script == answer_script
+
+
+def _ensure_answer_language(answer: str, question: str) -> str:
+    cleaned = answer.strip()
+    if not cleaned:
+        return cleaned
+
+    if len(cleaned) > 48 and not _is_same_language(cleaned, question):
+        try:
+            return _rewrite_answer_in_language(cleaned, question)
+        except Exception:
+            logger.exception("answer rewrite failed; returning original answer")
+            return cleaned
+
+    return cleaned
 
 
 def ask(question: str, user_id: int, platform: str, history: list[dict], db: Session) -> dict:
@@ -319,13 +549,21 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
     used_hyde = False
 
     if intent == "small_talk":
-        answer = _answer_small_talk(question, detected_lang, prepared_history)
+        answer = _ensure_answer_language(_answer_small_talk(question, prepared_history), question)
         sources: list[dict] = []
         logger.info("question=%r lang=%s intent=%s hyde=%s selected=%d", question, detected_lang, intent, used_hyde, 0)
     else:
-        query_embedding = embed_text(question)
-        query_candidates = _fetch_vector_candidates(query_embedding, db)
-        ranked_candidates = _merge_rank_candidates(question=question, query_candidates=query_candidates)
+        retrieval_queries = _build_retrieval_queries(question, detected_lang)
+        query_candidates: list[tuple[Chunk, float]] = []
+        for retrieval_query in retrieval_queries:
+            query_embedding = embed_text(retrieval_query)
+            query_candidates.extend(_fetch_vector_candidates(query_embedding, db))
+        lexical_candidates = _fetch_keyword_candidates(retrieval_queries, db)
+        ranked_candidates = _merge_rank_candidates(
+            question_texts=retrieval_queries,
+            query_candidates=query_candidates,
+            lexical_candidates=lexical_candidates,
+        )
 
         if _should_use_hyde(ranked_candidates):
             used_hyde = True
@@ -333,20 +571,23 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
             hyde_embedding = embed_text(hyde_text)
             hyde_candidates = _fetch_vector_candidates(hyde_embedding, db)
             ranked_candidates = _merge_rank_candidates(
-                question=question,
+                question_texts=retrieval_queries,
                 query_candidates=query_candidates,
+                lexical_candidates=lexical_candidates,
                 hyde_candidates=hyde_candidates,
             )
 
-        selected_chunks = _select_context_chunks(ranked_candidates)
+        ranked_documents = _rank_documents(retrieval_queries, ranked_candidates, db)
+        selected_document_ids = _select_top_documents(ranked_documents)
+        selected_chunks = _select_context_chunks(ranked_candidates, selected_document_ids)
         context = _build_context(selected_chunks, db)
-        answer = _answer_with_context(question, detected_lang, prepared_history, context)
+        answer = _ensure_answer_language(_answer_with_context(question, prepared_history, context), question)
         sources = _build_sources(selected_chunks, db)
 
         top_distance = ranked_candidates[0]["vector_distance"] if ranked_candidates else 1.0
         top_overlap = ranked_candidates[0]["lexical_overlap"] if ranked_candidates else 0.0
         logger.info(
-            "question=%r lang=%s intent=%s hyde=%s selected=%d top_distance=%.4f top_overlap=%.4f",
+            "question=%r lang=%s intent=%s hyde=%s selected=%d top_distance=%.4f top_overlap=%.4f retrieval_queries=%r",
             question,
             detected_lang,
             intent,
@@ -354,7 +595,18 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
             len(selected_chunks),
             top_distance,
             top_overlap,
+            retrieval_queries,
         )
+        for document in ranked_documents[:TOP_K_DOCS]:
+            title = document["document"].file_name if document["document"] else f"Document {document['document_id']}"
+            logger.info(
+                "  selected_doc id=%s score=%.4f overlap=%.4f candidates=%d title=%r",
+                document["document_id"],
+                document["score"],
+                document["best_overlap"],
+                document["candidate_count"],
+                title,
+            )
         for chunk in selected_chunks:
             logger.info("  context_chunk id=%s doc_id=%s", chunk.id, chunk.document_id)
 
