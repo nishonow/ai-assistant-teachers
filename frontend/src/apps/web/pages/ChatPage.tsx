@@ -442,7 +442,7 @@ export default function ChatPage() {
 
       <div className="flex min-w-0 flex-1 bg-[#07101a]">
         <main className="flex min-w-0 flex-1 flex-col bg-[#07101a]">
-          <header className="flex h-[72px] items-center justify-between gap-3 border-b border-[#21384b] bg-[#08111c] px-3 md:px-6">
+          <header className="flex h-[60px] items-center justify-between gap-2 border-b border-[#21384b] bg-[#08111c] px-3 md:h-[72px] md:gap-3 md:px-6">
             <div className="flex min-w-0 items-center gap-2">
               <button type="button" className="btn-muted md:hidden" onClick={() => setMobileSidebarOpen(true)}>
                 <PanelLeft size={16} />
@@ -482,8 +482,8 @@ export default function ChatPage() {
                   </div>
                 ) : (
                   <>
-                    <h1 className="truncate font-heading text-base text-slate-100 md:text-lg">Mugallim AI</h1>
-                    <p className="truncate text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                    <h1 className="truncate font-heading text-sm text-slate-100 md:text-lg">Mugallim AI</h1>
+                    <p className="truncate text-[10px] uppercase tracking-[0.14em] text-slate-500 md:text-[11px] md:tracking-[0.16em]">
                       {activeConversation?.title ?? "New chat"}
                     </p>
                   </>

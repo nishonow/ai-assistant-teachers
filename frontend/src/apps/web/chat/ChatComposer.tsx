@@ -66,9 +66,9 @@ export default function ChatComposer({ disabled, onSubmit }: ChatComposerProps) 
   return (
     <form
       onSubmit={handleSubmit}
-      className="border-t border-[#21384b] bg-[#08111c]/96 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2.5 md:px-6 md:pb-5"
+      className="border-t border-[#21384b] bg-[#08111c]/96 px-3 pb-[calc(0.55rem+env(safe-area-inset-bottom))] pt-2 md:px-6 md:pb-5 md:pt-2.5"
     >
-      <div className="chat-composer-shell mx-auto flex w-full max-w-4xl items-end gap-2.5 rounded-[26px] border border-[#284863] bg-[#0d1827] px-3 py-2.5">
+      <div className="chat-composer-shell mx-auto flex w-full max-w-4xl items-end gap-2 rounded-[24px] border border-[#284863] bg-[#0d1827] px-2.5 py-2 md:gap-2.5 md:rounded-[26px] md:px-3 md:py-2.5">
         <textarea
           ref={textareaRef}
           value={value}
@@ -76,18 +76,18 @@ export default function ChatComposer({ disabled, onSubmit }: ChatComposerProps) 
           onKeyDown={handleKeyDown}
           placeholder="Message Mugallim AI..."
           rows={1}
-          className="chat-input-scroll min-h-[24px] max-h-[220px] flex-1 resize-none bg-transparent px-2 py-[8px] text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:text-sm"
+          className="chat-input-scroll min-h-[22px] max-h-[220px] flex-1 resize-none bg-transparent px-2 py-[6px] text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[24px] md:py-[8px] md:text-sm"
         />
         <button
           type="submit"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#8ef1e5] text-[#10221d] transition duration-200 hover:scale-[1.03] hover:bg-[#b7fbf3] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#8ef1e5] text-[#10221d] transition duration-200 hover:scale-[1.03] hover:bg-[#b7fbf3] disabled:cursor-not-allowed disabled:opacity-50 md:h-10 md:w-10"
           disabled={disabled || !value.trim()}
           aria-label="Send message"
         >
           <SendHorizontal size={16} />
         </button>
       </div>
-      <p className="mx-auto mt-2 w-full max-w-4xl px-2 text-center text-[11px] leading-5 text-slate-500 md:text-xs">
+      <p className="mx-auto mt-1.5 w-full max-w-4xl px-2 text-center text-[10px] leading-4 text-slate-500 md:mt-2 md:text-xs md:leading-5">
         Mugallim AI can make mistakes. Please check the cited sources. Your chats are saved to improve future use.
       </p>
     </form>
