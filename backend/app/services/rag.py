@@ -50,6 +50,8 @@ DOC_SCORE_COUNT_WEIGHT = 0.08
 DOC_SCORE_FILENAME_WEIGHT = 0.12
 DOC_SELECTION_RATIO = 0.62
 DOC_SELECTION_DELTA = 0.14
+SECONDARY_DOC_MIN_CANDIDATES = 2
+SECONDARY_DOC_MIN_TITLE_OVERLAP = 0.08
 CHUNK_SCORE_RATIO = 0.42
 CHUNK_SCORE_MIN = 0.12
 DOMINANT_DOC_SCORE_RATIO = 1.14
@@ -344,7 +346,15 @@ def _select_top_documents(ranked_documents: list[dict]) -> list[int]:
         return [ranked_documents[0]["document_id"]]
 
     score_floor = max(best_score * DOC_SELECTION_RATIO, best_score - DOC_SELECTION_DELTA)
-    selected_document_ids = [item["document_id"] for item in ranked_documents if item["score"] >= score_floor][:TOP_K_DOCS]
+    selected_document_ids: list[int] = []
+    for index, item in enumerate(ranked_documents):
+        if item["score"] < score_floor:
+            continue
+        if index > 0 and item["candidate_count"] < SECONDARY_DOC_MIN_CANDIDATES and item["file_name_overlap"] < SECONDARY_DOC_MIN_TITLE_OVERLAP:
+            continue
+        selected_document_ids.append(item["document_id"])
+        if len(selected_document_ids) >= TOP_K_DOCS:
+            break
     return selected_document_ids or [ranked_documents[0]["document_id"]]
 
 
