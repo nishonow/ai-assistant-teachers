@@ -1,5 +1,8 @@
 import logging
+import json
+import os
 import re
+from datetime import datetime
 from collections.abc import Iterable
 
 from lingua import LanguageDetectorBuilder
@@ -58,6 +61,7 @@ DOMINANT_DOC_SCORE_RATIO = 1.14
 DOMINANT_DOC_OVERLAP_DELTA = 0.08
 MAX_KEYWORDS = 10
 MIN_KEYWORD_LENGTH = 3
+RAG_LOG_DIR = os.path.join("uploads", "rag_logs")
 
 ALLOWED_ROLES = {"user", "assistant"}
 STOPWORDS = {
@@ -489,6 +493,17 @@ def postprocess(text: str) -> str:
     return text
 
 
+def _append_rag_log(record: dict) -> None:
+    try:
+        os.makedirs(RAG_LOG_DIR, exist_ok=True)
+        log_name = f"{datetime.now().astimezone():%Y-%m-%d}.jsonl"
+        log_path = os.path.join(RAG_LOG_DIR, log_name)
+        with open(log_path, "a", encoding="utf-8") as log_file:
+            log_file.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except Exception:
+        logger.exception("failed to write rag log")
+
+
 def _build_sources(selected_chunks: list[Chunk], db: Session) -> list[dict]:
     if not selected_chunks:
         return []
@@ -652,6 +667,69 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
             target_language,
         )
         sources = _build_sources(selected_chunks, db)
+
+    score_by_chunk_id = {item["chunk"].id: item["score"] for item in ranked_candidates}
+    selected_documents = _load_documents_for_chunks(selected_chunks, db) if selected_chunks else {}
+    _append_rag_log(
+        {
+            "timestamp": datetime.now().astimezone().isoformat(),
+            "platform": platform,
+            "user_id": user_id,
+            "question": question,
+            "detected_language": detected_lang,
+            "target_language": target_language,
+            "intent": intent,
+            "used_hyde": used_hyde,
+            "retrieval_context": retrieval_context,
+            "retrieval_queries": retrieval_queries,
+            "history": prepared_history[-6:],
+            "answer": answer,
+            "sources": sources,
+            "top_candidates": [
+                {
+                    "chunk_id": item["chunk"].id,
+                    "document_id": item["chunk"].document_id,
+                    "chunk_index": item["chunk"].chunk_index,
+                    "document_title": next(
+                        (
+                            document_item["document"].file_name
+                            for document_item in ranked_documents
+                            if document_item["document_id"] == item["chunk"].document_id and document_item["document"]
+                        ),
+                        None,
+                    ),
+                    "score": round(float(item["score"]), 6),
+                    "vector_distance": round(float(item["vector_distance"]), 6),
+                    "lexical_overlap": round(float(item["lexical_overlap"]), 6),
+                    "keyword_similarity": round(float(item["keyword_similarity"]), 6),
+                    "text": item["chunk"].chunk_text,
+                }
+                for item in ranked_candidates[:12]
+            ],
+            "ranked_documents": [
+                {
+                    "document_id": item["document_id"],
+                    "title": item["document"].file_name if item["document"] else f"Document {item['document_id']}",
+                    "score": round(float(item["score"]), 6),
+                    "best_overlap": round(float(item["best_overlap"]), 6),
+                    "candidate_count": item["candidate_count"],
+                    "file_name_overlap": round(float(item["file_name_overlap"]), 6),
+                }
+                for item in ranked_documents
+            ],
+            "selected_chunks": [
+                {
+                    "chunk_id": chunk.id,
+                    "document_id": chunk.document_id,
+                    "chunk_index": chunk.chunk_index,
+                    "document_title": selected_documents[chunk.document_id].file_name if chunk.document_id in selected_documents else f"Document {chunk.document_id}",
+                    "score": round(float(score_by_chunk_id.get(chunk.id, 0.0)), 6),
+                    "text": chunk.chunk_text,
+                }
+                for chunk in selected_chunks
+            ],
+        }
+    )
 
     db.add(Message(user_id=user_id, platform=platform, question=question, answer=answer))
     db.commit()
