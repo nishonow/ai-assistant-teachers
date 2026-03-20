@@ -61,8 +61,8 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <section className="mt-4 grid flex-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-[32px] border border-[#1f3245] bg-[radial-gradient(circle_at_top_left,_rgba(80,214,197,0.18),_transparent_32%),linear-gradient(180deg,_rgba(8,15,25,0.96)_0%,_rgba(6,10,16,0.98)_100%)] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.28)] md:p-8 lg:p-10">
+        <section className="mt-4 grid flex-1 gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(0,0.82fr)]">
+          <div className="min-w-0 rounded-[32px] border border-[#1f3245] bg-[radial-gradient(circle_at_top_left,_rgba(80,214,197,0.18),_transparent_32%),linear-gradient(180deg,_rgba(8,15,25,0.96)_0%,_rgba(6,10,16,0.98)_100%)] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.28)] md:p-8 lg:p-10">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#30556a] bg-[#102133] px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-[#a2f3e7]">
               <Sparkles size={12} />
               {"Юридическая помощь учителям"}
@@ -106,8 +106,8 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="grid gap-4">
-            <aside className="rounded-[30px] border border-[#1f3245] bg-[#08111c] p-5 md:p-6">
+          <div className="min-w-0 grid gap-4">
+            <aside className="min-w-0 rounded-[30px] border border-[#1f3245] bg-[#08111c] p-5 md:p-6">
               <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[#8fcbbf]">
                 <ShieldCheck size={13} />
                 {"Частые ситуации"}
@@ -119,14 +119,14 @@ export default function LandingPage() {
                     key={label}
                     className="flex items-center justify-between rounded-2xl border border-[#21384b] bg-[#0d1827] px-4 py-3 text-sm text-slate-200"
                   >
-                    <span>{label}</span>
+                    <span className="min-w-0 flex-1 pr-3">{label}</span>
                     <span className="font-mono text-[11px] text-[#6fa6b7]">{String(index + 1).padStart(2, "0")}</span>
                   </div>
                 ))}
               </div>
             </aside>
 
-            <aside className="rounded-[30px] border border-[#36576a] bg-[linear-gradient(180deg,_rgba(15,30,47,0.95)_0%,_rgba(7,15,25,0.98)_100%)] p-5 md:p-6">
+            <aside className="min-w-0 rounded-[30px] border border-[#36576a] bg-[linear-gradient(180deg,_rgba(15,30,47,0.95)_0%,_rgba(7,15,25,0.98)_100%)] p-5 md:p-6">
               <p className="text-[11px] uppercase tracking-[0.18em] text-[#8dc6d8]">{"Два способа войти"}</p>
               <div className="mt-4 space-y-3">
                 <div className="rounded-2xl border border-[#284863] bg-[#0d1928] p-4">
