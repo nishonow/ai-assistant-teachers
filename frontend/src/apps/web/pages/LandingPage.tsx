@@ -1,5 +1,7 @@
-import { ArrowRight, Bot, BriefcaseBusiness, FileSearch, MessageCircle, ShieldCheck, Sparkles, TimerReset } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, FileSearch, MessageCircle, ShieldCheck, Sparkles, TimerReset } from "lucide-react";
 import { Link } from "react-router-dom";
+
+import logo from "../../../../logo.png";
 
 import { useAuth } from "../../../core/auth";
 
@@ -30,8 +32,8 @@ export default function LandingPage() {
         <header className="rounded-[28px] border border-[#1f3245] bg-[#09111d]/90 px-4 py-4 shadow-[0_20px_80px_rgba(0,0,0,0.25)] md:px-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#284863] bg-[#0f1d30] text-[#98f7ea]">
-                <Bot size={18} />
+              <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-2xl border border-[#284863] bg-[#0f1d30]">
+                <img src={logo} alt="Mugallim AI" className="h-full w-full object-cover" />
               </div>
               <div>
                 <p className="font-heading text-lg tracking-[0.08em] text-[#f5fffd]">Mugallim AI</p>
