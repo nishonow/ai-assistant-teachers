@@ -51,6 +51,16 @@ export default function LandingPage() {
           </div>
         </header>
 
+        <div className="mt-4 overflow-hidden rounded-[24px] border border-[#1d3042] bg-[#08111b] py-3 text-[#d8fcf6]">
+          <div className="landing-marquee-track flex w-max items-center gap-8 px-4 text-[11px] uppercase tracking-[0.18em] md:px-6">
+            {ISSUE_LABELS.concat(ISSUE_LABELS).map((label, index) => (
+              <span key={`${label}-${index}`} className="whitespace-nowrap">
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+
         <section className="mt-4 grid flex-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="rounded-[32px] border border-[#1f3245] bg-[radial-gradient(circle_at_top_left,_rgba(80,214,197,0.18),_transparent_32%),linear-gradient(180deg,_rgba(8,15,25,0.96)_0%,_rgba(6,10,16,0.98)_100%)] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.28)] md:p-8 lg:p-10">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#30556a] bg-[#102133] px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-[#a2f3e7]">
@@ -131,16 +141,6 @@ export default function LandingPage() {
             </aside>
           </div>
         </section>
-
-        <div className="mt-4 overflow-hidden rounded-[24px] border border-[#1d3042] bg-[#08111b] py-3 text-[#d8fcf6]">
-          <div className="landing-marquee-track flex w-max items-center gap-8 px-4 text-[11px] uppercase tracking-[0.18em] md:px-6">
-            {ISSUE_LABELS.concat(ISSUE_LABELS).map((label, index) => (
-              <span key={`${label}-${index}`} className="whitespace-nowrap">
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
       </div>
     </main>
   );
