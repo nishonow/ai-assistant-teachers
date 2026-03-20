@@ -117,10 +117,10 @@ export default function LandingPage() {
                 {ISSUE_LABELS.map((label, index) => (
                   <div
                     key={label}
-                    className="flex items-center justify-between rounded-2xl border border-[#21384b] bg-[#0d1827] px-4 py-3 text-sm text-slate-200"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-2xl border border-[#21384b] bg-[#0d1827] px-4 py-3 text-sm text-slate-200"
                   >
-                    <span className="min-w-0 flex-1 pr-3">{label}</span>
-                    <span className="font-mono text-[11px] text-[#6fa6b7]">{String(index + 1).padStart(2, "0")}</span>
+                    <span className="min-w-0 leading-5 text-slate-200">{label}</span>
+                    <span className="pt-0.5 font-mono text-[11px] leading-none text-[#6fa6b7]">{String(index + 1).padStart(2, "0")}</span>
                   </div>
                 ))}
               </div>
