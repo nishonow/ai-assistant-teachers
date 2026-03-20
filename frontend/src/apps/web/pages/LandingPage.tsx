@@ -68,8 +68,8 @@ export default function LandingPage() {
               {"Юридическая помощь учителям"}
             </div>
 
-            <h1 className="mt-6 max-w-3xl font-heading text-[3rem] leading-[0.92] text-[#f7fffd] md:text-[4.4rem]">
-              {"Серьёзная помощь для работников школы, без юридического тумана."}
+            <h1 className="mt-6 max-w-2xl break-words font-heading text-[3rem] leading-[0.92] text-[#f7fffd] md:text-[4.4rem]">
+              {"Понятная правовая помощь для работников школы."}
             </h1>
 
             <p className="mt-6 max-w-xl text-sm leading-7 text-slate-300 md:text-base">
