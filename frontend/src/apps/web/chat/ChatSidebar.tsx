@@ -1,5 +1,7 @@
-import { LogOut, MessageSquarePlus, MoreHorizontal, PanelLeftClose, Trash2, UserRound } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { LogOut, MoreHorizontal, PanelLeftClose, Pencil, Trash2, UserRound } from "lucide-react";
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from "react";
+
+import logo from "../../../../logo.png";
 
 import type { ConversationSummary } from "./types";
 
@@ -7,12 +9,14 @@ interface ChatSidebarProps {
   activeConversationId: string | null;
   conversations: ConversationSummary[];
   hasHistory?: boolean;
+  loading?: boolean;
   isMobileOpen: boolean;
-  username: string;
+  username?: string | null;
   historyPending?: boolean;
   onCloseMobile: () => void;
-  onCreateConversation: () => void;
   onSelectConversation: (id: string) => void;
+  onRenameConversation: (conversation: ConversationSummary) => void;
+  onDeleteConversation: (conversation: ConversationSummary) => void;
   onDeleteAllHistory: () => void;
   onEditProfile: () => void;
   onLogout: () => void;
@@ -21,8 +25,11 @@ interface ChatSidebarProps {
 interface SidebarListProps {
   activeConversationId: string | null;
   conversations: ConversationSummary[];
+  loading: boolean;
   onCloseMobile: () => void;
   onSelectConversation: (id: string) => void;
+  onRenameConversation: (conversation: ConversationSummary) => void;
+  onDeleteConversation: (conversation: ConversationSummary) => void;
 }
 
 interface SidebarAccountMenuProps {
@@ -30,40 +37,191 @@ interface SidebarAccountMenuProps {
   hasHistory: boolean;
   historyPending: boolean;
   menuOpen: boolean;
-  setMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setMenuOpen: Dispatch<SetStateAction<boolean>>;
   username: string;
   onDeleteAllHistory: () => void;
   onEditProfile: () => void;
   onLogout: () => void;
 }
 
-function SidebarList({ activeConversationId, conversations, onCloseMobile, onSelectConversation }: SidebarListProps) {
+function SidebarBrand() {
   return (
-    <div className="scroll-area min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
-      <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Мои чаты</p>
+    <div className="mb-5 px-2 py-1">
+      <div className="inline-flex items-center gap-3">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[16px] bg-white/5 shadow-[0_10px_24px_rgba(0,0,0,0.18)] md:h-11 md:w-11">
+          <img
+            src={logo}
+            alt="Mugallim AI"
+            className="h-[112%] w-[112%] rounded-[14px] object-contain"
+          />
+        </span>
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="truncate font-heading text-[14px] font-semibold tracking-[-0.045em] text-transparent bg-[linear-gradient(180deg,_#f8fcff_0%,_#d8e8f4_100%)] bg-clip-text [filter:drop-shadow(0_8px_16px_rgba(7,16,26,0.26))] md:text-[16px]">
+            Mugallim
+          </p>
+          <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-brand-300/20 bg-brand-400/10 px-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-100 md:h-5.5 md:px-2.5 md:text-[10px]">
+            AI
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SidebarList({
+  activeConversationId,
+  conversations,
+  loading,
+  onCloseMobile,
+  onSelectConversation,
+  onRenameConversation,
+  onDeleteConversation,
+}: SidebarListProps) {
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest("[data-chat-actions-menu]")) {
+        setOpenMenuId(null);
+      }
+    }
+
+    if (!openMenuId) return;
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [openMenuId]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpenMenuId(null);
+      }
+    }
+
+    if (!openMenuId) return;
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [openMenuId]);
+
+  if (loading && !conversations.length) {
+    return (
+      <div className="scroll-area min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="mb-3 flex items-center justify-between gap-3 px-2 pb-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Мои чаты</p>
+          <span className="inline-flex animate-pulse items-center justify-center rounded-full border border-[#305169] bg-[#102033] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-brand-200">
+            Загрузка
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div
+              key={index}
+              className="chat-card-enter animate-pulse rounded-[22px] border border-[#284863] bg-[#0f1c2c] px-3 py-3.5"
+              style={{ animationDelay: `${index * 60}ms` }}
+            >
+              <div className="h-4 w-[68%] rounded-full bg-slate-700/70" />
+              <div className="mt-3 space-y-2">
+                <div className="h-3 w-full rounded-full bg-slate-800/70" />
+                <div className="h-3 w-[82%] rounded-full bg-slate-800/60" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="scroll-area min-h-0 flex-1 space-y-1.5 overflow-y-auto overflow-x-visible pr-2">
+      <div className="flex items-center justify-between gap-3 px-2 pb-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Мои чаты</p>
+        {loading ? (
+          <span className="inline-flex animate-pulse items-center justify-center rounded-full border border-[#305169] bg-[#102033] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-brand-200">
+            Обновляем
+          </span>
+        ) : null}
+      </div>
+
       {conversations.length ? (
         conversations.map((conversation) => (
-          <button
+          <div
             key={conversation.id}
-            type="button"
-            onClick={() => {
-              onSelectConversation(conversation.id);
-              onCloseMobile();
-            }}
             className={[
-              "w-full rounded-2xl border px-3 py-3 text-left text-sm transition-colors",
+              "chat-card-enter isolate relative flex items-start gap-2 rounded-2xl border px-3 py-3 transition-all duration-200 hover:-translate-y-0.5",
+              openMenuId === conversation.id ? "z-20" : "z-0",
               conversation.id === activeConversationId
                 ? "border-brand-400/35 bg-brand-500/15 text-slate-100"
                 : "border-transparent bg-transparent text-slate-300 hover:border-[#284863] hover:bg-[#102033]",
             ].join(" ")}
           >
-            <p className="truncate font-medium">{conversation.title}</p>
-            <p className="mt-1 truncate text-xs text-slate-500">{conversation.lastMessagePreview || "Начните диалог"}</p>
-          </button>
+            <button
+              type="button"
+              className="min-w-0 flex-1 text-left"
+              onClick={() => {
+                setOpenMenuId(null);
+                onSelectConversation(conversation.id);
+                onCloseMobile();
+              }}
+            >
+              <p className="truncate font-medium">{conversation.title}</p>
+              <p className="mt-1 truncate text-xs text-slate-500">{conversation.lastMessagePreview || "Начните диалог"}</p>
+            </button>
+
+            <div className="relative z-30 shrink-0" data-chat-actions-menu>
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-transparent text-slate-400 transition-colors hover:border-[#355a78] hover:bg-[#142233] hover:text-slate-100"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setOpenMenuId((current) => (current === conversation.id ? null : conversation.id));
+                }}
+                aria-label="Действия чата"
+              >
+                <MoreHorizontal size={15} />
+              </button>
+
+              {openMenuId === conversation.id ? (
+                <div className="absolute right-0 top-[calc(100%+10px)] z-40 min-w-[182px] rounded-2xl border border-[#3a6382] bg-[#152434] p-2 shadow-[0_28px_70px_rgba(2,8,15,0.62)] ring-1 ring-black/35 backdrop-blur-xl">
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-slate-100 transition-colors hover:bg-[#1c3045]"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setOpenMenuId(null);
+                      onRenameConversation(conversation);
+                    }}
+                  >
+                    <Pencil size={14} />
+                    Переименовать
+                  </button>
+                  <button
+                    type="button"
+                    className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-rose-200 transition-colors hover:bg-[#2a1d28]"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setOpenMenuId(null);
+                      onDeleteConversation(conversation);
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    Удалить
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
         ))
       ) : (
         <div className="rounded-2xl border border-dashed border-[#284863] bg-[#0d1827]/70 px-4 py-5 text-sm leading-6 text-slate-400">
-          Сохранённые чаты появятся здесь после того, как вы отправите первое сообщение.
+          Сохранённые чаты появятся здесь после первого сообщения.
         </div>
       )}
     </div>
@@ -82,15 +240,15 @@ function SidebarAccountMenu({
   onLogout,
 }: SidebarAccountMenuProps) {
   return (
-    <div className="relative mt-3 border-t border-[#21384b] pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:border-t-0 md:pt-0">
+    <div className="relative mt-3 border-t border-[#21384b] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-3 md:border-t-0 md:pt-0">
       {menuOpen ? (
-        <div className="absolute inset-x-0 bottom-[calc(100%+12px)] overflow-hidden rounded-2xl border border-[#284863] bg-[#0d1827] p-2">
-          <div className="border-b border-[#21384b] px-3 py-2">
+        <div className="absolute inset-x-0 bottom-[calc(100%+12px)] z-40 rounded-2xl border border-[#3a6382] bg-[#152434] p-2 shadow-[0_28px_70px_rgba(2,8,15,0.62)] ring-1 ring-black/35 backdrop-blur-xl">
+          <div className="border-b border-[#294459] px-3 py-2">
             <p className="truncate text-sm font-semibold text-slate-100">{username}</p>
           </div>
           <button
             type="button"
-            className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-slate-200 transition-colors hover:bg-[#102033]"
+            className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-slate-100 transition-colors hover:bg-[#1c3045]"
             onClick={() => {
               setMenuOpen(false);
               onEditProfile();
@@ -102,8 +260,8 @@ function SidebarAccountMenu({
           <button
             type="button"
             className={[
-              "mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors",
-              historyPending || !hasHistory ? "cursor-not-allowed text-slate-500" : "text-slate-200 hover:bg-[#102033]",
+              "mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
+              historyPending || !hasHistory ? "cursor-not-allowed text-slate-500" : "text-slate-100 hover:bg-[#1c3045]",
             ].join(" ")}
             onClick={() => {
               setMenuOpen(false);
@@ -116,7 +274,7 @@ function SidebarAccountMenu({
           </button>
           <button
             type="button"
-            className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-rose-200 transition-colors hover:bg-[#102033]"
+            className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-rose-200 transition-colors hover:bg-[#2a1d28]"
             onClick={() => {
               setMenuOpen(false);
               onLogout();
@@ -151,32 +309,50 @@ export default function ChatSidebar({
   activeConversationId,
   conversations,
   hasHistory = false,
+  loading = false,
   isMobileOpen,
   username,
   historyPending = false,
   onCloseMobile,
-  onCreateConversation,
   onSelectConversation,
+  onRenameConversation,
+  onDeleteConversation,
   onDeleteAllHistory,
   onEditProfile,
   onLogout,
 }: ChatSidebarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const avatarLetter = useMemo(() => username.trim().charAt(0).toUpperCase() || "П", [username]);
+  const safeUsername = (username || "").trim() || "User";
+  const avatarLetter = useMemo(() => safeUsername.charAt(0).toUpperCase() || "U", [safeUsername]);
 
   useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (!menuRef.current?.contains(event.target as Node)) {
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest("[data-account-menu]")) {
         setMenuOpen(false);
       }
     }
 
     if (!menuOpen) return;
 
-    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("pointerdown", handlePointerDown);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    }
+
+    if (!menuOpen) return;
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [menuOpen]);
 
@@ -186,37 +362,44 @@ export default function ChatSidebar({
     }
   }, [isMobileOpen]);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onCloseMobile();
+      }
+    }
+
+    if (!isMobileOpen) return;
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMobileOpen, onCloseMobile]);
+
   return (
     <>
       <aside className="sidebar-shell hidden h-full w-[290px] flex-col border-r border-[#21384b] bg-[#09111d] px-3 py-3 md:flex">
-        <div className="mb-3 rounded-[24px] border border-[#284863] bg-[#0a1624] p-3 md:border-0 md:bg-transparent md:p-0">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-[#13253b]"
-              onClick={onCreateConversation}
-            >
-              <MessageSquarePlus size={16} />
-              Новый чат
-            </button>
-          </div>
-        </div>
+        <SidebarBrand />
 
         <SidebarList
           activeConversationId={activeConversationId}
           conversations={conversations}
+          loading={loading}
           onCloseMobile={onCloseMobile}
           onSelectConversation={onSelectConversation}
+          onRenameConversation={onRenameConversation}
+          onDeleteConversation={onDeleteConversation}
         />
 
-        <div ref={menuRef}>
+        <div data-account-menu>
           <SidebarAccountMenu
             avatarLetter={avatarLetter}
             hasHistory={hasHistory}
             historyPending={historyPending}
             menuOpen={menuOpen}
             setMenuOpen={setMenuOpen}
-            username={username}
+            username={safeUsername}
             onDeleteAllHistory={onDeleteAllHistory}
             onEditProfile={onEditProfile}
             onLogout={onLogout}
@@ -228,37 +411,33 @@ export default function ChatSidebar({
         <>
           <div className="drawer-overlay-enter fixed inset-0 z-30 bg-black/62 md:hidden" onClick={onCloseMobile} />
           <aside className="drawer-sheet-left drawer-sheet-surface fixed inset-y-0 left-0 z-40 flex h-full w-[88vw] max-w-[22rem] flex-col overflow-hidden rounded-r-[28px] border-r border-[#21384b] px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] md:hidden">
-            <div className="mb-3 rounded-[24px] border border-[#284863] bg-[#0a1624] p-3">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-[#13253b]"
-                  onClick={onCreateConversation}
-                >
-                  <MessageSquarePlus size={16} />
-                  Новый чат
-                </button>
-                <button type="button" className="btn-muted shrink-0" onClick={onCloseMobile}>
-                  <PanelLeftClose size={16} />
-                </button>
+            <div className="mb-3 flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <SidebarBrand />
               </div>
+              <button type="button" className="btn-muted shrink-0" onClick={onCloseMobile}>
+                <PanelLeftClose size={16} />
+              </button>
             </div>
 
             <SidebarList
               activeConversationId={activeConversationId}
               conversations={conversations}
+              loading={loading}
               onCloseMobile={onCloseMobile}
               onSelectConversation={onSelectConversation}
+              onRenameConversation={onRenameConversation}
+              onDeleteConversation={onDeleteConversation}
             />
 
-            <div ref={menuRef}>
+            <div data-account-menu>
               <SidebarAccountMenu
                 avatarLetter={avatarLetter}
                 hasHistory={hasHistory}
                 historyPending={historyPending}
                 menuOpen={menuOpen}
                 setMenuOpen={setMenuOpen}
-                username={username}
+                username={safeUsername}
                 onDeleteAllHistory={onDeleteAllHistory}
                 onEditProfile={onEditProfile}
                 onLogout={onLogout}

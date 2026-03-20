@@ -1,4 +1,5 @@
 import { BookOpenText, Download, FileText, X } from "lucide-react";
+import { useEffect } from "react";
 
 import type { ChatSource } from "./types";
 
@@ -6,6 +7,7 @@ interface SourcesPanelProps {
   activeConversationId: string | null;
   activeConversationTitle: string;
   downloadPendingId: string | null;
+  loading: boolean;
   mobileOpen: boolean;
   sources: ChatSource[];
   onDownloadSource: (source: ChatSource) => void;
@@ -16,6 +18,7 @@ interface SourcesContentProps {
   activeConversationId: string | null;
   activeConversationTitle: string;
   downloadPendingId: string | null;
+  loading: boolean;
   sources: ChatSource[];
   onDownloadSource: (source: ChatSource) => void;
   showHeader: boolean;
@@ -30,6 +33,7 @@ function SourcesContent({
   activeConversationId,
   activeConversationTitle,
   downloadPendingId,
+  loading,
   sources,
   onDownloadSource,
   showHeader,
@@ -41,7 +45,11 @@ function SourcesContent({
           <h2 className="font-heading text-sm uppercase tracking-[0.15em] text-slate-300">{"Источники"}</h2>
           <div className="mt-1 flex items-center justify-between gap-3">
             <p className="truncate text-xs text-slate-500">{activeConversationTitle}</p>
-            {sources.length ? (
+            {loading ? (
+              <span className="inline-flex shrink-0 animate-pulse items-center justify-center rounded-full border border-[#305169] bg-[#102033] px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-brand-200">
+                Подбираем
+              </span>
+            ) : sources.length ? (
               <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-slate-500">
                 {sources.length} {sources.length === 1 ? "файл" : "файла"}
               </span>
@@ -51,12 +59,44 @@ function SourcesContent({
       ) : null}
 
       <div className="scroll-area min-h-0 flex-1 overflow-y-auto p-4">
-        {sources.length ? (
+        {loading ? (
+          <div className="space-y-3" role="status" aria-live="polite">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <article
+                key={index}
+                className="chat-card-enter animate-pulse rounded-[26px] border border-[#284863] bg-[#0f1c2c] p-4"
+                style={{ animationDelay: `${index * 70}ms` }}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 h-11 w-11 rounded-2xl bg-slate-700/70" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="h-4 w-[86%] rounded-full bg-slate-700/70" />
+                        <div className="h-4 w-[64%] rounded-full bg-slate-700/60" />
+                      </div>
+                      <div className="h-7 w-14 rounded-full bg-slate-700/60" />
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      <div className="h-3 w-[48%] rounded-full bg-slate-800/70" />
+                      <div className="h-3 w-[36%] rounded-full bg-slate-800/60" />
+                    </div>
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <div className="h-3 w-[34%] rounded-full bg-slate-800/60" />
+                      <div className="h-9 w-24 rounded-full bg-slate-700/60" />
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : sources.length ? (
           <div className="space-y-3">
-            {sources.map((source) => (
+            {sources.map((source, index) => (
               <article
                 key={source.id}
-                className="chat-card-enter rounded-[26px] border border-[#284863] bg-[#0d1827] p-4 transition-colors hover:border-[#3a6988]"
+                className="chat-card-enter rounded-[26px] border border-[#284863] bg-[#0d1827] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#3a6988]"
+                style={{ animationDelay: `${index * 45}ms` }}
               >
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 grid h-11 w-11 place-items-center rounded-2xl border border-[#305169] bg-[#102033] text-[#9af5ea]">
@@ -100,8 +140,12 @@ function SourcesContent({
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-[#284863] bg-[#0d1827]/70 p-4 text-sm leading-6 text-slate-400">
-            {"Здесь появятся источники для последнего ответа ассистента."}
+          <div className="chat-card-enter rounded-[28px] border border-dashed border-[#284863] bg-[#0d1827]/70 p-5 text-sm leading-6 text-slate-400">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#305169] bg-[#102033] text-[#9af5ea]">
+              <BookOpenText size={18} />
+            </div>
+            <p className="text-sm font-semibold text-slate-200">Источники появятся здесь</p>
+            <p className="mt-2 text-sm leading-6 text-slate-400">Нажмите «Источники» под нужным ответом, чтобы посмотреть связанные документы.</p>
           </div>
         )}
       </div>
@@ -113,11 +157,27 @@ export default function SourcesPanel({
   activeConversationId,
   activeConversationTitle,
   downloadPendingId,
+  loading,
   mobileOpen,
   sources,
   onDownloadSource,
   onCloseMobile,
 }: SourcesPanelProps) {
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onCloseMobile();
+      }
+    }
+
+    if (!mobileOpen) return;
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileOpen, onCloseMobile]);
+
   return (
     <>
       <aside className="hidden w-[320px] flex-col border-l border-[#21384b] bg-[#09111d] lg:flex">
@@ -125,6 +185,7 @@ export default function SourcesPanel({
           activeConversationId={activeConversationId}
           activeConversationTitle={activeConversationTitle}
           downloadPendingId={downloadPendingId}
+          loading={loading}
           sources={sources}
           onDownloadSource={onDownloadSource}
           showHeader
@@ -135,7 +196,7 @@ export default function SourcesPanel({
         <div className="fixed inset-0 z-50 lg:hidden">
           <button type="button" className="drawer-overlay-enter absolute inset-0 bg-black/62" onClick={onCloseMobile} aria-label={"Закрыть источники"} />
 
-          <aside className="drawer-sheet-surface absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden rounded-l-[28px] border-l border-[#21384b]">
+          <aside className="drawer-sheet-right drawer-sheet-surface absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden rounded-l-[28px] border-l border-[#21384b]">
             <div className="flex h-[72px] items-center justify-between border-b border-[#21384b] bg-[#0a1624] px-4">
               <div className="flex items-center gap-2 text-slate-200">
                 <BookOpenText size={16} />
@@ -149,6 +210,7 @@ export default function SourcesPanel({
               activeConversationId={activeConversationId}
               activeConversationTitle={activeConversationTitle}
               downloadPendingId={downloadPendingId}
+              loading={loading}
               sources={sources}
               onDownloadSource={onDownloadSource}
               showHeader={false}

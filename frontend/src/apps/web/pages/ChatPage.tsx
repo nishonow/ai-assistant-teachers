@@ -1,5 +1,5 @@
-import { BookOpenText, Check, MessageSquarePlus, MoreHorizontal, PanelLeft, Pencil, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { BookOpenText, MessageSquarePlus, PanelLeft } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import ToastNotice from "../../../core/components/ToastNotice";
@@ -8,17 +8,18 @@ import type { NoticeState } from "../../../core/types";
 import {
   askAssistant,
   ChatComposer,
-  EditProfileModal,
   ChatMessageList,
   ChatSidebar,
   createConversation,
-  deleteAllConversations,
-  DeleteConversationModal,
   DeleteAllHistoryModal,
+  DeleteConversationModal,
+  deleteAllConversations,
   deleteConversation,
   downloadConversationSource,
+  EditProfileModal,
   getConversation,
   listConversations,
+  RenameConversationModal,
   renameConversation,
   saveConversationExchange,
   SourcesPanel,
@@ -36,21 +37,50 @@ function createTransientMessage(role: ChatMessage["role"], content: string, sour
   };
 }
 
-function getLatestSources(conversation: Conversation | null): ChatSource[] {
-  if (!conversation) return [];
+function getLatestAssistantMessage(conversation: Conversation | null): ChatMessage | null {
+  if (!conversation) return null;
 
   for (let index = conversation.messages.length - 1; index >= 0; index -= 1) {
     const message = conversation.messages[index];
-    if (message.role === "assistant" && message.sources?.length) {
-      return message.sources;
+    if (message.role === "assistant") {
+      return message;
     }
   }
 
-  return [];
+  return null;
+}
+
+function resolveSelectedSources(
+  conversation: Conversation | null,
+  preferredMessageId: string | null,
+): { messageId: string | null; sources: ChatSource[] } {
+  if (!conversation) {
+    return { messageId: null, sources: [] };
+  }
+
+  if (preferredMessageId) {
+    const preferredMessage = conversation.messages.find(
+      (message) => message.id === preferredMessageId && message.role === "assistant" && Boolean(message.sources?.length),
+    );
+    if (preferredMessage) {
+      return { messageId: preferredMessage.id, sources: preferredMessage.sources || [] };
+    }
+  }
+
+  const latestAssistantMessage = getLatestAssistantMessage(conversation);
+  if (!latestAssistantMessage?.sources?.length) {
+    return { messageId: null, sources: [] };
+  }
+
+  return {
+    messageId: latestAssistantMessage.id,
+    sources: latestAssistantMessage.sources,
+  };
 }
 
 function toConversationSummary(conversation: Conversation): ConversationSummary {
   const lastMessage = conversation.messages[conversation.messages.length - 1]?.content || "";
+
   return {
     id: conversation.id,
     title: conversation.title,
@@ -60,29 +90,43 @@ function toConversationSummary(conversation: Conversation): ConversationSummary 
   };
 }
 
-function upsertConversationSummary(conversations: ConversationSummary[], conversation: Conversation): ConversationSummary[] {
+function upsertConversationSummary(
+  conversations: ConversationSummary[],
+  conversation: Conversation,
+  mode: "preserve" | "move-to-top" = "preserve",
+): ConversationSummary[] {
   const next = toConversationSummary(conversation);
-  return [next, ...conversations.filter((item) => item.id !== next.id)];
+  const existingIndex = conversations.findIndex((item) => item.id === next.id);
+
+  if (mode === "move-to-top" || existingIndex === -1) {
+    return [next, ...conversations.filter((item) => item.id !== next.id)];
+  }
+
+  return conversations.map((item) => (item.id === next.id ? next : item));
 }
 
 export default function ChatPage() {
   const navigate = useNavigate();
   const { conversationId: routeConversationId } = useParams<{ conversationId?: string }>();
   const { session, logout, updateProfile } = useAuth();
+  const conversationRequestIdRef = useRef(0);
+  const selectedSourcesMessageIdRef = useRef<string | null>(null);
+
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [activeSources, setActiveSources] = useState<ChatSource[]>([]);
+  const [selectedSourcesMessageId, setSelectedSourcesMessageId] = useState<string | null>(null);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [pending, setPending] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileSourcesOpen, setMobileSourcesOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetConversation, setDeleteTargetConversation] = useState<ConversationSummary | null>(null);
   const [deletePending, setDeletePending] = useState(false);
   const [deleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false);
   const [deleteAllPending, setDeleteAllPending] = useState(false);
-  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameTargetConversation, setRenameTargetConversation] = useState<ConversationSummary | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renamePending, setRenamePending] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
@@ -91,91 +135,127 @@ export default function ChatPage() {
   const [profileEmail, setProfileEmail] = useState("");
   const [profilePassword, setProfilePassword] = useState("");
   const [profilePending, setProfilePending] = useState(false);
-  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [downloadPendingId, setDownloadPendingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
-  const mobileActionsRef = useRef<HTMLDivElement | null>(null);
 
   const showNotice = useCallback((type: NoticeState["type"], message: string) => {
     setNotice({ type, message });
   }, []);
 
-  const syncActiveConversation = useCallback((conversation: Conversation) => {
-    setActiveConversationId(conversation.id);
-    setActiveConversation(conversation);
-    setActiveSources(getLatestSources(conversation));
-    setRenameOpen(false);
-    setRenameValue("");
-    setConversations((prev) => upsertConversationSummary(prev, conversation));
-  }, []);
+  const syncActiveConversation = useCallback(
+    (
+      conversation: Conversation,
+      orderMode: "preserve" | "move-to-top" = "preserve",
+      sourcesMode: "preserve" | "latest" = "preserve",
+    ) => {
+      const preferredMessageId = sourcesMode === "preserve" ? selectedSourcesMessageIdRef.current : null;
+      const selection = resolveSelectedSources(conversation, preferredMessageId);
+
+      setActiveConversationId(conversation.id);
+      setActiveConversation(conversation);
+      setActiveSources(selection.sources);
+      selectedSourcesMessageIdRef.current = selection.messageId;
+      setSelectedSourcesMessageId(selection.messageId);
+      setConversations((prev) => upsertConversationSummary(prev, conversation, orderMode));
+    },
+    [],
+  );
 
   useEffect(() => {
+    if (!session) return;
+
+    const currentSession = session;
     let cancelled = false;
+    setIsLoadingList(true);
 
-    async function loadInitialState() {
-      if (!session) return;
-
-      setIsLoadingList(true);
-
+    async function loadConversations() {
       try {
-        const items = await listConversations(session);
+        const items = await listConversations(currentSession);
         if (cancelled) return;
-
         setConversations(items);
-        if (!routeConversationId) {
-          setActiveConversationId(null);
-          setActiveConversation(null);
-          setActiveSources([]);
-          return;
-        }
-
-        if (activeConversationId === routeConversationId && (pending || Boolean(activeConversation?.messages.length))) {
-          return;
-        }
-
-        setIsLoadingConversation(true);
-        const conversation = await getConversation(session, routeConversationId);
-        if (cancelled) return;
-
-        syncActiveConversation(conversation);
       } catch (requestError) {
         if (cancelled) return;
         showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось загрузить диалоги.");
-        if (routeConversationId) {
-          navigate("/app", { replace: true });
-          setActiveConversationId(null);
-          setActiveConversation(null);
-          setActiveSources([]);
-        }
       } finally {
         if (!cancelled) {
           setIsLoadingList(false);
+        }
+      }
+    }
+
+    void loadConversations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session, showNotice]);
+
+  useEffect(() => {
+    if (!session) return;
+
+    const currentSession = session;
+    if (!routeConversationId) {
+      conversationRequestIdRef.current += 1;
+      setIsLoadingConversation(false);
+      setActiveConversationId(null);
+      setActiveConversation(null);
+      setActiveSources([]);
+      selectedSourcesMessageIdRef.current = null;
+      setSelectedSourcesMessageId(null);
+      setRenameTargetConversation(null);
+      setRenameValue("");
+      setDeleteTargetConversation(null);
+      return;
+    }
+
+    const currentConversationId = routeConversationId;
+    if (activeConversation?.id === currentConversationId && activeConversation.messages.length > 0) {
+      setActiveConversationId(currentConversationId);
+      setIsLoadingConversation(false);
+      return;
+    }
+
+    let cancelled = false;
+    const requestId = ++conversationRequestIdRef.current;
+
+    setIsLoadingConversation(true);
+    setActiveConversationId(routeConversationId);
+    setActiveConversation(null);
+    setActiveSources([]);
+    selectedSourcesMessageIdRef.current = null;
+    setSelectedSourcesMessageId(null);
+    setRenameTargetConversation(null);
+    setRenameValue("");
+    setDeleteTargetConversation(null);
+
+    async function loadConversation() {
+      try {
+        const conversation = await getConversation(currentSession, currentConversationId);
+        if (cancelled || conversationRequestIdRef.current !== requestId) return;
+
+        syncActiveConversation(conversation, "preserve");
+      } catch (requestError) {
+        if (cancelled || conversationRequestIdRef.current !== requestId) return;
+
+        showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось открыть диалог.");
+        navigate("/app", { replace: true });
+        setActiveConversationId(null);
+        setActiveConversation(null);
+        setActiveSources([]);
+        setSelectedSourcesMessageId(null);
+      } finally {
+        if (!cancelled && conversationRequestIdRef.current === requestId) {
           setIsLoadingConversation(false);
         }
       }
     }
 
-    void loadInitialState();
+    void loadConversation();
 
     return () => {
       cancelled = true;
     };
-  }, [activeConversation?.messages.length, activeConversationId, navigate, pending, routeConversationId, session, showNotice, syncActiveConversation]);
-
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (!mobileActionsRef.current?.contains(event.target as Node)) {
-        setMobileActionsOpen(false);
-      }
-    }
-
-    if (!mobileActionsOpen) return;
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-    };
-  }, [mobileActionsOpen]);
+  }, [activeConversation, navigate, routeConversationId, session, showNotice, syncActiveConversation]);
 
   useEffect(() => {
     if (!notice) return;
@@ -188,33 +268,26 @@ export default function ChatPage() {
   }, [notice]);
 
   const handleSelectConversation = useCallback(
-    async (conversationId: string) => {
-      if (!session || conversationId === activeConversationId) return;
+    (conversationId: string) => {
+      if (!session || conversationId === routeConversationId) return;
 
-      setIsLoadingConversation(true);
-      setActiveConversationId(conversationId);
-
-      try {
-        const conversation = await getConversation(session, conversationId);
-        syncActiveConversation(conversation);
-        navigate(`/app/chat/${conversationId}`);
-      } catch (requestError) {
-        showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось открыть диалог.");
-      } finally {
-        setIsLoadingConversation(false);
-      }
+      navigate(`/app/chat/${conversationId}`);
     },
-    [activeConversationId, navigate, session, showNotice, syncActiveConversation],
+    [navigate, routeConversationId, session],
   );
 
   const handleStartDraftConversation = useCallback(() => {
+    conversationRequestIdRef.current += 1;
     setActiveConversationId(null);
     setActiveConversation(null);
     setActiveSources([]);
-    setRenameOpen(false);
+    selectedSourcesMessageIdRef.current = null;
+    setSelectedSourcesMessageId(null);
+    setRenameTargetConversation(null);
     setRenameValue("");
-    setMobileActionsOpen(false);
+    setDeleteTargetConversation(null);
     setMobileSidebarOpen(false);
+    setMobileSourcesOpen(false);
     navigate("/app");
   }, [navigate]);
 
@@ -226,6 +299,7 @@ export default function ChatPage() {
 
       let conversation = activeConversation;
       let isFreshConversation = false;
+
       if (!conversation) {
         try {
           conversation = await createConversation({ session });
@@ -247,7 +321,8 @@ export default function ChatPage() {
         messages: [...conversation.messages, userMessage],
       };
 
-      syncActiveConversation(optimisticConversation);
+      syncActiveConversation(optimisticConversation, "move-to-top", "preserve");
+
       if (isFreshConversation) {
         navigate(`/app/chat/${conversation.id}`, { replace: true });
       }
@@ -266,7 +341,7 @@ export default function ChatPage() {
           messages: [...optimisticConversation.messages, createTransientMessage("assistant", answer, sources)],
         };
 
-        syncActiveConversation(answeredConversation);
+        syncActiveConversation(answeredConversation, "move-to-top", "latest");
         setPending(false);
 
         try {
@@ -278,7 +353,8 @@ export default function ChatPage() {
             title: conversation.messages.length === 0 ? optimisticTitle : undefined,
             sources,
           });
-          syncActiveConversation(persistedConversation);
+
+          syncActiveConversation(persistedConversation, "move-to-top", "latest");
         } catch (saveError) {
           showNotice(
             "error",
@@ -302,6 +378,7 @@ export default function ChatPage() {
 
   const handleOpenProfile = () => {
     if (!session) return;
+
     setProfileName(session.user.displayName || session.user.username);
     setProfileEmail(session.user.username);
     setProfilePassword("");
@@ -311,16 +388,19 @@ export default function ChatPage() {
   const handleSaveProfile = useCallback(async () => {
     const name = profileName.trim();
     const email = profileEmail.trim();
+
     if (!name) {
       showNotice("error", "Укажите имя.");
       return;
     }
+
     if (!email) {
       showNotice("error", "Укажите email.");
       return;
     }
 
     setProfilePending(true);
+
     try {
       await updateProfile({ name, email, password: profilePassword });
       setProfileOpen(false);
@@ -333,20 +413,14 @@ export default function ChatPage() {
     }
   }, [profileEmail, profileName, profilePassword, showNotice, updateProfile]);
 
-  const handleStartRename = () => {
-    if (!activeConversation) return;
-    setMobileActionsOpen(false);
-    setRenameValue(activeConversation.title);
-    setRenameOpen(true);
-  };
-
-  const handleCancelRename = () => {
-    setRenameOpen(false);
-    setRenameValue("");
-  };
+  const handleOpenRenameConversation = useCallback((conversation: ConversationSummary) => {
+    setDeleteTargetConversation(null);
+    setRenameTargetConversation(conversation);
+    setRenameValue(conversation.title);
+  }, []);
 
   const handleConfirmRename = useCallback(async () => {
-    if (!session || !activeConversationId) return;
+    if (!session || !renameTargetConversation) return;
 
     const title = renameValue.trim();
     if (!title) {
@@ -359,44 +433,58 @@ export default function ChatPage() {
     try {
       const renamedConversation = await renameConversation({
         session,
-        conversationId: activeConversationId,
+        conversationId: renameTargetConversation.id,
         title,
       });
-      syncActiveConversation(renamedConversation);
-      setRenameOpen(false);
+
+      if (activeConversationId === renamedConversation.id) {
+        syncActiveConversation(renamedConversation, "preserve");
+      } else {
+        setConversations((prev) => upsertConversationSummary(prev, renamedConversation, "preserve"));
+      }
+
+      setRenameTargetConversation(null);
       setRenameValue("");
     } catch (requestError) {
       showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось переименовать диалог.");
     } finally {
       setRenamePending(false);
     }
-  }, [activeConversationId, renameValue, session, showNotice, syncActiveConversation]);
+  }, [activeConversationId, renameTargetConversation, renameValue, session, showNotice, syncActiveConversation]);
+
+  const handleOpenDeleteConversation = useCallback((conversation: ConversationSummary) => {
+    setRenameTargetConversation(null);
+    setRenameValue("");
+    setDeleteTargetConversation(conversation);
+  }, []);
 
   const handleDeleteConversation = useCallback(async () => {
-    if (!session || !activeConversationId) return;
+    if (!session || !deleteTargetConversation) return;
 
     setDeletePending(true);
 
-    const remaining = conversations.filter((item) => item.id !== activeConversationId);
-
     try {
-      await deleteConversation(session, activeConversationId);
-      setDeleteConfirmOpen(false);
-      setConversations(remaining);
-      setActiveConversationId(null);
-      setActiveConversation(null);
-      setActiveSources([]);
-      setRenameOpen(false);
-      setRenameValue("");
-      setMobileActionsOpen(false);
-      navigate("/app", { replace: true });
+      await deleteConversation(session, deleteTargetConversation.id);
+
+      setConversations((prev) => prev.filter((item) => item.id !== deleteTargetConversation.id));
+      setDeleteTargetConversation(null);
+
+      if (deleteTargetConversation.id === activeConversationId) {
+        conversationRequestIdRef.current += 1;
+        setActiveConversationId(null);
+        setActiveConversation(null);
+        setActiveSources([]);
+        selectedSourcesMessageIdRef.current = null;
+        setSelectedSourcesMessageId(null);
+        setMobileSourcesOpen(false);
+        navigate("/app", { replace: true });
+      }
     } catch (requestError) {
       showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось удалить диалог.");
     } finally {
       setDeletePending(false);
-      setIsLoadingConversation(false);
     }
-  }, [activeConversationId, conversations, navigate, session, showNotice]);
+  }, [activeConversationId, deleteTargetConversation, navigate, session, showNotice]);
 
   const handleDeleteAllConversations = useCallback(async () => {
     if (!session) return;
@@ -405,15 +493,19 @@ export default function ChatPage() {
 
     try {
       await deleteAllConversations(session);
+      conversationRequestIdRef.current += 1;
       setDeleteAllConfirmOpen(false);
       setConversations([]);
       setActiveConversationId(null);
       setActiveConversation(null);
       setActiveSources([]);
-      setRenameOpen(false);
+      selectedSourcesMessageIdRef.current = null;
+      setSelectedSourcesMessageId(null);
+      setRenameTargetConversation(null);
       setRenameValue("");
-      setMobileActionsOpen(false);
+      setDeleteTargetConversation(null);
       setMobileSidebarOpen(false);
+      setMobileSourcesOpen(false);
       navigate("/app", { replace: true });
     } catch (requestError) {
       showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось удалить историю чатов.");
@@ -452,6 +544,18 @@ export default function ChatPage() {
     [activeConversationId, session, showNotice],
   );
 
+  const handleSelectMessageSources = useCallback((message: ChatMessage) => {
+    if (message.role !== "assistant" || !message.sources?.length) return;
+
+    selectedSourcesMessageIdRef.current = message.id;
+    setSelectedSourcesMessageId(message.id);
+    setActiveSources(message.sources);
+
+    if (window.innerWidth < 1024) {
+      setMobileSourcesOpen(true);
+    }
+  }, []);
+
   if (!session) {
     return null;
   }
@@ -462,130 +566,52 @@ export default function ChatPage() {
         activeConversationId={activeConversationId}
         conversations={conversations}
         hasHistory={conversations.length > 0}
+        loading={isLoadingList}
         isMobileOpen={mobileSidebarOpen}
         historyPending={deleteAllPending}
-        username={session.user.displayName}
+        username={session.user.displayName || session.user.username}
         onCloseMobile={() => setMobileSidebarOpen(false)}
-        onCreateConversation={handleStartDraftConversation}
         onDeleteAllHistory={() => setDeleteAllConfirmOpen(true)}
+        onDeleteConversation={handleOpenDeleteConversation}
         onEditProfile={handleOpenProfile}
-        onSelectConversation={(conversationId) => {
-          void handleSelectConversation(conversationId);
-        }}
         onLogout={() => setLogoutConfirmOpen(true)}
+        onRenameConversation={handleOpenRenameConversation}
+        onSelectConversation={handleSelectConversation}
       />
 
       <div className="flex min-w-0 flex-1 bg-[#07101a]">
         <main className="flex min-w-0 flex-1 flex-col bg-[#07101a]">
           <header className="flex h-[56px] items-center justify-between gap-2 border-b border-[#21384b] bg-[#08111c] px-3 md:h-[72px] md:gap-3 md:px-6">
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2 md:gap-3">
               <button type="button" className="btn-muted md:hidden" onClick={() => setMobileSidebarOpen(true)}>
                 <PanelLeft size={16} />
               </button>
+
               <div className="min-w-0">
-                {renameOpen ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={renameValue}
-                      onChange={(event) => setRenameValue(event.target.value)}
-                      onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
-                        if (event.key === "Enter") {
-                          void handleConfirmRename();
-                        }
-                        if (event.key === "Escape") {
-                          handleCancelRename();
-                        }
-                      }}
-                      className="w-[180px] rounded-xl border border-[#284863] bg-[#0d1827] px-3 py-2 text-base text-slate-100 placeholder:text-slate-500 focus:border-brand-400 focus:outline-none md:w-[260px]"
-                      maxLength={120}
-                      disabled={renamePending}
-                      autoFocus
-                    />
-                    <button
-                      type="button"
-                      className="btn-muted p-2"
-                      onClick={() => {
-                        void handleConfirmRename();
-                      }}
-                      disabled={renamePending}
-                    >
-                      <Check size={15} />
-                    </button>
-                    <button type="button" className="btn-muted p-2" onClick={handleCancelRename} disabled={renamePending}>
-                      <X size={15} />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <h1 className="truncate font-heading text-[13px] text-slate-100 md:text-lg">Mugallim AI</h1>
-                    <p className="truncate text-[9px] uppercase tracking-[0.12em] text-slate-500 md:text-[11px] md:tracking-[0.16em]">
-                      {activeConversation?.title ?? "Новый чат"}
-                    </p>
-                  </>
-                )}
+                <h1 className="truncate font-heading text-[14px] text-slate-100 md:text-lg">
+                  {activeConversation?.title ?? "Новый чат"}
+                </h1>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              {activeConversationId && !renameOpen ? (
-                <button
-                  type="button"
-                  className="btn-muted hidden md:inline-flex"
-                  onClick={handleStartRename}
-                  disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
-                >
-                  <Pencil size={16} />
-                </button>
-              ) : null}
-              {activeConversationId ? (
-                <button
-                  type="button"
-                  className="btn-muted hidden md:inline-flex"
-                  onClick={() => setDeleteConfirmOpen(true)}
-                  disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
-                >
-                  <Trash2 size={16} />
-                </button>
-              ) : null}
-              <button type="button" className="btn-muted md:hidden" onClick={handleStartDraftConversation}>
+              <button
+                type="button"
+                className="btn-muted hidden sm:inline-flex"
+                onClick={handleStartDraftConversation}
+                disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
+              >
+                <MessageSquarePlus size={16} />
+                Новый чат
+              </button>
+              <button
+                type="button"
+                className="btn-muted sm:hidden"
+                onClick={handleStartDraftConversation}
+                disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
+              >
                 <MessageSquarePlus size={16} />
               </button>
-              {activeConversationId && !renameOpen ? (
-                <div className="relative md:hidden" ref={mobileActionsRef}>
-                  <button
-                    type="button"
-                    className="btn-muted"
-                    onClick={() => setMobileActionsOpen((current) => !current)}
-                    disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
-                  >
-                    <MoreHorizontal size={16} />
-                  </button>
-
-                  {mobileActionsOpen ? (
-                    <div className="absolute right-0 top-[calc(100%+8px)] z-20 min-w-[180px] overflow-hidden rounded-2xl border border-[#284863] bg-[#0d1827] p-2">
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-slate-200 transition-colors hover:bg-[#102033]"
-                        onClick={handleStartRename}
-                      >
-                        <Pencil size={15} />
-                        {"Переименовать чат"}
-                      </button>
-                      <button
-                        type="button"
-                        className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-rose-200 transition-colors hover:bg-[#102033]"
-                        onClick={() => {
-                          setMobileActionsOpen(false);
-                          setDeleteConfirmOpen(true);
-                        }}
-                      >
-                        <Trash2 size={15} />
-                        {"Удалить чат"}
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
               <button type="button" className="btn-muted lg:hidden" onClick={() => setMobileSourcesOpen(true)}>
                 <BookOpenText size={16} />
               </button>
@@ -596,6 +622,8 @@ export default function ChatPage() {
             messages={activeConversation?.messages ?? []}
             pending={pending}
             loading={isLoadingConversation || (Boolean(routeConversationId) && isLoadingList)}
+            selectedSourcesMessageId={selectedSourcesMessageId}
+            onSelectSources={handleSelectMessageSources}
           />
           <ChatComposer disabled={pending || isLoadingList || isLoadingConversation} onSubmit={handleSend} />
         </main>
@@ -604,20 +632,21 @@ export default function ChatPage() {
           activeConversationId={activeConversationId}
           activeConversationTitle={activeConversation?.title ?? "Новый чат"}
           downloadPendingId={downloadPendingId}
+          loading={isLoadingConversation}
           mobileOpen={mobileSourcesOpen}
           sources={activeSources}
+          onCloseMobile={() => setMobileSourcesOpen(false)}
           onDownloadSource={(source) => {
             void handleDownloadSource(source);
           }}
-          onCloseMobile={() => setMobileSourcesOpen(false)}
         />
       </div>
 
       <DeleteConversationModal
-        open={deleteConfirmOpen}
-        title={activeConversation?.title ?? "этот диалог"}
+        open={Boolean(deleteTargetConversation)}
+        title={deleteTargetConversation?.title ?? "этот диалог"}
         pending={deletePending}
-        onCancel={() => setDeleteConfirmOpen(false)}
+        onCancel={() => setDeleteTargetConversation(null)}
         onConfirm={() => {
           void handleDeleteConversation();
         }}
@@ -628,6 +657,19 @@ export default function ChatPage() {
         onCancel={() => setDeleteAllConfirmOpen(false)}
         onConfirm={() => {
           void handleDeleteAllConversations();
+        }}
+      />
+      <RenameConversationModal
+        open={Boolean(renameTargetConversation)}
+        pending={renamePending}
+        value={renameValue}
+        onChange={setRenameValue}
+        onCancel={() => {
+          setRenameTargetConversation(null);
+          setRenameValue("");
+        }}
+        onConfirm={() => {
+          void handleConfirmRename();
         }}
       />
       <EditProfileModal
