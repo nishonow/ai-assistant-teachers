@@ -561,7 +561,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="relative flex h-[100svh] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(84,214,198,0.12),_transparent_24%),linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] text-slate-100 md:h-[100dvh]">
+    <div className="relative flex h-[100svh] overflow-visible bg-[radial-gradient(circle_at_top,_rgba(84,214,198,0.12),_transparent_24%),linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] text-slate-100 md:h-[100dvh]">
       <ChatSidebar
         activeConversationId={activeConversationId}
         conversations={conversations}

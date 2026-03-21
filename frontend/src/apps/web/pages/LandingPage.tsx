@@ -29,7 +29,7 @@ export default function LandingPage() {
   return (
     <main className="min-h-[100svh] bg-[#04070d] text-slate-100 md:min-h-screen">
       <div className="mx-auto flex min-h-[100svh] w-full max-w-6xl flex-col px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:min-h-screen md:px-6 md:py-6">
-        <header className="rounded-[28px] border border-[#1f3245] bg-[#09111d]/90 px-4 py-4 shadow-[0_20px_80px_rgba(0,0,0,0.25)] md:px-6">
+        <header className="rounded-[28px] border border-[#1f3245] bg-[#09111d]/90 px-4 py-4 md:px-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-2xl border border-[#284863] bg-[#0f1d30]">
@@ -64,7 +64,7 @@ export default function LandingPage() {
         </div>
 
         <section className="mt-4 grid flex-1 gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(0,0.82fr)]">
-          <div className="min-w-0 rounded-[32px] border border-[#1f3245] bg-[radial-gradient(circle_at_top_left,_rgba(80,214,197,0.18),_transparent_32%),linear-gradient(180deg,_rgba(8,15,25,0.96)_0%,_rgba(6,10,16,0.98)_100%)] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.28)] md:p-8 lg:p-10">
+          <div className="min-w-0 rounded-[32px] border border-[#1f3245] bg-[radial-gradient(circle_at_top_left,_rgba(80,214,197,0.18),_transparent_32%),linear-gradient(180deg,_rgba(8,15,25,0.96)_0%,_rgba(6,10,16,0.98)_100%)] p-6 md:p-8 lg:p-10">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#30556a] bg-[#102133] px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-[#a2f3e7]">
               <Sparkles size={12} />
               {"Юридическая помощь учителям"}

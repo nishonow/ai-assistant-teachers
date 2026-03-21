@@ -48,21 +48,14 @@ function SidebarBrand() {
   return (
     <div className="mb-5 px-2 py-1">
       <div className="inline-flex items-center gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[16px] bg-white/5 shadow-[0_10px_24px_rgba(0,0,0,0.18)] md:h-11 md:w-11">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[16px] bg-white/5 md:h-11 md:w-11">
           <img
             src={logo}
             alt="Mugallim AI"
             className="h-[112%] w-[112%] rounded-[14px] object-contain"
           />
         </span>
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="brand-wordmark truncate pb-[2px] text-[15px] text-slate-50 md:text-[17px]">
-            Mugallim
-          </p>
-          <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-brand-300/20 bg-brand-400/10 px-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-100 md:h-5.5 md:px-2.5 md:text-[10px]">
-            AI
-          </span>
-        </div>
+        <p className="truncate font-heading text-lg tracking-[0.08em] text-[#f5fffd]">Mugallim AI</p>
       </div>
     </div>
   );
@@ -189,7 +182,7 @@ function SidebarList({
               </button>
 
               {openMenuId === conversation.id ? (
-                <div className="absolute right-0 top-[calc(100%+10px)] z-40 min-w-[182px] rounded-2xl border border-[#3a6382] bg-[#152434] p-2 shadow-[0_28px_70px_rgba(2,8,15,0.62)] ring-1 ring-black/35 backdrop-blur-xl">
+                <div className="absolute right-0 top-[calc(100%+10px)] z-40 min-w-[182px] rounded-2xl border border-[#3a6382] bg-[#152434] p-2 ring-1 ring-black/35 backdrop-blur-xl">
                   <button
                     type="button"
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-slate-100 transition-colors hover:bg-[#1c3045]"
@@ -242,7 +235,7 @@ function SidebarAccountMenu({
   return (
     <div className="relative mt-3 border-t border-[#21384b] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-3 md:border-t-0 md:pt-0">
       {menuOpen ? (
-        <div className="absolute inset-x-0 bottom-[calc(100%+12px)] z-40 rounded-2xl border border-[#3a6382] bg-[#152434] p-2 shadow-[0_28px_70px_rgba(2,8,15,0.62)] ring-1 ring-black/35 backdrop-blur-xl">
+        <div className="absolute inset-x-0 bottom-[calc(100%+12px)] z-40 rounded-2xl border border-[#3a6382] bg-[#152434] p-2 ring-1 ring-black/35 backdrop-blur-xl">
           <div className="border-b border-[#294459] px-3 py-2">
             <p className="truncate text-sm font-semibold text-slate-100">{username}</p>
           </div>

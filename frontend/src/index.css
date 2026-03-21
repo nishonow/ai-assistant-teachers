@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Onest:wght@700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -77,13 +77,12 @@
   html,
   body,
   #root {
-    @apply h-full overflow-x-hidden;
+    @apply h-full;
   }
 
   body {
     @apply bg-ink-950 text-slate-100 font-body;
     min-height: 100svh;
-    overscroll-behavior-y: none;
     background-image:
       radial-gradient(720px 340px at -8% -6%, rgba(23, 223, 193, 0.14), transparent 70%),
       radial-gradient(700px 320px at 108% 100%, rgba(83, 246, 220, 0.08), transparent 68%);
@@ -172,17 +171,9 @@
     @apply hidden md:inline;
   }
 
-  .brand-wordmark {
-    font-family: "Onest", sans-serif;
-    font-weight: 800;
-    letter-spacing: -0.055em;
-    line-height: 1.12;
-    text-rendering: optimizeLegibility;
-  }
 
   .scroll-area {
     scroll-behavior: smooth;
-    overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: rgba(83, 246, 220, 0.45) rgba(13, 27, 45, 0.55);
     scrollbar-gutter: stable;

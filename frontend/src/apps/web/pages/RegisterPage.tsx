@@ -67,7 +67,7 @@ export default function RegisterPage() {
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-[#1f3245] bg-[#08111c]/96 p-6 shadow-[0_28px_80px_rgba(0,0,0,0.3)] md:p-8 lg:p-10">
+        <section className="rounded-[32px] border border-[#1f3245] bg-[#08111c]/96 p-6 md:p-8 lg:p-10">
           <div className="max-w-md">
             <p className="font-heading text-xs uppercase tracking-[0.22em] text-[#8fcbbf]">Mugallim AI</p>
             <h2 className="mt-2 font-heading text-3xl text-[#f7fffd]">{"Регистрация"}</h2>

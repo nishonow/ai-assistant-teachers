@@ -17,13 +17,11 @@ const THINKING_ANIMATION_CSS = `
     0%, 100% {
       opacity: 0.72;
       transform: scale(0.92);
-      box-shadow: 0 0 0 0 rgba(142, 241, 229, 0.12);
     }
 
     50% {
       opacity: 1;
       transform: scale(1);
-      box-shadow: 0 0 0 10px rgba(142, 241, 229, 0);
     }
   }
 
@@ -204,7 +202,7 @@ export default function ChatMessageList({
             </div>
 
             <div className="chat-card-enter flex items-center gap-3 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm text-slate-300 [animation-delay:180ms]">
-              <span className="inline-flex h-3 w-3 animate-pulse rounded-full bg-brand-200 shadow-[0_0_0_6px_rgba(142,241,229,0.08)]" />
+              <span className="inline-flex h-3 w-3 animate-pulse rounded-full bg-brand-200" />
               <span>Загружаем диалог...</span>
             </div>
           </div>
