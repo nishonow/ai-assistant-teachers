@@ -56,7 +56,7 @@ function SidebarBrand() {
           />
         </span>
         <div className="flex min-w-0 items-center gap-2">
-          <p className="brand-wordmark truncate text-[15px] text-transparent bg-[linear-gradient(180deg,_#f8fcff_0%,_#d8e8f4_100%)] bg-clip-text [filter:drop-shadow(0_8px_16px_rgba(7,16,26,0.26))] md:text-[17px]">
+          <p className="brand-wordmark truncate pb-[2px] text-[15px] text-slate-50 md:text-[17px]">
             Mugallim
           </p>
           <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-brand-300/20 bg-brand-400/10 px-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-100 md:h-5.5 md:px-2.5 md:text-[10px]">

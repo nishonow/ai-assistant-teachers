@@ -218,7 +218,7 @@ export default function ChatMessageList({
       <>
         <style>{THINKING_ANIMATION_CSS}</style>
         <div className="grid flex-1 place-items-center px-6 py-10">
-          <div className="chat-card-enter max-w-xl rounded-[30px] border border-[#284863] bg-[#0d1827]/92 px-8 py-10 text-center shadow-[0_24px_80px_rgba(3,10,18,0.35)]">
+          <div className="chat-card-enter max-w-xl rounded-[30px] border border-[#284863] bg-[#0d1827]/92 px-8 py-10 text-center">
             <h2 className="font-heading text-3xl text-slate-100">Что вы хотите узнать?</h2>
             <p className="mt-3 text-sm leading-7 text-slate-400">Начните диалог и задайте свой вопрос.</p>
           </div>
