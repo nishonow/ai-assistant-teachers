@@ -30,6 +30,7 @@ Rules:
 - Prefer the most specific legal term over a general one
 - If recent chat context is provided, use it only to resolve omitted subjects in the current question
 - Output language should match the language of the knowledge base documents
+- Always use "Кыргызская Республика" as the jurisdiction in all query variants — never substitute another country
 
 Query construction strategy:
 - First variant: expand the question into its most precise formal legal phrasing
