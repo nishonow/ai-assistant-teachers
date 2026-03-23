@@ -20,6 +20,13 @@ const SUGGESTED_QUESTIONS = [
   "Как получить отпуск по беременности и родам?",
 ] as const;
 
+const THINKING_STAGES = [
+  "Анализирую запрос...",
+  "Ищу подходящие документы...",
+  "Проверяю контекст и нормы...",
+  "Формирую ответ...",
+] as const;
+
 const THINKING_ANIMATION_CSS = `
   @keyframes webchatThinkingCorePulse {
     0%, 100% {
@@ -146,6 +153,7 @@ export default function ChatMessageList({
   const previousLengthRef = useRef(0);
   const previousPendingRef = useRef(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [thinkingStageIndex, setThinkingStageIndex] = useState(0);
 
   useEffect(() => {
     if (!messages.length && !pending) {
@@ -174,6 +182,21 @@ export default function ChatMessageList({
 
     return () => window.clearTimeout(timer);
   }, [copiedMessageId]);
+
+  useEffect(() => {
+    if (!pending) {
+      setThinkingStageIndex(0);
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setThinkingStageIndex((current) => (current + 1) % THINKING_STAGES.length);
+    }, 1800);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [pending]);
 
   const handleCopy = async (messageId: string, content: string) => {
     try {
@@ -277,34 +300,41 @@ export default function ChatMessageList({
                   <AssistantMessageContent content={message.content} />
                   <div className="mt-3 flex flex-wrap items-center justify-start gap-1.5">
                     {message.sources?.length ? (
-                      <button
-                        type="button"
-                        className={[
-                          "inline-flex h-7 items-center gap-1 rounded-full border px-2 text-[10px] font-medium transition-colors md:px-2.5 md:text-[11px]",
-                          selectedSourcesMessageId === message.id
-                            ? "border-brand-300/50 bg-brand-500/15 text-brand-100"
-                            : "border-[#284863] bg-transparent text-slate-400 hover:bg-[#102033] hover:text-slate-200",
-                        ].join(" ")}
-                        onClick={() => onSelectSources(message)}
-                        aria-label={`Показать источники для этого ответа (${message.sources.length})`}
-                        title={`Источники: ${message.sources.length}`}
-                      >
-                        <BookOpenText size={12} />
-                        <span>Источники</span>
-                      </button>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          className={[
+                            "inline-flex h-7 items-center gap-1 rounded-full border px-2 text-[10px] font-medium transition-colors md:px-2.5 md:text-[11px]",
+                            "group",
+                            selectedSourcesMessageId === message.id
+                              ? "border-brand-300/50 bg-brand-500/15 text-brand-100"
+                              : "border-[#284863] bg-transparent text-slate-400 hover:bg-[#102033] hover:text-slate-200",
+                          ].join(" ")}
+                          onClick={() => onSelectSources(message)}
+                          aria-label={`Показать источники для этого ответа (${message.sources.length})`}
+                        >
+                          <BookOpenText size={12} />
+                          <span>Источники</span>
+                        </button>
+                        <span className="ui-tooltip">
+                          Источники: {message.sources.length}
+                        </span>
+                      </div>
                     ) : null}
 
-                    <button
-                      type="button"
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#284863] bg-transparent text-slate-400 transition-colors hover:bg-[#102033] hover:text-slate-200"
-                      onClick={() => {
-                        void handleCopy(message.id, message.content);
-                      }}
-                      aria-label={copiedMessageId === message.id ? "Скопировано" : "Копировать"}
-                      title={copiedMessageId === message.id ? "Скопировано" : "Копировать"}
-                    >
-                      {copiedMessageId === message.id ? <Check size={12} /> : <Copy size={12} />}
-                    </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#284863] bg-transparent text-slate-400 transition-colors hover:bg-[#102033] hover:text-slate-200"
+                        onClick={() => {
+                          void handleCopy(message.id, message.content);
+                        }}
+                        aria-label={copiedMessageId === message.id ? "Скопировано" : "Копировать"}
+                      >
+                        {copiedMessageId === message.id ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                      <span className="ui-tooltip">{copiedMessageId === message.id ? "Скопировано" : "Копировать"}</span>
+                    </div>
                   </div>
                 </>
               ) : (
@@ -326,7 +356,9 @@ export default function ChatMessageList({
                       <span />
                     </div>
                   </div>
-                  <p className="mt-2.5 text-sm font-medium text-slate-100">Mugallim AI думает...</p>
+                  <p className="mt-2.5 text-sm font-medium text-slate-100" aria-live="polite">
+                    {THINKING_STAGES[thinkingStageIndex]}
+                  </p>
                   <div className="mt-3 space-y-2.5" aria-hidden="true">
                     <div className="thinking-line h-2.5 w-[88%] rounded-full" />
                     <div className="thinking-line h-2.5 w-[72%] rounded-full" />

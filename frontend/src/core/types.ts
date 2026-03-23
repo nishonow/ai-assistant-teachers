@@ -6,7 +6,7 @@ export interface TabItem {
 }
 
 export interface NoticeState {
-  type: "success" | "error";
+  type: "success" | "error" | "warning";
   message: string;
 }
 

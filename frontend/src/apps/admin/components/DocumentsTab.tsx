@@ -10,7 +10,16 @@ function formatDocumentName(fileName: string): string {
   return fileName.replace(/_/g, " ");
 }
 
-function DocumentStatus({ value }: { value: string }) {
+function DocumentStatus({ value, processing }: { value: string; processing: boolean }) {
+  if (processing) {
+    return (
+      <span className="tag border-amber-400/40 bg-amber-500/10 text-amber-200">
+        <RotateCw size={12} className="animate-spin" />
+        Reindexing...
+      </span>
+    );
+  }
+
   const normalized = value.trim().toLowerCase();
 
   if (normalized === "indexed" || normalized === "ready") {
@@ -18,7 +27,7 @@ function DocumentStatus({ value }: { value: string }) {
   }
 
   if (normalized === "processing") {
-    return <span className="tag border-amber-400/40 bg-amber-500/10 text-amber-200">Processing</span>;
+    return <span className="tag border-amber-400/40 bg-amber-500/10 text-amber-200">Reindexing</span>;
   }
 
   if (normalized === "failed") {
@@ -32,6 +41,7 @@ interface DocumentsTabProps {
   documents: DocumentRecord[];
   loading: boolean;
   actionLoading: string;
+  reindexingDocumentId: number | null;
   onRefresh: () => Promise<void>;
   onDownload: (doc: DocumentRecord) => Promise<void>;
   onReindex: (doc: DocumentRecord) => Promise<void>;
@@ -42,6 +52,7 @@ export default function DocumentsTab({
   documents,
   loading,
   actionLoading,
+  reindexingDocumentId,
   onRefresh,
   onDownload,
   onReindex,
@@ -102,6 +113,7 @@ export default function DocumentsTab({
                 const reindexKey = `reindex-${doc.id}`;
                 const deleteKey = `delete-${doc.id}`;
                 const displayName = formatDocumentName(doc.file_name);
+                const rowProcessing = reindexingDocumentId === doc.id;
 
                 return (
                   <tr key={doc.id} className="border-t border-ink-600/40 align-top transition-colors hover:bg-ink-900/35">
@@ -110,7 +122,7 @@ export default function DocumentsTab({
                       <p className="break-words text-slate-100 sm:truncate">{displayName}</p>
                     </td>
                     <td className="px-4 py-4">
-                      <DocumentStatus value={doc.status} />
+                      <DocumentStatus value={doc.status} processing={rowProcessing} />
                     </td>
                     <td className="px-4 py-4 text-slate-200">{doc.chunk_count ?? 0}</td>
                     <td className="px-4 py-4">
@@ -119,7 +131,7 @@ export default function DocumentsTab({
                           className="btn-muted w-full justify-start sm:w-auto"
                           type="button"
                           onClick={() => onDownload(doc)}
-                          disabled={actionLoading === downloadKey}
+                          disabled={actionLoading === downloadKey || rowProcessing}
                         >
                           <Download size={13} />
                           {actionLoading === downloadKey ? "Please wait..." : "Download"}
@@ -129,17 +141,17 @@ export default function DocumentsTab({
                           className="btn-warn w-full justify-start sm:w-auto"
                           type="button"
                           onClick={() => onReindex(doc)}
-                          disabled={actionLoading === reindexKey}
+                          disabled={actionLoading === reindexKey || rowProcessing}
                         >
                           <RotateCw size={13} />
-                          {actionLoading === reindexKey ? "Please wait..." : "Reindex"}
+                          Reindex
                         </button>
 
                         <button
                           className="btn-danger w-full justify-start sm:w-auto"
                           type="button"
                           onClick={() => onDelete(doc)}
-                          disabled={actionLoading === deleteKey}
+                          disabled={actionLoading === deleteKey || rowProcessing}
                         >
                           <Trash2 size={13} />
                           {actionLoading === deleteKey ? "Please wait..." : "Delete"}

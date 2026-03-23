@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../core/auth";
 import { apiRequest, ApiRequestError, type ApiRequestOptions } from "../../core/api";
@@ -43,6 +43,9 @@ const INITIAL_LOADING: LoadingState = {
   upload: false,
 };
 
+const REINDEX_BACKOFF_MS = [1000, 2000, 4000, 8000, 16000] as const;
+const REINDEX_TIMEOUT_MS = 30000;
+
 function getTabFromPath(pathname: string): TabId {
   if (pathname.startsWith("/admin/users")) return "users";
   if (pathname.startsWith("/admin/documents")) return "documents";
@@ -66,9 +69,11 @@ export default function AdminApp() {
 
   const [loading, setLoading] = useState<LoadingState>(INITIAL_LOADING);
   const [actionLoading, setActionLoading] = useState("");
+  const [reindexingDocumentId, setReindexingDocumentId] = useState<number | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [makeAdminUser, setMakeAdminUser] = useState<UserRecord | null>(null);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const reindexPollVersionRef = useRef(0);
 
   const activeTab = useMemo(() => getTabFromPath(location.pathname), [location.pathname]);
 
@@ -79,6 +84,18 @@ export default function AdminApp() {
     const timer = setTimeout(() => setNotice(null), 3200);
     return () => clearTimeout(timer);
   }, [notice]);
+
+  const cancelReindexPolling = useCallback(() => {
+    reindexPollVersionRef.current += 1;
+    setReindexingDocumentId(null);
+  }, []);
+
+  useEffect(
+    () => () => {
+      cancelReindexPolling();
+    },
+    [cancelReindexPolling]
+  );
 
   const logout = useCallback(() => {
     clearSession();
@@ -297,38 +314,62 @@ export default function AdminApp() {
   };
 
   const watchReindexCompletion = useCallback(
-    async (documentId: number, fileName: string): Promise<void> => {
-      const pollIntervalMs = 2500;
-      const maxAttempts = 48;
+    async (documentId: number): Promise<void> => {
+      const pollVersion = reindexPollVersionRef.current;
+      const startedAt = Date.now();
 
-      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+      for (const delay of REINDEX_BACKOFF_MS) {
+        const elapsed = Date.now() - startedAt;
+        const remaining = REINDEX_TIMEOUT_MS - elapsed;
+
+        if (remaining <= 0 || reindexPollVersionRef.current !== pollVersion) {
+          return;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, Math.min(delay, remaining)));
+
+        if (reindexPollVersionRef.current !== pollVersion) {
+          return;
+        }
 
         try {
           const data = await authorizedRequest<{ status?: string }>({
             path: `/api/v1/documents/${documentId}`,
           });
-          const status = data.status?.toLowerCase();
+          const normalizedStatus = data.status?.trim().toLowerCase();
 
-          if (status === "indexed") {
-            showNotice("success", `${fileName} indexed successfully.`);
-            await loadDocuments();
-            await loadStats();
-            return;
-          }
+          setDocuments((prev) =>
+            prev.map((document) =>
+              document.id === documentId && data.status
+                ? {
+                    ...document,
+                    status: data.status,
+                  }
+                : document
+            )
+          );
 
-          if (status === "failed") {
-            showNotice("error", `${fileName} indexing failed.`);
-            await loadDocuments();
+          if (normalizedStatus === "indexed" || normalizedStatus === "ready") {
+            if (reindexPollVersionRef.current !== pollVersion) {
+              return;
+            }
+
+            setReindexingDocumentId(null);
+            showNotice("success", "Document indexed successfully");
+            await Promise.all([loadDocuments(), loadStats()]);
             return;
           }
         } catch {
-          // Ignore transient polling errors and continue until timeout.
+          // Ignore transient polling errors until timeout.
         }
       }
 
-      showNotice("error", `${fileName} indexing is taking longer than expected.`);
-      await loadDocuments();
+      if (reindexPollVersionRef.current !== pollVersion) {
+        return;
+      }
+
+      setReindexingDocumentId(null);
+      showNotice("warning", "Taking longer than expected — click Reload to check manually");
     },
     [authorizedRequest, loadDocuments, loadStats, showNotice]
   );
@@ -338,16 +379,34 @@ export default function AdminApp() {
     setActionLoading(key);
 
     try {
+      cancelReindexPolling();
       await authorizedRequest({ path: `/api/v1/documents/${doc.id}/reindex`, method: "POST" });
-      showNotice("success", `${doc.file_name} indexing started.`);
-      await loadDocuments();
-      void watchReindexCompletion(doc.id, doc.file_name);
+
+      reindexPollVersionRef.current += 1;
+      setReindexingDocumentId(doc.id);
+      setDocuments((prev) =>
+        prev.map((document) =>
+          document.id === doc.id
+            ? {
+                ...document,
+                status: "processing",
+              }
+            : document
+        )
+      );
+
+      void watchReindexCompletion(doc.id);
     } catch (error) {
       showNotice("error", error instanceof Error ? error.message : "Reindex failed.");
     } finally {
       setActionLoading("");
     }
   };
+
+  const handleRefreshDocuments = useCallback(async (): Promise<void> => {
+    cancelReindexPolling();
+    await loadDocuments();
+  }, [cancelReindexPolling, loadDocuments]);
 
   const handleDeleteDocument = async (doc: DocumentRecord): Promise<void> => {
     const key = `delete-${doc.id}`;
@@ -448,7 +507,8 @@ export default function AdminApp() {
                   documents={documents}
                   loading={loading.documents}
                   actionLoading={actionLoading}
-                  onRefresh={loadDocuments}
+                  reindexingDocumentId={reindexingDocumentId}
+                  onRefresh={handleRefreshDocuments}
                   onDownload={handleDownloadDocument}
                   onReindex={handleReindexDocument}
                   onDelete={handleDeleteDocument}

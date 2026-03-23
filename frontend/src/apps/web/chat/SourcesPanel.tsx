@@ -8,6 +8,7 @@ interface SourcesPanelProps {
   activeConversationTitle: string;
   downloadPendingId: string | null;
   loading: boolean;
+  desktopOpen: boolean;
   mobileOpen: boolean;
   sources: ChatSource[];
   onDownloadSource: (source: ChatSource) => void;
@@ -53,7 +54,9 @@ function SourcesContent({
               <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-slate-500">
                 {sources.length} {sources.length === 1 ? "файл" : "файла"}
               </span>
-            ) : null}
+            ) : (
+              <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-slate-500">Нет источников</span>
+            )}
           </div>
         </header>
       ) : null}
@@ -104,17 +107,19 @@ function SourcesContent({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
-                      <p
-                        className="min-w-0 flex-1 overflow-hidden text-sm font-semibold leading-6 text-slate-100"
-                        style={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                        }}
-                        title={source.title}
-                      >
-                        {source.title}
-                      </p>
+                      <div className="relative min-w-0 flex-1">
+                        <p
+                          className="min-w-0 overflow-hidden text-sm font-semibold leading-6 text-slate-100"
+                          style={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                        >
+                          {source.title}
+                        </p>
+                        <span className="ui-tooltip">{source.title}</span>
+                      </div>
                       <span className="shrink-0 rounded-full border border-[#305169] bg-[#102033] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9af5ea]">
                         {getSourceExtension(source.title)}
                       </span>
@@ -139,7 +144,11 @@ function SourcesContent({
               </article>
             ))}
           </div>
-        ) : null}
+        ) : (
+          <div className="rounded-[24px] border border-dashed border-[#2c4e67] bg-[#0c1726] px-4 py-5 text-sm leading-6 text-slate-400">
+            Источники появятся после ответа ассистента, если в нём есть ссылки на документы.
+          </div>
+        )}
       </div>
     </>
   );
@@ -150,6 +159,7 @@ export default function SourcesPanel({
   activeConversationTitle,
   downloadPendingId,
   loading,
+  desktopOpen,
   mobileOpen,
   sources,
   onDownloadSource,
@@ -172,16 +182,25 @@ export default function SourcesPanel({
 
   return (
     <>
-      <aside className="hidden w-[320px] flex-col border-l border-[#21384b] bg-[#09111d] lg:flex">
-        <SourcesContent
-          activeConversationId={activeConversationId}
-          activeConversationTitle={activeConversationTitle}
-          downloadPendingId={downloadPendingId}
-          loading={loading}
-          sources={sources}
-          onDownloadSource={onDownloadSource}
-          showHeader
-        />
+      <aside
+        className={[
+          "hidden flex-col overflow-hidden bg-[#09111d] transition-all duration-300 ease-out lg:flex",
+          desktopOpen
+            ? "w-[320px] border-l border-[#21384b] opacity-100"
+            : "w-0 border-l border-transparent opacity-0 pointer-events-none",
+        ].join(" ")}
+      >
+        {desktopOpen ? (
+          <SourcesContent
+            activeConversationId={activeConversationId}
+            activeConversationTitle={activeConversationTitle}
+            downloadPendingId={downloadPendingId}
+            loading={loading}
+            sources={sources}
+            onDownloadSource={onDownloadSource}
+            showHeader
+          />
+        ) : null}
       </aside>
 
       {mobileOpen ? (

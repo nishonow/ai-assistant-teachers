@@ -29,6 +29,24 @@ function buildSessionFromResponse(response: LoginResponse, fallbackIdentifier: s
   };
 }
 
+function localizeAuthError(error: unknown, fallbackMessage: string): Error {
+  if (!(error instanceof Error)) {
+    return new Error(fallbackMessage);
+  }
+
+  const normalized = error.message.trim().toLowerCase();
+
+  if (normalized.includes("invalid credentials") || normalized.includes("incorrect username or password")) {
+    return new Error("Неверный логин или пароль.");
+  }
+
+  if (normalized.includes("user already exists") || normalized.includes("already registered")) {
+    return new Error("Пользователь с таким email уже зарегистрирован.");
+  }
+
+  return error;
+}
+
 export async function fetchCurrentSession(token: string): Promise<AuthSession> {
   const response = await apiRequest<LoginResponse>({
     path: "/api/v1/auth/me",
@@ -47,14 +65,20 @@ export async function loginWithAdapter(input: LoginInput): Promise<AuthSession> 
     throw new Error("Укажите email или имя пользователя и пароль.");
   }
 
-  const response = await apiRequest<LoginResponse>({
-    path: "/api/v1/auth/login",
-    method: "POST",
-    body: {
-      username,
-      password,
-    },
-  });
+  let response: LoginResponse;
+
+  try {
+    response = await apiRequest<LoginResponse>({
+      path: "/api/v1/auth/login",
+      method: "POST",
+      body: {
+        username,
+        password,
+      },
+    });
+  } catch (error) {
+    throw localizeAuthError(error, "Не удалось войти.");
+  }
 
   return buildSessionFromResponse(response, username, "user");
 }
@@ -68,15 +92,21 @@ export async function registerWithAdapter(input: RegisterInput): Promise<AuthSes
     throw new Error("Укажите имя, email и пароль.");
   }
 
-  const response = await apiRequest<LoginResponse>({
-    path: "/api/v1/auth/register",
-    method: "POST",
-    body: {
-      name,
-      email,
-      password,
-    },
-  });
+  let response: LoginResponse;
+
+  try {
+    response = await apiRequest<LoginResponse>({
+      path: "/api/v1/auth/register",
+      method: "POST",
+      body: {
+        name,
+        email,
+        password,
+      },
+    });
+  } catch (error) {
+    throw localizeAuthError(error, "Не удалось зарегистрироваться.");
+  }
 
   return buildSessionFromResponse(response, email, "user");
 }

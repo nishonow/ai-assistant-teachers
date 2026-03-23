@@ -168,10 +168,10 @@ function SidebarList({
               <p className="mt-1 truncate text-xs text-slate-500">{conversation.lastMessagePreview || "Начните диалог"}</p>
             </button>
 
-            <div className="relative z-30 shrink-0" data-chat-actions-menu>
+            <div className="relative z-30 shrink-0 self-center" data-chat-actions-menu>
               <button
                 type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-transparent text-slate-400 transition-colors hover:border-[#355a78] hover:bg-[#142233] hover:text-slate-100"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-transparent text-slate-400"
                 onClick={(event) => {
                   event.stopPropagation();
                   setOpenMenuId((current) => (current === conversation.id ? null : conversation.id));
