@@ -139,15 +139,7 @@ function SourcesContent({
               </article>
             ))}
           </div>
-        ) : (
-          <div className="chat-card-enter rounded-[28px] border border-dashed border-[#284863] bg-[#0d1827]/70 p-5 text-sm leading-6 text-slate-400">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#305169] bg-[#102033] text-[#9af5ea]">
-              <BookOpenText size={18} />
-            </div>
-            <p className="text-sm font-semibold text-slate-200">Источники появятся здесь</p>
-            <p className="mt-2 text-sm leading-6 text-slate-400">Нажмите «Источники» под нужным ответом, чтобы посмотреть связанные документы.</p>
-          </div>
-        )}
+        ) : null}
       </div>
     </>
   );

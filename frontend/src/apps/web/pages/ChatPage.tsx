@@ -78,14 +78,17 @@ function resolveSelectedSources(
   };
 }
 
-function toConversationSummary(conversation: Conversation): ConversationSummary {
-  const lastMessage = conversation.messages[conversation.messages.length - 1]?.content || "";
+function getConversationPreview(conversation: Conversation): string {
+  const firstUserMessage = conversation.messages.find((message) => message.role === "user" && message.content.trim());
+  return (firstUserMessage?.content || conversation.title).slice(0, 120);
+}
 
+function toConversationSummary(conversation: Conversation): ConversationSummary {
   return {
     id: conversation.id,
     title: conversation.title,
     updatedAt: conversation.updatedAt,
-    lastMessagePreview: lastMessage.slice(0, 120),
+    lastMessagePreview: getConversationPreview(conversation),
     messageCount: conversation.messages.length,
   };
 }
@@ -122,6 +125,7 @@ export default function ChatPage() {
   const [pending, setPending] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileSourcesOpen, setMobileSourcesOpen] = useState(false);
+  const [suggestedQuestion, setSuggestedQuestion] = useState<string | null>(null);
   const [deleteTargetConversation, setDeleteTargetConversation] = useState<ConversationSummary | null>(null);
   const [deletePending, setDeletePending] = useState(false);
   const [deleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false);
@@ -137,6 +141,7 @@ export default function ChatPage() {
   const [profilePending, setProfilePending] = useState(false);
   const [downloadPendingId, setDownloadPendingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
+  const hasActiveSources = activeSources.length > 0;
 
   const showNotice = useCallback((type: NoticeState["type"], message: string) => {
     setNotice({ type, message });
@@ -173,6 +178,37 @@ export default function ChatPage() {
         const items = await listConversations(currentSession);
         if (cancelled) return;
         setConversations(items);
+
+        void (async () => {
+          const hydratedItems = await Promise.allSettled(
+            items.map(async (item) => ({
+              id: item.id,
+              updatedAt: item.updatedAt,
+              preview: getConversationPreview(await getConversation(currentSession, item.id)),
+            })),
+          );
+          if (cancelled) return;
+
+          const previewById = new Map(
+            hydratedItems.flatMap((result) =>
+              result.status === "fulfilled" ? [[result.value.id, result.value] as const] : [],
+            ),
+          );
+
+          setConversations((prev) =>
+            prev.map((item) => {
+              const hydratedItem = previewById.get(item.id);
+              if (!hydratedItem || hydratedItem.updatedAt !== item.updatedAt) {
+                return item;
+              }
+
+              return {
+                ...item,
+                lastMessagePreview: hydratedItem.preview,
+              };
+            }),
+          );
+        })();
       } catch (requestError) {
         if (cancelled) return;
         showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось загрузить диалоги.");
@@ -556,6 +592,10 @@ export default function ChatPage() {
     }
   }, []);
 
+  const handleSelectSuggestion = useCallback((question: string) => {
+    setSuggestedQuestion(question);
+  }, []);
+
   if (!session) {
     return null;
   }
@@ -612,9 +652,11 @@ export default function ChatPage() {
               >
                 <MessageSquarePlus size={16} />
               </button>
-              <button type="button" className="btn-muted lg:hidden" onClick={() => setMobileSourcesOpen(true)}>
-                <BookOpenText size={16} />
-              </button>
+              {hasActiveSources ? (
+                <button type="button" className="btn-muted lg:hidden" onClick={() => setMobileSourcesOpen(true)}>
+                  <BookOpenText size={16} />
+                </button>
+              ) : null}
             </div>
           </header>
 
@@ -624,22 +666,31 @@ export default function ChatPage() {
             loading={isLoadingConversation || (Boolean(routeConversationId) && isLoadingList)}
             selectedSourcesMessageId={selectedSourcesMessageId}
             onSelectSources={handleSelectMessageSources}
+            onSelectSuggestion={handleSelectSuggestion}
+            suggestionsDisabled={pending || isLoadingList || isLoadingConversation}
           />
-          <ChatComposer disabled={pending || isLoadingList || isLoadingConversation} onSubmit={handleSend} />
+          <ChatComposer
+            disabled={pending || isLoadingList || isLoadingConversation}
+            onSubmit={handleSend}
+            suggestedValue={suggestedQuestion}
+            onSuggestedValueConsumed={() => setSuggestedQuestion(null)}
+          />
         </main>
 
-        <SourcesPanel
-          activeConversationId={activeConversationId}
-          activeConversationTitle={activeConversation?.title ?? "Новый чат"}
-          downloadPendingId={downloadPendingId}
-          loading={isLoadingConversation}
-          mobileOpen={mobileSourcesOpen}
-          sources={activeSources}
-          onCloseMobile={() => setMobileSourcesOpen(false)}
-          onDownloadSource={(source) => {
-            void handleDownloadSource(source);
-          }}
-        />
+        {hasActiveSources ? (
+          <SourcesPanel
+            activeConversationId={activeConversationId}
+            activeConversationTitle={activeConversation?.title ?? "Новый чат"}
+            downloadPendingId={downloadPendingId}
+            loading={isLoadingConversation}
+            mobileOpen={mobileSourcesOpen}
+            sources={activeSources}
+            onCloseMobile={() => setMobileSourcesOpen(false)}
+            onDownloadSource={(source) => {
+              void handleDownloadSource(source);
+            }}
+          />
+        ) : null}
       </div>
 
       <DeleteConversationModal

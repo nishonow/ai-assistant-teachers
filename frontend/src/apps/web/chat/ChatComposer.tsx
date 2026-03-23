@@ -1,14 +1,21 @@
 ﻿import { SendHorizontal } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 interface ChatComposerProps {
   disabled: boolean;
   onSubmit: (value: string) => Promise<void>;
+  suggestedValue: string | null;
+  onSuggestedValueConsumed: () => void;
 }
 
 const MAX_TEXTAREA_HEIGHT = 220;
 
-export default function ChatComposer({ disabled, onSubmit }: ChatComposerProps) {
+export default function ChatComposer({
+  disabled,
+  onSubmit,
+  suggestedValue,
+  onSuggestedValueConsumed,
+}: ChatComposerProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -22,12 +29,39 @@ export default function ChatComposer({ disabled, onSubmit }: ChatComposerProps) 
     element.style.overflowY = element.scrollHeight > MAX_TEXTAREA_HEIGHT ? "auto" : "hidden";
   }, [value]);
 
+  const submitValue = useCallback(
+    async (nextValue: string) => {
+      const trimmed = nextValue.trim();
+      if (!trimmed || disabled) return;
+
+      setValue("");
+      await onSubmit(trimmed);
+    },
+    [disabled, onSubmit],
+  );
+
+  useEffect(() => {
+    if (!suggestedValue || disabled) return;
+
+    setValue(suggestedValue);
+
+    requestAnimationFrame(() => {
+      const element = textareaRef.current;
+      if (element) {
+        const cursorPosition = suggestedValue.length;
+        element.focus();
+        element.selectionStart = cursorPosition;
+        element.selectionEnd = cursorPosition;
+      }
+
+      void submitValue(suggestedValue);
+      onSuggestedValueConsumed();
+    });
+  }, [disabled, onSuggestedValueConsumed, submitValue, suggestedValue]);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const trimmed = value.trim();
-    if (!trimmed || disabled) return;
-    setValue("");
-    await onSubmit(trimmed);
+    await submitValue(value);
   };
 
   const insertNewLineAtCursor = () => {

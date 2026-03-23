@@ -10,7 +10,15 @@ interface ChatMessageListProps {
   loading: boolean;
   selectedSourcesMessageId: string | null;
   onSelectSources: (message: ChatMessage) => void;
+  onSelectSuggestion: (question: string) => void;
+  suggestionsDisabled: boolean;
 }
+
+const SUGGESTED_QUESTIONS = [
+  "Какие права есть у учителя по закону?",
+  "Можно ли уволить учителя без его согласия?",
+  "Как получить отпуск по беременности и родам?",
+] as const;
 
 const THINKING_ANIMATION_CSS = `
   @keyframes webchatThinkingCorePulse {
@@ -131,6 +139,8 @@ export default function ChatMessageList({
   loading,
   selectedSourcesMessageId,
   onSelectSources,
+  onSelectSuggestion,
+  suggestionsDisabled,
 }: ChatMessageListProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const previousLengthRef = useRef(0);
@@ -216,9 +226,25 @@ export default function ChatMessageList({
       <>
         <style>{THINKING_ANIMATION_CSS}</style>
         <div className="grid flex-1 place-items-center px-6 py-10">
-          <div className="chat-card-enter max-w-xl rounded-[30px] border border-[#284863] bg-[#0d1827]/92 px-8 py-10 text-center">
+          <div className="chat-card-enter w-full max-w-4xl rounded-[30px] border border-[#284863] bg-[#0d1827]/92 px-6 py-8 text-center sm:px-8 sm:py-10">
             <h2 className="font-heading text-3xl text-slate-100">Что вы хотите узнать?</h2>
-            <p className="mt-3 text-sm leading-7 text-slate-400">Начните диалог и задайте свой вопрос.</p>
+            <div className="mx-auto mt-7 grid w-full max-w-[700px] gap-3 text-left sm:grid-cols-3">
+              {SUGGESTED_QUESTIONS.map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  className={[
+                    "rounded-[22px] border border-[#284863] bg-[#0d1827] px-4 py-4 text-sm leading-6 text-slate-200 transition duration-200",
+                    "hover:border-[#3a5f7d] hover:bg-[#112033] hover:text-slate-100",
+                    "disabled:cursor-not-allowed disabled:opacity-55",
+                  ].join(" ")}
+                  disabled={suggestionsDisabled}
+                  onClick={() => onSelectSuggestion(question)}
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </>
