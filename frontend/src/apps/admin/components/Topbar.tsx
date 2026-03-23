@@ -9,25 +9,19 @@ interface TopbarProps {
 export default function Topbar({ username, onOpenMenu, onRequestLogout }: TopbarProps) {
   return (
     <header className="panel p-3 md:p-4">
-      <div className="flex items-center justify-between gap-2 md:hidden">
-        <button className="btn-muted" onClick={onOpenMenu} type="button" aria-label="Open menu">
-          <Menu size={16} />
-          Menu
-        </button>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <button className="btn-muted mt-0.5 px-2.5 md:hidden" onClick={onOpenMenu} type="button" aria-label="Open menu">
+            <Menu size={16} />
+          </button>
 
-        <button className="btn-danger" type="button" onClick={onRequestLogout}>
-          <LogOut size={14} />
-          Logout
-        </button>
-      </div>
-
-      <div className="mt-3 md:mt-0 md:flex md:items-center md:justify-between md:gap-3">
-        <div>
-          <p className="font-heading text-xl font-bold">Welcome, {username}</p>
-          <p className="text-sm text-slate-400">Manage users, documents and access</p>
+          <div className="min-w-0">
+            <p className="font-heading text-xl font-bold">Welcome, {username}</p>
+            <p className="text-sm text-slate-400">Manage users, documents and access</p>
+          </div>
         </div>
 
-        <button className="btn-danger hidden md:inline-flex" type="button" onClick={onRequestLogout}>
+        <button className="btn-danger shrink-0" type="button" onClick={onRequestLogout}>
           <LogOut size={14} />
           Logout
         </button>
@@ -35,4 +29,3 @@ export default function Topbar({ username, onOpenMenu, onRequestLogout }: Topbar
     </header>
   );
 }
-

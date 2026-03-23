@@ -1,16 +1,31 @@
 ﻿import { Download, RotateCw, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import Pagination from "./Pagination";
+
 import type { DocumentRecord } from "../../../core/types";
+import Pagination from "./Pagination";
 
 const PAGE_SIZE = 20;
 
+function formatDocumentName(fileName: string): string {
+  return fileName.replace(/_/g, " ");
+}
+
 function DocumentStatus({ value }: { value: string }) {
-  return value === "ready" ? (
-    <span className="tag border-emerald-400/40 bg-emerald-500/10 text-emerald-200">ready</span>
-  ) : (
-    <span className="tag border-amber-400/40 bg-amber-500/10 text-amber-200">{value || "pending"}</span>
-  );
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === "indexed" || normalized === "ready") {
+    return <span className="tag border-emerald-400/40 bg-emerald-500/10 text-emerald-200">Indexed</span>;
+  }
+
+  if (normalized === "processing") {
+    return <span className="tag border-amber-400/40 bg-amber-500/10 text-amber-200">Processing</span>;
+  }
+
+  if (normalized === "failed") {
+    return <span className="tag border-rose-400/40 bg-rose-500/10 text-rose-200">Failed</span>;
+  }
+
+  return <span className="tag border-slate-500/40 bg-slate-500/10 text-slate-300">Pending</span>;
 }
 
 interface DocumentsTabProps {
@@ -50,32 +65,34 @@ export default function DocumentsTab({
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-heading text-2xl font-bold">Documents</h2>
-        <button className="btn-muted" type="button" onClick={onRefresh} disabled={loading}>
-          {loading ? "Loading..." : "Reload"}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-heading text-2xl font-bold text-slate-50">Documents</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Showing {pageDocuments.length} of {documents.length} documents
+          </p>
+        </div>
+
+        <button className="btn-muted shrink-0" type="button" onClick={onRefresh} disabled={loading}>
+          {loading ? "Reloading..." : "Reload"}
         </button>
       </div>
 
-      <p className="text-xs text-slate-400">Showing {pageDocuments.length} of {documents.length} documents</p>
-
-      <div className="overflow-x-auto rounded-2xl border border-ink-600/50">
-        <table className="min-w-[980px] w-full text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-ink-800/60 text-slate-300">
+      <div className="overflow-x-auto rounded-2xl border border-ink-600/50 bg-ink-900/35">
+        <table className="min-w-full table-auto text-left text-sm lg:min-w-[1024px]">
+          <thead className="bg-ink-800/65 text-slate-300">
             <tr>
-              <th className="w-14 px-2 py-3">ID</th>
-              <th className="w-[30%] px-3 py-3">File Name</th>
-              <th className="hidden px-2 py-3 lg:table-cell">Type</th>
-              <th className="px-2 py-3">Status</th>
-              <th className="hidden px-2 py-3 md:table-cell">Chunks</th>
-              <th className="px-2 py-3">Uploaded By</th>
-              <th className="w-[10.5rem] px-2 py-3 md:w-[23.5rem]">Actions</th>
+              <th className="hidden w-16 px-4 py-3 lg:table-cell">ID</th>
+              <th className="w-[42%] px-4 py-3">File Name</th>
+              <th className="w-32 px-4 py-3">Status</th>
+              <th className="w-24 px-4 py-3">Chunks</th>
+              <th className="w-[12rem] px-4 py-3 sm:w-[15rem] lg:w-[25rem]">Actions</th>
             </tr>
           </thead>
           <tbody>
             {pageDocuments.length === 0 ? (
               <tr>
-                <td className="px-3 py-8 text-center text-slate-400" colSpan={7}>
+                <td className="px-4 py-10 text-center text-slate-400" colSpan={5}>
                   No documents found.
                 </td>
               </tr>
@@ -84,51 +101,48 @@ export default function DocumentsTab({
                 const downloadKey = `download-${doc.id}`;
                 const reindexKey = `reindex-${doc.id}`;
                 const deleteKey = `delete-${doc.id}`;
+                const displayName = formatDocumentName(doc.file_name);
 
                 return (
-                  <tr key={doc.id} className="border-t border-ink-600/40">
-                    <td className="px-2 py-3">{doc.id}</td>
-                    <td className="px-3 py-3" title={doc.file_name}>
-                      <p className="truncate">{doc.file_name}</p>
+                  <tr key={doc.id} className="border-t border-ink-600/40 align-top transition-colors hover:bg-ink-900/35">
+                    <td className="hidden px-4 py-4 text-slate-400 lg:table-cell">{doc.id}</td>
+                    <td className="px-4 py-4" title={displayName}>
+                      <p className="break-words text-slate-100 sm:truncate">{displayName}</p>
                     </td>
-                    <td className="hidden px-2 py-3 lg:table-cell">{doc.file_type}</td>
-                    <td className="px-2 py-3">
+                    <td className="px-4 py-4">
                       <DocumentStatus value={doc.status} />
                     </td>
-                    <td className="hidden px-2 py-3 md:table-cell">{doc.chunk_count ?? 0}</td>
-                    <td className="px-2 py-3">
-                      <p className="truncate">{doc.uploaded_by || "admin"}</p>
-                    </td>
-                    <td className="px-2 py-3">
-                      <div className="action-row">
+                    <td className="px-4 py-4 text-slate-200">{doc.chunk_count ?? 0}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:flex-nowrap">
                         <button
-                          className="btn-muted action-btn action-btn-doc"
+                          className="btn-muted w-full justify-start sm:w-auto"
                           type="button"
                           onClick={() => onDownload(doc)}
                           disabled={actionLoading === downloadKey}
                         >
                           <Download size={13} />
-                          <span>{actionLoading === downloadKey ? "Please wait..." : "Download"}</span>
+                          {actionLoading === downloadKey ? "Please wait..." : "Download"}
                         </button>
 
                         <button
-                          className="btn-warn action-btn action-btn-doc"
+                          className="btn-warn w-full justify-start sm:w-auto"
                           type="button"
                           onClick={() => onReindex(doc)}
                           disabled={actionLoading === reindexKey}
                         >
                           <RotateCw size={13} />
-                          <span>{actionLoading === reindexKey ? "Please wait..." : "Reindex"}</span>
+                          {actionLoading === reindexKey ? "Please wait..." : "Reindex"}
                         </button>
 
                         <button
-                          className="btn-danger action-btn action-btn-doc"
+                          className="btn-danger w-full justify-start sm:w-auto"
                           type="button"
                           onClick={() => onDelete(doc)}
                           disabled={actionLoading === deleteKey}
                         >
                           <Trash2 size={13} />
-                          <span>{actionLoading === deleteKey ? "Please wait..." : "Delete"}</span>
+                          {actionLoading === deleteKey ? "Please wait..." : "Delete"}
                         </button>
                       </div>
                     </td>
@@ -140,8 +154,7 @@ export default function DocumentsTab({
         </table>
       </div>
 
-      <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
+      {totalPages > 1 ? <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} /> : null}
     </section>
   );
 }
-
