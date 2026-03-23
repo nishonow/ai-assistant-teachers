@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import aiofiles
 from app.models import Document, Chunk
@@ -8,6 +9,7 @@ from app.database import SessionLocal
 
 UPLOAD_DIR = "uploads"
 MAX_FILE_SIZE = 20 * 1024 * 1024
+
 
 async def save_file(file) -> tuple[str, str]:
     content = await file.read()
@@ -21,23 +23,54 @@ async def save_file(file) -> tuple[str, str]:
         await f.write(content)
     return file.filename, file_path
 
+
+def clean_text(text: str) -> str:
+    text = re.sub(r'cbd\.minjust\.gov\.kg', '', text)
+    text = re.sub(r'http\S+', '', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = re.sub(r'[ \t]{2,}', ' ', text)
+    return text.strip()
+
+
 def extract_text(file_path: str, file_type: str) -> str:
     if file_type == "txt":
         with open(file_path, "r", encoding="utf-8") as f:
-            return f.read()
+            return clean_text(f.read())
+
     elif file_type == "pdf":
         import pdfplumber
-        text = ""
+        pages = []
         with pdfplumber.open(file_path) as pdf:
             for page in pdf.pages:
-                text += page.extract_text() or ""
-        return text
+                page_text = page.extract_text() or ""
+                if page_text.strip():
+                    pages.append(page_text.strip())
+        return clean_text("\n\n".join(pages))
+
     elif file_type == "docx":
         import docx
         doc = docx.Document(file_path)
-        return "\n".join([p.text for p in doc.paragraphs])
+        parts = []
+
+        for para in doc.paragraphs:
+            if para.text.strip():
+                parts.append(para.text.strip())
+
+        for table in doc.tables:
+            for row in table.rows:
+                row_text = " | ".join(
+                    cell.text.strip()
+                    for cell in row.cells
+                    if cell.text.strip()
+                )
+                if row_text:
+                    parts.append(row_text)
+
+        return clean_text("\n\n".join(parts))
+
     else:
         raise ValueError(f"Unsupported file type: {file_type}")
+
 
 async def process_document(document_id: int):
     session = SessionLocal()
