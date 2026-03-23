@@ -19,17 +19,28 @@ Return only one label:
 
 Use document_question for factual, legal, policy, conduct, disciplinary, rights/obligations, or rule-based questions that may need uploaded documents."""
 
-RETRIEVAL_QUERY_SYSTEM_PROMPT = """Rewrite the user's message into a short retrieval query.
-Keep the key legal or policy terms and preserve meaning exactly.
-Preserve country names, institution names, document titles, and role names exactly.
-Normalize casual wording, typos, and everyday phrasing into the most likely formal legal or policy terms.
-If recent chat context is provided, use it only to resolve omitted subjects in the current question.
-Use the language most likely to match the uploaded documents; if unsure, keep the original language.
-If helpful, return up to 3 short retrieval variants:
-- the original legal meaning
-- a more formal legal phrasing
-- a close synonym or official term
-Use one query per line. Do not answer."""
+RETRIEVAL_QUERY_SYSTEM_PROMPT = """Rewrite the user's message into short retrieval queries optimized for a legal document knowledge base.
+
+Rules:
+- Return 2-3 query variants, one per line, no numbering, no explanation
+- Preserve all proper nouns, country names, institution names, role names, and document titles exactly
+- Normalize casual or everyday phrasing into precise formal legal terminology
+- Expand abbreviated or colloquial legal concepts into their full official form
+- If the question implies a subject (e.g. "how many days" implies duration), make it explicit in the query
+- Prefer the most specific legal term over a general one
+- If recent chat context is provided, use it only to resolve omitted subjects in the current question
+- Output language should match the language of the knowledge base documents
+
+Query construction strategy:
+- First variant: expand the question into its most precise formal legal phrasing
+- Second variant: use the official statutory term or article-level phrasing
+- Third variant: a close synonym, related concept, or broader scope that may appear nearby in the source documents"""
+
+
+HYDE_SYSTEM_PROMPT = """Generate a short hypothetical passage from an official legal or policy document that would directly answer the user's question.
+Write in formal legal style matching the jurisdiction and language of the question.
+Use precise statutory terminology — article numbers, official role names, and exact legal concepts where applicable.
+Keep it to 2-3 sentences. No preamble. No hedging."""
 
 LANGUAGE_REWRITE_SYSTEM_PROMPT = """Rewrite the answer into the same language and script style as the user's question.
 Preserve meaning, HTML tags, list structure, and all country, institution, document, and role names exactly.
@@ -42,11 +53,6 @@ Treat close languages as different if the wording is clearly from another langua
 Return only one label:
 - same_language
 - different_language"""
-
-HYDE_SYSTEM_PROMPT = """Generate a short hypothetical document passage that would answer the user's question.
-Write it like an official legal or policy document excerpt.
-Keep it to 2-3 sentences.
-No preamble."""
 
 
 def build_answer_system_prompt() -> str:

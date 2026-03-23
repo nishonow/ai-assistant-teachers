@@ -444,6 +444,8 @@ def _select_context_chunks(ranked_candidates: list[dict], db: Session, allowed_d
         for chunk in neighbor_chunks:
             if chunk.id in seen_chunk_ids:
                 continue
+            if score_by_chunk_id.get(chunk.id, 0.0) < 0.05 and chunk.id not in {a.id for a in selected_anchors}:
+                continue
             seen_chunk_ids.add(chunk.id)
             expanded.append(chunk)
 
