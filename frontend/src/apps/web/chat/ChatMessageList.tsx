@@ -248,17 +248,17 @@ export default function ChatMessageList({
     return (
       <>
         <style>{THINKING_ANIMATION_CSS}</style>
-        <div className="grid flex-1 place-items-center px-6 py-10">
-          <div className="chat-card-enter w-full max-w-[50rem] rounded-[30px] border border-[#284863] bg-[#0d1827]/92 px-6 py-8 text-center sm:px-8 sm:py-10">
-            <h2 className="font-heading text-3xl text-slate-100">Что вы хотите узнать?</h2>
-            <div className="mx-auto mt-7 grid w-full max-w-[760px] gap-3.5 text-left sm:grid-cols-3">
+        <div className="grid flex-1 place-items-center px-4 py-5 md:px-6 md:py-10">
+          <div className="chat-card-enter w-full max-w-[50rem] rounded-[24px] border border-[#284863] bg-[#0d1827]/92 px-4 py-5 text-center sm:rounded-[30px] sm:px-8 sm:py-10">
+            <h2 className="font-heading text-[2rem] leading-tight text-slate-100 sm:text-3xl">Что вы хотите узнать?</h2>
+            <div className="mx-auto mt-5 grid w-full max-w-[760px] gap-2.5 text-left sm:mt-7 sm:gap-3.5 sm:grid-cols-3">
               {SUGGESTED_QUESTIONS.map((question) => (
                 <button
                   key={question}
                   type="button"
                   className={[
-                    "rounded-[22px] border border-[#284863] bg-[#0d1827] px-5 py-5 text-sm leading-6 text-slate-200 transition duration-200",
-                    "min-h-[96px]",
+                    "rounded-[18px] border border-[#284863] bg-[#0d1827] px-4 py-4 text-sm leading-6 text-slate-200 transition duration-200 sm:rounded-[22px] sm:px-5 sm:py-5",
+                    "min-h-[84px] sm:min-h-[96px]",
                     "hover:border-[#3a5f7d] hover:bg-[#112033] hover:text-slate-100",
                     "disabled:cursor-not-allowed disabled:opacity-55",
                   ].join(" ")}

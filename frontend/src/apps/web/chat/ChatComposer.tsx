@@ -124,7 +124,7 @@ export default function ChatComposer({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-[#08111c]/96 px-3 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-1.5 md:px-6 md:pb-4 md:pt-2"
+      className="bg-[#08111c]/96 px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-1.5 md:px-6 md:pb-4 md:pt-2"
     >
       <div className="chat-composer-shell mx-auto flex w-full max-w-4xl items-end gap-2 rounded-[22px] bg-[#0d1827] px-2 py-1.5 md:gap-2.5 md:rounded-[24px] md:px-2.5 md:py-2">
         <textarea
@@ -147,7 +147,7 @@ export default function ChatComposer({
           <SendHorizontal size={16} />
         </button>
       </div>
-      <p className="mx-auto mt-1 w-full max-w-4xl px-2 text-center text-[8px] leading-3 text-slate-500 whitespace-nowrap md:mt-1.5 md:text-[11px] md:leading-4">
+      <p className="mx-auto mt-1 w-full max-w-4xl px-2 text-center text-[10px] leading-4 text-slate-500 md:mt-1.5 md:text-[11px] md:leading-4">
         Проверяйте источники. История сохраняется.
       </p>
     </form>
