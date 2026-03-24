@@ -303,6 +303,22 @@ export default function ChatPage() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousOverscroll = document.documentElement.style.overscrollBehavior;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.documentElement.style.overscrollBehavior = "none";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.documentElement.style.overscrollBehavior = previousOverscroll;
+    };
+  }, []);
+
   const handleSelectConversation = useCallback(
     (conversationId: string) => {
       if (!session || conversationId === routeConversationId) return;
@@ -604,7 +620,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="relative flex h-[100svh] overflow-visible bg-[radial-gradient(circle_at_top,_rgba(84,214,198,0.12),_transparent_24%),linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] text-slate-100 md:h-[100dvh]">
+    <div className="relative flex h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] text-slate-100">
       <ChatSidebar
         activeConversationId={activeConversationId}
         conversations={conversations}

@@ -1,4 +1,4 @@
-﻿import { SendHorizontal } from "lucide-react";
+import { SendHorizontal } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 interface ChatComposerProps {
@@ -136,7 +136,7 @@ export default function ChatComposer({
           onFocus={stabilizeZoomedFocus}
           placeholder="Напишите Mugallim AI..."
           rows={1}
-          className="chat-input-scroll min-h-[20px] max-h-[220px] flex-1 resize-none bg-transparent px-2 py-[5px] text-[17px] leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[22px] md:py-[7px] md:text-base"
+          className="chat-input-scroll min-h-[20px] max-h-[220px] flex-1 resize-none bg-transparent px-2 py-[5px] text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[22px] md:py-[7px]"
         />
         <button
           type="submit"
