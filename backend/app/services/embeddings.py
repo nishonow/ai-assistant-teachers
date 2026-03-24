@@ -1,17 +1,17 @@
-from openai import OpenAI
+from openai import AsyncOpenAI
 from app.config import settings
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
-def embed_text(text: str) -> list[float]:
-    response = client.embeddings.create(
+async def embed_text(text: str) -> list[float]:
+    response = await client.embeddings.create(
         model="text-embedding-3-small",
         input=text
     )
     return response.data[0].embedding
 
-def embed_chunks(chunks: list[str]) -> list[list[float]]:
-    response = client.embeddings.create(
+async def embed_chunks(chunks: list[str]) -> list[list[float]]:
+    response = await client.embeddings.create(
         model="text-embedding-3-small",
         input=chunks
     )

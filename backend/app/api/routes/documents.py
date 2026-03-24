@@ -1,56 +1,119 @@
-from fastapi import APIRouter, UploadFile, File, Depends, BackgroundTasks, HTTPException
-from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from app.database import get_db
-from app.models import Document, Chunk
-from app.services.document_processor import save_file, process_document
-from app.dependencies import require_admin
 import os
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+from sqlalchemy import delete, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import get_db
+from app.dependencies import require_admin
+from app.models import Chunk, Document
+from app.services.document_processor import process_document, save_file
 
 router = APIRouter(prefix="/documents", tags=["documents"], dependencies=[Depends(require_admin)])
 
 ALLOWED_TYPES = {"pdf", "txt", "docx"}
 
+
+def _collect_uploads(file: UploadFile | None, files: list[UploadFile] | None) -> list[UploadFile]:
+    uploads: list[UploadFile] = []
+    if file is not None:
+        uploads.append(file)
+    if files:
+        uploads.extend(files)
+    return uploads
+
+
 @router.post("/upload")
 async def upload_document(
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
+    file: UploadFile | None = File(default=None),
+    files: list[UploadFile] | None = File(default=None),
     uploaded_by: str = "admin",
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
-    file_type = file.filename.split(".")[-1].lower()
-    if file_type not in ALLOWED_TYPES:
+    uploads = _collect_uploads(file, files)
+    if not uploads:
+        raise HTTPException(status_code=400, detail="At least one file is required")
+
+    invalid_files = [
+        upload.filename
+        for upload in uploads
+        if "." not in upload.filename or upload.filename.rsplit(".", 1)[-1].lower() not in ALLOWED_TYPES
+    ]
+    if invalid_files:
         raise HTTPException(status_code=400, detail=f"File type not allowed. Use: {ALLOWED_TYPES}")
 
+    saved_paths: list[str] = []
+    created_documents: list[Document] = []
     try:
-        file_name, file_path = await save_file(file)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        for upload in uploads:
+            file_name, file_path = await save_file(upload)
+            saved_paths.append(file_path)
 
-    document = Document(
-        file_name=file_name,
-        file_type=file_type,
-        file_path=file_path,
-        uploaded_by=uploaded_by,
-        status="pending"
-    )
-    db.add(document)
-    db.commit()
-    db.refresh(document)
+            document = Document(
+                file_name=file_name,
+                file_type=upload.filename.rsplit(".", 1)[-1].lower(),
+                file_path=file_path,
+                uploaded_by=uploaded_by,
+                status="pending",
+            )
+            db.add(document)
+            await db.flush()
+            created_documents.append(document)
 
-    background_tasks.add_task(process_document, document.id)
-    return {"id": document.id, "file_name": file_name, "status": document.status}
+        await db.commit()
+    except ValueError as exc:
+        await db.rollback()
+        for file_path in saved_paths:
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except OSError:
+                pass
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception:
+        await db.rollback()
+        for file_path in saved_paths:
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except OSError:
+                pass
+        raise
+
+    for document in created_documents:
+        background_tasks.add_task(process_document, document.id)
+
+    if len(created_documents) == 1:
+        document = created_documents[0]
+        return {"id": document.id, "file_name": document.file_name, "status": document.status}
+
+    return {
+        "items": [
+            {
+                "id": document.id,
+                "file_name": document.file_name,
+                "status": document.status,
+            }
+            for document in created_documents
+        ]
+    }
+
 
 @router.get("/")
-def get_documents(db: Session = Depends(get_db)):
-    results = db.query(
-        Document,
-        func.count(Chunk.id).label("chunk_count")
-    ).outerjoin(Chunk, Chunk.document_id == Document.id)\
-     .group_by(Document.id)\
-     .order_by(Document.created_at.desc())\
-     .all()
+async def get_documents(db: AsyncSession = Depends(get_db)):
+    results = (
+        await db.execute(
+            select(
+                Document,
+                func.count(Chunk.id).label("chunk_count"),
+            )
+            .outerjoin(Chunk, Chunk.document_id == Document.id)
+            .group_by(Document.id)
+            .order_by(Document.created_at.desc())
+        )
+    ).all()
 
     return [
         {
@@ -66,22 +129,24 @@ def get_documents(db: Session = Depends(get_db)):
         for doc, chunk_count in results
     ]
 
+
 @router.get("/{document_id}")
-def get_document(document_id: int, db: Session = Depends(get_db)):
-    document = db.query(Document).filter(Document.id == document_id).first()
+async def get_document(document_id: int, db: AsyncSession = Depends(get_db)):
+    document = (await db.execute(select(Document).where(Document.id == document_id))).scalar_one_or_none()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     return {"id": document.id, "status": document.status, "file_name": document.file_name}
 
+
 @router.delete("/{document_id}")
-def delete_document(document_id: int, db: Session = Depends(get_db)):
-    document = db.query(Document).filter(Document.id == document_id).first()
+async def delete_document(document_id: int, db: AsyncSession = Depends(get_db)):
+    document = (await db.execute(select(Document).where(Document.id == document_id))).scalar_one_or_none()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
     file_path = document.file_path
-    db.delete(document)
-    db.commit()
+    await db.delete(document)
+    await db.commit()
 
     try:
         if os.path.exists(file_path):
@@ -91,22 +156,24 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
 
     return {"message": "Document deleted"}
 
+
 @router.post("/{document_id}/reindex")
-async def reindex_document(document_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    document = db.query(Document).filter(Document.id == document_id).first()
+async def reindex_document(document_id: int, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+    document = (await db.execute(select(Document).where(Document.id == document_id))).scalar_one_or_none()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    db.query(Chunk).filter(Chunk.document_id == document_id).delete()
+    await db.execute(delete(Chunk).where(Chunk.document_id == document_id))
     document.status = "pending"
-    db.commit()
+    await db.commit()
 
     background_tasks.add_task(process_document, document.id)
     return {"id": document.id, "status": "reindexing"}
 
+
 @router.get("/{document_id}/file")
-def get_document_file(document_id: int, db: Session = Depends(get_db)):
-    document = db.query(Document).filter(Document.id == document_id).first()
+async def get_document_file(document_id: int, db: AsyncSession = Depends(get_db)):
+    document = (await db.execute(select(Document).where(Document.id == document_id))).scalar_one_or_none()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     if not os.path.exists(document.file_path):
@@ -115,5 +182,5 @@ def get_document_file(document_id: int, db: Session = Depends(get_db)):
     return FileResponse(
         path=document.file_path,
         filename=document.file_name,
-        media_type="application/octet-stream"
+        media_type="application/octet-stream",
     )

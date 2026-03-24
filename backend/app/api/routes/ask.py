@@ -3,7 +3,8 @@ from time import time
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_token_subject_from_authorization
@@ -41,7 +42,7 @@ def _check_rate_limit(key: str) -> None:
     _request_counts[key].append(now)
 
 
-def _resolve_user(request: AskRequest, db: Session, authorization: str | None) -> User:
+async def _resolve_user(request: AskRequest, db: AsyncSession, authorization: str | None) -> User:
     if request.platform == "web":
         if not authorization:
             raise HTTPException(status_code=401, detail="Unauthorized")
@@ -49,17 +50,32 @@ def _resolve_user(request: AskRequest, db: Session, authorization: str | None) -
         subject = get_token_subject_from_authorization(authorization)
         if subject != request.platform_user_id:
             raise HTTPException(status_code=403, detail="User mismatch")
-        user = db.query(User).filter(
-            User.platform == "web",
-            User.platform_user_id == subject,
-        ).first()
+        user = (
+            await db.execute(
+                select(User).where(
+                    User.platform == "web",
+                    User.platform_user_id == subject,
+                )
+            )
+        ).scalar_one_or_none()
         if not user:
-            user = db.query(User).filter(User.login == subject, User.is_admin == True).first()
+            user = (
+                await db.execute(
+                    select(User).where(
+                        User.login == subject,
+                        User.is_admin == True,
+                    )
+                )
+            ).scalar_one_or_none()
     else:
-        user = db.query(User).filter(
-            User.platform_user_id == request.platform_user_id,
-            User.platform == request.platform,
-        ).first()
+        user = (
+            await db.execute(
+                select(User).where(
+                    User.platform_user_id == request.platform_user_id,
+                    User.platform == request.platform,
+                )
+            )
+        ).scalar_one_or_none()
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -68,19 +84,19 @@ def _resolve_user(request: AskRequest, db: Session, authorization: str | None) -
 
 
 @router.post("/")
-def ask_question(
+async def ask_question(
     request: AskRequest,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     authorization: str | None = Header(default=None),
 ):
-    user = _resolve_user(request, db, authorization)
+    user = await _resolve_user(request, db, authorization)
 
     if user.is_blocked:
         raise HTTPException(status_code=403, detail="User is blocked")
 
     _check_rate_limit(f"{request.platform}:{request.platform_user_id}")
 
-    result = ask(
+    result = await ask(
         question=request.question,
         user_id=user.id,
         platform=request.platform,

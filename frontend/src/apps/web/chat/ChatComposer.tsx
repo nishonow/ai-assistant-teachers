@@ -9,6 +9,7 @@ interface ChatComposerProps {
 }
 
 const MAX_TEXTAREA_HEIGHT = 220;
+const MOBILE_ENTER_QUERY = "(pointer: coarse), (max-width: 767px)";
 
 export default function ChatComposer({
   disabled,
@@ -94,6 +95,10 @@ export default function ChatComposer({
       return;
     }
 
+    if (window.matchMedia(MOBILE_ENTER_QUERY).matches) {
+      return;
+    }
+
     event.preventDefault();
     event.currentTarget.form?.requestSubmit();
   };
@@ -130,7 +135,7 @@ export default function ChatComposer({
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 -top-12 h-14 bg-gradient-to-b from-transparent via-[#07101a]/74 to-[#07101a] md:-top-16 md:h-20"
       />
-      <div className="chat-composer-shell relative mx-auto flex w-full max-w-4xl items-end gap-2 overflow-hidden rounded-[28px] border border-[#284863]/85 bg-[#0d1827]/92 px-2.5 py-1.5 backdrop-blur-md transition-[background-color,border-color,transform] duration-200 focus-within:-translate-y-0.5 focus-within:border-[#5ddfd0]/35 focus-within:bg-[#0e1c2b]/95 md:gap-2.5 md:px-3 md:py-2">
+      <div className="chat-composer-shell relative mx-auto flex w-full max-w-4xl items-end gap-2 overflow-hidden rounded-[28px] border border-[#284863]/85 bg-[#0d1827]/92 px-2.5 py-1.5 backdrop-blur-md focus-within:border-[#5ddfd0]/35 focus-within:bg-[#0e1c2b]/95 md:gap-2.5 md:px-3 md:py-2">
         <textarea
           ref={textareaRef}
           value={value}

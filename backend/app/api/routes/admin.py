@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from pydantic import BaseModel
+import asyncio
+
 import bcrypt
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.database import get_db
-from app.models import User, Document, Chunk, Message, ChatConversation, ChatConversationMessage
 from app.dependencies import require_admin
+from app.models import ChatConversation, ChatConversationMessage, Chunk, Document, Message, User
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -18,18 +21,22 @@ class MakeAdminRequest(BaseModel):
     password: str | None = None
 
 @router.get("/stats")
-def get_stats(db: Session = Depends(get_db)):
-    total_users = db.query(func.count(User.id)).scalar()
-    total_messages = db.query(func.count(Message.id)).scalar()
-    saved_web_messages = db.query(func.count(ChatConversationMessage.id)).scalar()
-    saved_web_conversations = db.query(func.count(ChatConversation.id)).scalar()
-    total_documents = db.query(func.count(Document.id)).scalar()
-    total_chunks = db.query(func.count(Chunk.id)).scalar()
+async def get_stats(db: AsyncSession = Depends(get_db)):
+    total_users = await db.scalar(select(func.count(User.id)))
+    total_messages = await db.scalar(select(func.count(Message.id)))
+    saved_web_messages = await db.scalar(select(func.count(ChatConversationMessage.id)))
+    saved_web_conversations = await db.scalar(select(func.count(ChatConversation.id)))
+    total_documents = await db.scalar(select(func.count(Document.id)))
+    total_chunks = await db.scalar(select(func.count(Chunk.id)))
 
-    messages_by_platform = db.query(
-        Message.platform,
-        func.count(Message.id)
-    ).group_by(Message.platform).all()
+    messages_by_platform = (
+        await db.execute(
+            select(
+                Message.platform,
+                func.count(Message.id),
+            ).group_by(Message.platform)
+        )
+    ).all()
 
     return {
         "total_users": total_users,
@@ -42,32 +49,40 @@ def get_stats(db: Session = Depends(get_db)):
     }
 
 @router.post("/users/block")
-def block_user(request: BlockRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(
-        User.platform_user_id == request.platform_user_id,
-        User.platform == request.platform
-    ).first()
+async def block_user(request: BlockRequest, db: AsyncSession = Depends(get_db)):
+    user = (
+        await db.execute(
+            select(User).where(
+                User.platform_user_id == request.platform_user_id,
+                User.platform == request.platform,
+            )
+        )
+    ).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.is_blocked = True
-    db.commit()
+    await db.commit()
     return {"ok": True}
 
 @router.post("/users/unblock")
-def unblock_user(request: BlockRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(
-        User.platform_user_id == request.platform_user_id,
-        User.platform == request.platform
-    ).first()
+async def unblock_user(request: BlockRequest, db: AsyncSession = Depends(get_db)):
+    user = (
+        await db.execute(
+            select(User).where(
+                User.platform_user_id == request.platform_user_id,
+                User.platform == request.platform,
+            )
+        )
+    ).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.is_blocked = False
-    db.commit()
+    await db.commit()
     return {"ok": True}
 
 @router.get("/users")
-def list_users(db: Session = Depends(get_db)):
-    users = db.query(User).order_by(User.created_at.desc()).all()
+async def list_users(db: AsyncSession = Depends(get_db)):
+    users = (await db.execute(select(User).order_by(User.created_at.desc()))).scalars().all()
     return [
         {
             "id": u.id,
@@ -84,36 +99,47 @@ def list_users(db: Session = Depends(get_db)):
     ]
 
 @router.post("/users/{user_id}/make-admin")
-def make_admin(user_id: int, request: MakeAdminRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
+async def make_admin(user_id: int, request: MakeAdminRequest, db: AsyncSession = Depends(get_db)):
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     if user.platform == "web":
         user.is_admin = True
-        db.commit()
+        await db.commit()
         return {"ok": True}
 
     login = (request.login or "").strip()
     password = (request.password or "").strip()
     if not login or not password:
         raise HTTPException(status_code=400, detail="Login and password are required")
-    if db.query(User).filter(User.login == login, User.id != user_id).first():
+
+    existing = (
+        await db.execute(
+            select(User).where(
+                User.login == login,
+                User.id != user_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing:
         raise HTTPException(status_code=400, detail="Login already taken")
 
     user.is_admin = True
     user.login = login
-    user.password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    db.commit()
+    user.password_hash = (
+        await asyncio.to_thread(bcrypt.hashpw, password.encode(), bcrypt.gensalt())
+    ).decode()
+    await db.commit()
     return {"ok": True}
 
 @router.post("/users/{user_id}/remove-admin")
-def remove_admin(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
+async def remove_admin(user_id: int, db: AsyncSession = Depends(get_db)):
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.is_admin = False
     user.login = None
     user.password_hash = None
-    db.commit()
+    await db.commit()
     return {"ok": True}

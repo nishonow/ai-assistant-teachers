@@ -1,10 +1,12 @@
-﻿from datetime import datetime, timedelta
+import asyncio
+from datetime import datetime, timedelta
 
 import bcrypt
 import jwt
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, EmailStr
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
@@ -51,7 +53,7 @@ def _build_auth_response(*, token: str, role: str, user_id: str, username: str, 
     }
 
 
-def _resolve_auth_subject(subject: str, db: Session) -> dict:
+async def _resolve_auth_subject(subject: str, db: AsyncSession) -> dict:
     if subject == settings.ADMIN_USERNAME:
         return _build_auth_response(
             token="",
@@ -61,7 +63,14 @@ def _resolve_auth_subject(subject: str, db: Session) -> dict:
             display_name=subject,
         )
 
-    admin_user = db.query(User).filter(User.login == subject, User.is_admin == True).first()
+    admin_user = (
+        await db.execute(
+            select(User).where(
+                User.login == subject,
+                User.is_admin == True,
+            )
+        )
+    ).scalar_one_or_none()
     if admin_user:
         return _build_auth_response(
             token="",
@@ -71,7 +80,14 @@ def _resolve_auth_subject(subject: str, db: Session) -> dict:
             display_name=admin_user.name or subject,
         )
 
-    web_user = db.query(User).filter(User.platform == "web", User.platform_user_id == subject).first()
+    web_user = (
+        await db.execute(
+            select(User).where(
+                User.platform == "web",
+                User.platform_user_id == subject,
+            )
+        )
+    ).scalar_one_or_none()
     if web_user:
         return _build_auth_response(
             token="",
@@ -85,31 +101,41 @@ def _resolve_auth_subject(subject: str, db: Session) -> dict:
 
 
 @router.post("/register")
-def register(request: RegisterRequest, db: Session = Depends(get_db)):
+async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
     email = request.email.strip().lower()
     name = request.name.strip() or "User"
 
-    existing = db.query(User).filter(User.platform == "web", User.platform_user_id == email).first()
+    existing = (
+        await db.execute(
+            select(User).where(
+                User.platform == "web",
+                User.platform_user_id == email,
+            )
+        )
+    ).scalar_one_or_none()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    password_hash = (
+        await asyncio.to_thread(bcrypt.hashpw, request.password.encode(), bcrypt.gensalt())
+    ).decode()
     user = User(
         platform="web",
         platform_user_id=email,
         name=name,
         username=email,
         is_admin=False,
-        password_hash=bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode(),
+        password_hash=password_hash,
     )
     db.add(user)
-    db.commit()
+    await db.commit()
 
     token = _create_access_token(email)
     return _build_auth_response(token=token, role="user", user_id=email, username=email, display_name=name)
 
 
 @router.post("/login")
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     identifier = request.username.strip()
     password = request.password
 
@@ -123,43 +149,69 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             display_name=identifier,
         )
 
-    admin_user = db.query(User).filter(User.login == identifier, User.is_admin == True).first()
-    if admin_user and admin_user.password_hash and bcrypt.checkpw(password.encode(), admin_user.password_hash.encode()):
-        token = _create_access_token(identifier)
-        return _build_auth_response(
-            token=token,
-            role="admin",
-            user_id=identifier,
-            username=identifier,
-            display_name=admin_user.name or identifier,
+    admin_user = (
+        await db.execute(
+            select(User).where(
+                User.login == identifier,
+                User.is_admin == True,
+            )
         )
+    ).scalar_one_or_none()
+    if admin_user and admin_user.password_hash:
+        is_valid = await asyncio.to_thread(
+            bcrypt.checkpw,
+            password.encode(),
+            admin_user.password_hash.encode(),
+        )
+        if is_valid:
+            token = _create_access_token(identifier)
+            return _build_auth_response(
+                token=token,
+                role="admin",
+                user_id=identifier,
+                username=identifier,
+                display_name=admin_user.name or identifier,
+            )
 
     normalized_email = identifier.lower()
-    web_user = db.query(User).filter(User.platform == "web", User.platform_user_id == normalized_email).first()
-    if web_user and web_user.password_hash and bcrypt.checkpw(password.encode(), web_user.password_hash.encode()):
-        token = _create_access_token(normalized_email)
-        return _build_auth_response(
-            token=token,
-            role="admin" if web_user.is_admin else "user",
-            user_id=normalized_email,
-            username=normalized_email,
-            display_name=web_user.name or normalized_email,
+    web_user = (
+        await db.execute(
+            select(User).where(
+                User.platform == "web",
+                User.platform_user_id == normalized_email,
+            )
         )
+    ).scalar_one_or_none()
+    if web_user and web_user.password_hash:
+        is_valid = await asyncio.to_thread(
+            bcrypt.checkpw,
+            password.encode(),
+            web_user.password_hash.encode(),
+        )
+        if is_valid:
+            token = _create_access_token(normalized_email)
+            return _build_auth_response(
+                token=token,
+                role="admin" if web_user.is_admin else "user",
+                user_id=normalized_email,
+                username=normalized_email,
+                display_name=web_user.name or normalized_email,
+            )
 
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 
 @router.get("/me")
-def me(authorization: str = Header(...), db: Session = Depends(get_db)):
+async def me(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     subject = get_token_subject_from_authorization(authorization)
-    response = _resolve_auth_subject(subject, db)
+    response = await _resolve_auth_subject(subject, db)
     response["accessToken"] = authorization.split(" ", 1)[1]
     return response
 
 
 @router.patch("/me")
 @router.post("/me")
-def update_me(request: UpdateProfileRequest, authorization: str = Header(...), db: Session = Depends(get_db)):
+async def update_me(request: UpdateProfileRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     subject = get_token_subject_from_authorization(authorization)
     name = request.name.strip()
     email = request.email.strip().lower()
@@ -171,11 +223,25 @@ def update_me(request: UpdateProfileRequest, authorization: str = Header(...), d
     if subject == settings.ADMIN_USERNAME:
         raise HTTPException(status_code=400, detail="Built-in admin profile cannot be edited here")
 
-    user = db.query(User).filter(User.platform == "web", User.platform_user_id == subject).first()
+    user = (
+        await db.execute(
+            select(User).where(
+                User.platform == "web",
+                User.platform_user_id == subject,
+            )
+        )
+    ).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=400, detail="This profile cannot be edited here")
 
-    existing = db.query(User).filter(User.platform == "web", User.platform_user_id == email).first()
+    existing = (
+        await db.execute(
+            select(User).where(
+                User.platform == "web",
+                User.platform_user_id == email,
+            )
+        )
+    ).scalar_one_or_none()
     if existing and existing.id != user.id:
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -183,9 +249,11 @@ def update_me(request: UpdateProfileRequest, authorization: str = Header(...), d
     user.username = email
     user.name = name
     if password:
-        user.password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    db.commit()
-    db.refresh(user)
+        user.password_hash = (
+            await asyncio.to_thread(bcrypt.hashpw, password.encode(), bcrypt.gensalt())
+        ).decode()
+    await db.commit()
+    await db.refresh(user)
 
     token = _create_access_token(email)
     return _build_auth_response(

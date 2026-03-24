@@ -1,7 +1,9 @@
+import asyncio
 import os
 import re
 import uuid
 import aiofiles
+from sqlalchemy import select
 from app.models import Document, Chunk
 from app.services.chunking import split_text
 from app.services.embeddings import embed_chunks
@@ -73,36 +75,43 @@ def extract_text(file_path: str, file_type: str) -> str:
 
 
 async def process_document(document_id: int):
-    session = SessionLocal()
-    try:
-        document = session.query(Document).filter(Document.id == document_id).first()
-        if not document:
-            return
+    async with SessionLocal() as session:
+        try:
+            document = (
+                await session.execute(select(Document).where(Document.id == document_id))
+            ).scalar_one_or_none()
+            if not document:
+                return
 
-        document.status = "processing"
-        session.commit()
+            document.status = "processing"
+            await session.commit()
 
-        text = extract_text(document.file_path, document.file_type)
-        chunks = split_text(text)
-        embeddings = embed_chunks(chunks)
+            text = await asyncio.to_thread(extract_text, document.file_path, document.file_type)
+            chunks = split_text(text)
+            embeddings = await embed_chunks(chunks)
 
-        for i, (chunk_text, embedding) in enumerate(zip(chunks, embeddings)):
-            session.add(Chunk(
-                document_id=document.id,
-                chunk_index=i,
-                chunk_text=chunk_text,
-                embedding=embedding
-            ))
+            for i, (chunk_text, embedding) in enumerate(zip(chunks, embeddings)):
+                session.add(
+                    Chunk(
+                        document_id=document.id,
+                        chunk_index=i,
+                        chunk_text=chunk_text,
+                        embedding=embedding,
+                    )
+                )
 
-        document.status = "indexed"
-        session.commit()
+            document.status = "indexed"
+            await session.commit()
 
-    except Exception as e:
-        session.rollback()
-        document = session.query(Document).filter(Document.id == document_id).first()
-        if document:
-            document.status = "failed"
-            session.commit()
-        raise e
-    finally:
-        session.close()
+        except Exception:
+            await session.rollback()
+            try:
+                document = (
+                    await session.execute(select(Document).where(Document.id == document_id))
+                ).scalar_one_or_none()
+                if document:
+                    document.status = "failed"
+                    await session.commit()
+            except Exception:
+                await session.rollback()
+            raise

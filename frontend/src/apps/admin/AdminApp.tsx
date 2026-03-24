@@ -26,7 +26,7 @@ const TABS: TabItem[] = [
   { id: "overview", label: "Overview" },
   { id: "users", label: "Users" },
   { id: "documents", label: "Documents" },
-  { id: "upload", label: "Upload Document" },
+  { id: "upload", label: "Upload Documents" },
 ];
 
 const TAB_PATHS: Record<TabId, string> = {
@@ -288,12 +288,16 @@ export default function AdminApp() {
     }
   };
 
-  const handleUploadDocument = async (file: File, uploadedBy: string): Promise<void> => {
+  const handleUploadDocument = async (files: File[], uploadedBy: string): Promise<void> => {
     setLoading((prev) => ({ ...prev, upload: true }));
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      if (files.length === 1) {
+        formData.append("file", files[0]);
+      } else {
+        files.forEach((file) => formData.append("files", file));
+      }
 
       await authorizedRequest({
         path: `/api/v1/documents/upload?uploaded_by=${encodeURIComponent(uploadedBy)}`,
@@ -302,7 +306,10 @@ export default function AdminApp() {
         isForm: true,
       });
 
-      showNotice("success", `${file.name} uploaded successfully.`);
+      showNotice(
+        "success",
+        files.length === 1 ? `${files[0].name} uploaded successfully.` : `${files.length} documents uploaded successfully.`
+      );
       navigate("/admin/documents");
       await loadDocuments();
       await loadStats();

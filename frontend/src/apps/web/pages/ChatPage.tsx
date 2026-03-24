@@ -114,6 +114,7 @@ export default function ChatPage() {
   const { session, logout, updateProfile } = useAuth();
   const conversationRequestIdRef = useRef(0);
   const selectedSourcesMessageIdRef = useRef<string | null>(null);
+  const sendLockRef = useRef(false);
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -345,8 +346,9 @@ export default function ChatPage() {
 
   const handleSend = useCallback(
     async (prompt: string) => {
-      if (!session || pending) return;
+      if (!session || pending || sendLockRef.current) return;
 
+      sendLockRef.current = true;
       setPending(true);
 
       let conversation = activeConversation;
@@ -359,6 +361,7 @@ export default function ChatPage() {
         } catch (requestError) {
           showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось начать новый диалог.");
           setPending(false);
+          sendLockRef.current = false;
           return;
         }
       }
@@ -417,6 +420,7 @@ export default function ChatPage() {
         showNotice("error", requestError instanceof Error ? requestError.message : "Запрос не выполнен.");
       } finally {
         setPending(false);
+        sendLockRef.current = false;
       }
     },
     [activeConversation, navigate, pending, session, showNotice, syncActiveConversation],

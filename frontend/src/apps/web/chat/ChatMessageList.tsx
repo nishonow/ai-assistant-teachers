@@ -1,5 +1,5 @@
 import { BookOpenText, Check, Copy } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, type Ref, useCallback, useEffect, useRef, useState } from "react";
 
 import AssistantMessageContent, { getAssistantMessagePlainText } from "./AssistantMessageContent";
 import type { ChatMessage } from "./types";
@@ -26,6 +26,7 @@ const THINKING_STAGES = [
   "Проверяю контекст и нормы...",
   "Формирую ответ...",
 ] as const;
+const AUTO_SCROLL_THRESHOLD = 96;
 
 const THINKING_ANIMATION_CSS = `
   @keyframes webchatThinkingCorePulse {
@@ -136,8 +137,18 @@ const THINKING_ANIMATION_CSS = `
   }
 `;
 
-function ChatScrollShell({ children }: { children: ReactNode }) {
-  return <div className="scroll-area flex-1 overflow-y-auto px-3 py-4 pb-3 md:px-6 md:py-5 md:pb-4">{children}</div>;
+function ChatScrollShell({
+  children,
+  scrollRef,
+}: {
+  children: ReactNode;
+  scrollRef?: Ref<HTMLDivElement>;
+}) {
+  return (
+    <div ref={scrollRef} className="scroll-area flex-1 overflow-y-auto px-3 py-4 pb-3 md:px-6 md:py-5 md:pb-4">
+      {children}
+    </div>
+  );
 }
 
 export default function ChatMessageList({
@@ -149,11 +160,35 @@ export default function ChatMessageList({
   onSelectSuggestion,
   suggestionsDisabled,
 }: ChatMessageListProps) {
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const previousLengthRef = useRef(0);
   const previousPendingRef = useRef(false);
+  const shouldStickToBottomRef = useRef(true);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [thinkingStageIndex, setThinkingStageIndex] = useState(0);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
+    const element = scrollRef.current;
+    if (!element) return;
+    element.scrollTo({ top: element.scrollHeight, behavior });
+  }, []);
+
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) return;
+
+    const updateStickiness = () => {
+      const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
+      shouldStickToBottomRef.current = distanceFromBottom <= AUTO_SCROLL_THRESHOLD;
+    };
+
+    updateStickiness();
+    element.addEventListener("scroll", updateStickiness, { passive: true });
+    return () => {
+      element.removeEventListener("scroll", updateStickiness);
+    };
+  }, []);
 
   useEffect(() => {
     if (!messages.length && !pending) {
@@ -165,13 +200,33 @@ export default function ChatMessageList({
     const shouldSmooth = messages.length > previousLengthRef.current || (pending && !previousPendingRef.current);
     const behavior: ScrollBehavior = shouldSmooth ? "smooth" : "auto";
 
-    requestAnimationFrame(() => {
-      bottomRef.current?.scrollIntoView({ behavior, block: "end" });
-    });
+    if (shouldStickToBottomRef.current) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom(behavior);
+        });
+      });
+    }
 
     previousLengthRef.current = messages.length;
     previousPendingRef.current = pending;
-  }, [messages.length, pending]);
+  }, [messages.length, pending, scrollToBottom]);
+
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      if (shouldStickToBottomRef.current) {
+        scrollToBottom("auto");
+      }
+    });
+
+    observer.observe(content);
+    return () => {
+      observer.disconnect();
+    };
+  }, [scrollToBottom]);
 
   useEffect(() => {
     if (!copiedMessageId) return;
@@ -211,9 +266,9 @@ export default function ChatMessageList({
     return (
       <>
         <style>{THINKING_ANIMATION_CSS}</style>
-        <ChatScrollShell>
+        <ChatScrollShell scrollRef={scrollRef}>
           <div className="mx-auto w-full max-w-4xl space-y-3.5 md:space-y-4" role="status" aria-live="polite">
-            <div className="chat-card-enter max-w-[72%] animate-pulse rounded-[24px] border border-[#284863] bg-[#0f1c2c] px-4 py-4">
+            <div className="max-w-[72%] animate-pulse rounded-[24px] border border-[#284863] bg-[#0f1c2c] px-4 py-4">
               <div className="mb-3 flex items-center gap-2">
                 <span className="inline-flex h-6 w-24 rounded-full border border-[#305169] bg-[#102033]" />
               </div>
@@ -224,7 +279,7 @@ export default function ChatMessageList({
               </div>
             </div>
 
-            <div className="chat-card-enter ml-auto max-w-[54%] animate-pulse rounded-[24px] border border-brand-400/25 bg-brand-500/10 px-4 py-4 [animation-delay:120ms]">
+            <div className="ml-auto max-w-[54%] animate-pulse rounded-[24px] border border-brand-400/25 bg-brand-500/10 px-4 py-4 [animation-delay:120ms]">
               <div className="mb-3 flex justify-end">
                 <span className="inline-flex h-6 w-16 rounded-full border border-brand-400/20 bg-brand-500/10" />
               </div>
@@ -234,7 +289,7 @@ export default function ChatMessageList({
               </div>
             </div>
 
-            <div className="chat-card-enter flex items-center gap-3 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm text-slate-300 [animation-delay:180ms]">
+            <div className="flex items-center gap-3 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm text-slate-300 [animation-delay:180ms]">
               <span className="inline-flex h-3 w-3 animate-pulse rounded-full bg-brand-200" />
               <span>Загружаем диалог...</span>
             </div>
@@ -249,7 +304,7 @@ export default function ChatMessageList({
       <>
         <style>{THINKING_ANIMATION_CSS}</style>
         <div className="grid flex-1 place-items-center px-4 py-5 md:px-6 md:py-10">
-          <div className="chat-card-enter w-full max-w-[50rem] rounded-[24px] border border-[#284863] bg-[#0d1827]/92 px-4 py-5 text-center sm:rounded-[30px] sm:px-8 sm:py-10">
+          <div className="w-full max-w-[50rem] rounded-[24px] border border-[#284863] bg-[#0d1827]/92 px-4 py-5 text-center sm:rounded-[30px] sm:px-8 sm:py-10">
             <h2 className="font-heading text-[2rem] leading-tight text-slate-100 sm:text-3xl">Что вы хотите узнать?</h2>
             <div className="mx-auto mt-5 grid w-full max-w-[760px] gap-2.5 text-left sm:mt-7 sm:gap-3.5 sm:grid-cols-3">
               {SUGGESTED_QUESTIONS.map((question) => (
@@ -278,18 +333,18 @@ export default function ChatMessageList({
   return (
     <>
       <style>{THINKING_ANIMATION_CSS}</style>
-      <ChatScrollShell>
-        <div className="mx-auto w-full max-w-4xl space-y-3.5 md:space-y-4">
-          {messages.map((message, index) => (
+      <ChatScrollShell scrollRef={scrollRef}>
+        <div ref={contentRef} className="mx-auto w-full max-w-4xl space-y-3.5 md:space-y-4">
+          {messages.map((message) => (
             <article
               key={message.id}
               className={[
-                "chat-card-enter rounded-[22px] px-3.5 py-2.5 text-sm",
+                "rounded-[22px] px-3.5 py-2.5 text-sm",
                 message.role === "user"
                   ? "ml-auto max-w-[82%] border border-brand-400/35 bg-brand-500/15 text-slate-100 md:max-w-[48%]"
                   : "mr-auto max-w-[90%] border border-[#284863] bg-[#0d1827] text-slate-200 md:max-w-[70%]",
               ].join(" ")}
-              style={{ animationDelay: `${Math.min(index, 6) * 35}ms` }}
+              style={undefined}
             >
               <div className="mb-1 flex items-center justify-between gap-3">
                 <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">{message.role === "user" ? "Вы" : "Ассистент"}</p>
@@ -346,7 +401,7 @@ export default function ChatMessageList({
           ))}
 
           {pending ? (
-            <div className="thinking-shell chat-card-enter mr-auto max-w-[70%] rounded-[24px] border border-[#284863] bg-[#0d1827] px-4 py-4 text-sm text-slate-300">
+            <div className="thinking-shell mr-auto max-w-[70%] rounded-[24px] border border-[#284863] bg-[#0d1827] px-4 py-4 text-sm text-slate-300">
               <div className="flex items-start gap-3.5">
                 <span className="thinking-core mt-1.5 shrink-0" />
                 <div className="flex-1">
@@ -371,7 +426,6 @@ export default function ChatMessageList({
             </div>
           ) : null}
 
-          <div ref={bottomRef} />
         </div>
       </ChatScrollShell>
     </>

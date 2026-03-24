@@ -1,6 +1,7 @@
 from fastapi import Depends, Header, HTTPException
-from sqlalchemy.orm import Session
 import jwt
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
@@ -34,29 +35,54 @@ def get_token_subject_from_authorization(authorization: str) -> str:
     return _decode_subject(_get_bearer_token(authorization))
 
 
-async def require_admin(authorization: str = Header(...), db: Session = Depends(get_db)):
+async def require_admin(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     subject = get_token_subject_from_authorization(authorization)
 
     if subject == settings.ADMIN_USERNAME:
         return
 
-    admin_user = db.query(User).filter(User.login == subject, User.is_admin == True).first()
+    admin_user = (
+        await db.execute(
+            select(User).where(
+                User.login == subject,
+                User.is_admin == True,
+            )
+        )
+    ).scalar_one_or_none()
     if not admin_user:
-        admin_user = db.query(User).filter(
-            User.platform == "web",
-            User.platform_user_id == subject,
-            User.is_admin == True,
-        ).first()
+        admin_user = (
+            await db.execute(
+                select(User).where(
+                    User.platform == "web",
+                    User.platform_user_id == subject,
+                    User.is_admin == True,
+                )
+            )
+        ).scalar_one_or_none()
     if not admin_user:
         raise HTTPException(status_code=403, detail="Admin access required")
 
 
-async def require_web_user(authorization: str = Header(...), db: Session = Depends(get_db)) -> User:
+async def require_web_user(authorization: str = Header(...), db: AsyncSession = Depends(get_db)) -> User:
     subject = get_token_subject_from_authorization(authorization)
 
-    user = db.query(User).filter(User.platform == "web", User.platform_user_id == subject).first()
+    user = (
+        await db.execute(
+            select(User).where(
+                User.platform == "web",
+                User.platform_user_id == subject,
+            )
+        )
+    ).scalar_one_or_none()
     if not user:
-        user = db.query(User).filter(User.login == subject, User.is_admin == True).first()
+        user = (
+            await db.execute(
+                select(User).where(
+                    User.login == subject,
+                    User.is_admin == True,
+                )
+            )
+        ).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 

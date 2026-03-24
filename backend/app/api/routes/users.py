@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models import User
 
@@ -13,11 +14,15 @@ class RegisterRequest(BaseModel):
     username: str | None = None
 
 @router.post("/register")
-def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(
-        User.platform_user_id == request.platform_user_id,
-        User.platform == request.platform
-    ).first()
+async def register_user(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    user = (
+        await db.execute(
+            select(User).where(
+                User.platform_user_id == request.platform_user_id,
+                User.platform == request.platform,
+            )
+        )
+    ).scalar_one_or_none()
 
     if not user:
         user = User(
@@ -27,6 +32,6 @@ def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
             username=request.username,
         )
         db.add(user)
-        db.commit()
+        await db.commit()
 
     return {"ok": True}

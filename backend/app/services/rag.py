@@ -1,18 +1,19 @@
-import logging
+import asyncio
 import json
+import logging
 import os
 import re
-from datetime import datetime
 from collections.abc import Iterable
+from datetime import datetime
 
 from lingua import LanguageDetectorBuilder
-from openai import OpenAI
-from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from openai import AsyncOpenAI
+from sqlalchemy import or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models import Chunk, Document, Message
-from app.services.embeddings import embed_text
+from app.services.embeddings import embed_chunks, embed_text
 from app.services.rag_prompts import (
     HYDE_SYSTEM_PROMPT,
     INTENT_SYSTEM_PROMPT,
@@ -25,7 +26,7 @@ from app.services.rag_prompts import (
 
 logger = logging.getLogger(__name__)
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 detector = LanguageDetectorBuilder.from_all_languages().build()
 
 CHAT_MODEL = "gpt-4o-mini"
@@ -90,7 +91,7 @@ def detect_language(question: str) -> str:
         return "Cyrillic" if cyrillic >= latin else "English"
 
 
-def _call_chat(messages: list[dict], *, temperature: float = 0, max_tokens: int | None = None) -> str:
+async def _call_chat(messages: list[dict], *, temperature: float = 0, max_tokens: int | None = None) -> str:
     payload = {
         "model": CHAT_MODEL,
         "messages": messages,
@@ -99,19 +100,21 @@ def _call_chat(messages: list[dict], *, temperature: float = 0, max_tokens: int 
     if max_tokens is not None:
         payload["max_tokens"] = max_tokens
 
-    response = client.chat.completions.create(**payload)
+    response = await client.chat.completions.create(**payload)
     return (response.choices[0].message.content or "").strip()
 
 
-def classify_question_intent(question: str) -> str:
+async def classify_question_intent(question: str) -> str:
     try:
-        label = _call_chat(
-            [
-                {"role": "system", "content": INTENT_SYSTEM_PROMPT},
-                {"role": "user", "content": question},
-            ],
-            temperature=0,
-            max_tokens=8,
+        label = (
+            await _call_chat(
+                [
+                    {"role": "system", "content": INTENT_SYSTEM_PROMPT},
+                    {"role": "user", "content": question},
+                ],
+                temperature=0,
+                max_tokens=8,
+            )
         ).lower()
     except Exception:
         logger.exception("intent classification failed; defaulting to document_question")
@@ -120,9 +123,9 @@ def classify_question_intent(question: str) -> str:
     return "small_talk" if "small_talk" in label else "document_question"
 
 
-def generate_hypothetical_answer(question: str, retrieval_context: str = "") -> str:
+async def generate_hypothetical_answer(question: str, retrieval_context: str = "") -> str:
     prompt = question if not retrieval_context else f"Current question:\n{question}\n\nRecent related context:\n{retrieval_context}"
-    return _call_chat(
+    return await _call_chat(
         [
             {
                 "role": "system",
@@ -134,18 +137,20 @@ def generate_hypothetical_answer(question: str, retrieval_context: str = "") -> 
     )
 
 
-def _build_retrieval_queries(question: str, detected_lang: str, retrieval_context: str = "") -> list[str]:
+async def _build_retrieval_queries(question: str, detected_lang: str, retrieval_context: str = "") -> list[str]:
     queries = [question.strip()]
     prompt = question if not retrieval_context else f"Current question:\n{question}\n\nRecent related context:\n{retrieval_context}"
 
     try:
-        retrieval_query = _call_chat(
-            [
-                {"role": "system", "content": RETRIEVAL_QUERY_SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0,
-            max_tokens=64,
+        retrieval_query = (
+            await _call_chat(
+                [
+                    {"role": "system", "content": RETRIEVAL_QUERY_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0,
+                max_tokens=64,
+            )
         ).strip()
     except Exception:
         logger.exception("retrieval query rewrite failed; using original question only")
@@ -157,16 +162,19 @@ def _build_retrieval_queries(question: str, detected_lang: str, retrieval_contex
     return queries
 
 
-def _fetch_vector_candidates(embedding: list[float], db: Session) -> list[tuple[Chunk, float]]:
-    return [
-        (chunk, float(distance))
-        for chunk, distance in (
-            db.query(Chunk, Chunk.embedding.cosine_distance(embedding).label("distance"))
-            .order_by(Chunk.embedding.cosine_distance(embedding))
+async def _fetch_vector_candidates(embedding: list[float], db: AsyncSession) -> list[tuple[Chunk, float]]:
+    distance_expr = Chunk.embedding.cosine_distance(embedding)
+    rows = (
+        await db.execute(
+            select(
+                Chunk,
+                distance_expr.label("distance"),
+            )
+            .order_by(distance_expr)
             .limit(TOP_K_RETRIEVAL)
-            .all()
         )
-    ]
+    ).all()
+    return [(chunk, float(distance)) for chunk, distance in rows]
 
 
 def _tokenize(text: str) -> set[str]:
@@ -205,13 +213,19 @@ def _best_lexical_overlap(question_texts: list[str], text: str) -> float:
     return best_overlap
 
 
-def _fetch_keyword_candidates(question_texts: list[str], db: Session) -> list[tuple[Chunk, float]]:
+async def _fetch_keyword_candidates(question_texts: list[str], db: AsyncSession) -> list[tuple[Chunk, float]]:
     keywords = _extract_keywords(question_texts)
     if not keywords:
         return []
 
     conditions = [Chunk.chunk_text.ilike(f"%{keyword}%") for keyword in keywords]
-    matched_chunks = db.query(Chunk).filter(or_(*conditions)).limit(TOP_K_LEXICAL).all()
+    matched_chunks = (
+        await db.execute(
+            select(Chunk)
+            .where(or_(*conditions))
+            .limit(TOP_K_LEXICAL)
+        )
+    ).scalars().all()
 
     ranked_matches: list[tuple[Chunk, float]] = []
     for chunk in matched_chunks:
@@ -288,7 +302,7 @@ def _merge_rank_candidates(
     return ranked
 
 
-def _rank_documents(question_texts: list[str], ranked_candidates: list[dict], db: Session) -> list[dict]:
+async def _rank_documents(question_texts: list[str], ranked_candidates: list[dict], db: AsyncSession) -> list[dict]:
     if not ranked_candidates:
         return []
 
@@ -298,7 +312,7 @@ def _rank_documents(question_texts: list[str], ranked_candidates: list[dict], db
     for item in considered:
         by_document_id.setdefault(item["chunk"].document_id, []).append(item)
 
-    document_lookup = _load_documents_for_chunks([item["chunk"] for item in considered], db)
+    document_lookup = await _load_documents_for_chunks([item["chunk"] for item in considered], db)
     ranked_documents: list[dict] = []
 
     for document_id, items in by_document_id.items():
@@ -375,7 +389,11 @@ def _should_use_hyde(ranked_candidates: list[dict]) -> bool:
     return True
 
 
-def _select_context_chunks(ranked_candidates: list[dict], db: Session, allowed_document_ids: list[int] | None = None) -> list[Chunk]:
+async def _select_context_chunks(
+    ranked_candidates: list[dict],
+    db: AsyncSession,
+    allowed_document_ids: list[int] | None = None,
+) -> list[Chunk]:
     doc_counts: dict[int, int] = {}
     filtered_candidates = [
         item for item in ranked_candidates if not allowed_document_ids or item["chunk"].document_id in allowed_document_ids
@@ -416,6 +434,7 @@ def _select_context_chunks(ranked_candidates: list[dict], db: Session, allowed_d
         reverse=True,
     )
 
+    selected_anchor_ids = {anchor.id for anchor in selected_anchors}
     for document_id, chunks in ordered_documents:
         anchor_chunks = sorted(
             chunks,
@@ -432,19 +451,20 @@ def _select_context_chunks(ranked_candidates: list[dict], db: Session, allowed_d
             requested_indexes.update(range(start_index, end_index + 1))
 
         neighbor_chunks = (
-            db.query(Chunk)
-            .filter(
-                Chunk.document_id == document_id,
-                Chunk.chunk_index.in_(sorted(requested_indexes)),
+            await db.execute(
+                select(Chunk)
+                .where(
+                    Chunk.document_id == document_id,
+                    Chunk.chunk_index.in_(sorted(requested_indexes)),
+                )
+                .order_by(Chunk.chunk_index.asc())
             )
-            .order_by(Chunk.chunk_index.asc())
-            .all()
-        )
+        ).scalars().all()
 
         for chunk in neighbor_chunks:
             if chunk.id in seen_chunk_ids:
                 continue
-            if score_by_chunk_id.get(chunk.id, 0.0) < 0.05 and chunk.id not in {a.id for a in selected_anchors}:
+            if score_by_chunk_id.get(chunk.id, 0.0) < 0.05 and chunk.id not in selected_anchor_ids:
                 continue
             seen_chunk_ids.add(chunk.id)
             expanded.append(chunk)
@@ -453,7 +473,7 @@ def _select_context_chunks(ranked_candidates: list[dict], db: Session, allowed_d
         return selected_anchors
 
     limited: list[Chunk] = []
-    doc_counts: dict[int, int] = {}
+    doc_counts = {}
     for chunk in expanded:
         if len(limited) >= TOP_K_CONTEXT:
             break
@@ -466,19 +486,21 @@ def _select_context_chunks(ranked_candidates: list[dict], db: Session, allowed_d
     return limited or selected_anchors
 
 
-def _load_documents_for_chunks(chunks: list[Chunk], db: Session) -> dict[int, Document]:
+async def _load_documents_for_chunks(chunks: list[Chunk], db: AsyncSession) -> dict[int, Document]:
     if not chunks:
         return {}
     document_ids = list({chunk.document_id for chunk in chunks})
-    documents = db.query(Document).filter(Document.id.in_(document_ids)).all()
+    documents = (
+        await db.execute(select(Document).where(Document.id.in_(document_ids)))
+    ).scalars().all()
     return {document.id: document for document in documents}
 
 
-def _build_context(chunks: list[Chunk], db: Session) -> str:
+async def _build_context(chunks: list[Chunk], db: AsyncSession) -> str:
     if not chunks:
         return ""
 
-    documents = _load_documents_for_chunks(chunks, db)
+    documents = await _load_documents_for_chunks(chunks, db)
     sections = []
     ordered_chunks = sorted(chunks, key=lambda chunk: (chunk.document_id, chunk.chunk_index))
     for chunk in ordered_chunks:
@@ -506,11 +528,11 @@ def _append_rag_log(record: dict) -> None:
         logger.exception("failed to write rag log")
 
 
-def _build_sources(selected_chunks: list[Chunk], db: Session) -> list[dict]:
+async def _build_sources(selected_chunks: list[Chunk], db: AsyncSession) -> list[dict]:
     if not selected_chunks:
         return []
 
-    documents = _load_documents_for_chunks(selected_chunks, db)
+    documents = await _load_documents_for_chunks(selected_chunks, db)
     sources: list[dict] = []
     seen_doc_ids: set[int] = set()
 
@@ -542,7 +564,7 @@ def _prepare_history(history: list[dict], target_language: str) -> list[dict]:
     return matching_language[-MAX_HISTORY_MESSAGES:] if matching_language else recent[-2:]
 
 
-def _answer(question: str, history: list[dict], target_language: str, context: str = "") -> str:
+async def _answer(question: str, history: list[dict], target_language: str, context: str = "") -> str:
     use_context = bool(context)
     messages = [
         {
@@ -565,18 +587,20 @@ def _answer(question: str, history: list[dict], target_language: str, context: s
             ),
         }
     )
-    return postprocess(_call_chat(messages, temperature=0.1 if use_context else 0.4))
+    return postprocess(await _call_chat(messages, temperature=0.1 if use_context else 0.4))
 
 
-def _is_same_language(answer: str, question: str) -> bool:
+async def _is_same_language(answer: str, question: str) -> bool:
     try:
-        label = _call_chat(
-            [
-                {"role": "system", "content": LANGUAGE_MATCH_CHECK_SYSTEM_PROMPT},
-                {"role": "user", "content": f"User question:\n{question}\n\nAssistant answer:\n{answer}"},
-            ],
-            temperature=0,
-            max_tokens=4,
+        label = (
+            await _call_chat(
+                [
+                    {"role": "system", "content": LANGUAGE_MATCH_CHECK_SYSTEM_PROMPT},
+                    {"role": "user", "content": f"User question:\n{question}\n\nAssistant answer:\n{answer}"},
+                ],
+                temperature=0,
+                max_tokens=4,
+            )
         ).strip().lower()
         return "same_language" in label
     except Exception:
@@ -591,15 +615,15 @@ def _is_same_language(answer: str, question: str) -> bool:
         return (question_cyrillic >= question_latin) == (answer_cyrillic >= answer_latin)
 
 
-def _ensure_answer_language(answer: str, question: str, target_language: str) -> str:
+async def _ensure_answer_language(answer: str, question: str, target_language: str) -> str:
     cleaned = answer.strip()
     if not cleaned:
         return cleaned
 
-    if len(cleaned) > 48 and not _is_same_language(cleaned, question):
+    if len(cleaned) > 48 and not await _is_same_language(cleaned, question):
         try:
             return postprocess(
-                _call_chat(
+                await _call_chat(
                     [
                         {"role": "system", "content": f"{LANGUAGE_REWRITE_SYSTEM_PROMPT}\n- Rewrite in {target_language}."},
                         {"role": "user", "content": f"User question:\n{question}\n\nAnswer:\n{cleaned}"},
@@ -614,7 +638,7 @@ def _ensure_answer_language(answer: str, question: str, target_language: str) ->
     return cleaned
 
 
-def ask(question: str, user_id: int, platform: str, history: list[dict], db: Session) -> dict:
+async def ask(question: str, user_id: int, platform: str, history: list[dict], db: AsyncSession) -> dict:
     detected_lang = detect_language(question)
     target_language = detected_lang if detected_lang != "unknown" else "the same language as the user's question"
     prepared_history = _prepare_history(history, detected_lang)
@@ -624,7 +648,7 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
         if item.get("role") == "user" and item.get("content")
     ][-MAX_RETRIEVAL_HISTORY_MESSAGES:]
     retrieval_context = "\n".join(f"- {turn}" for turn in retrieval_history if turn)[:MAX_RETRIEVAL_CONTEXT_CHARS].rstrip()
-    intent = classify_question_intent(question)
+    intent = await classify_question_intent(question)
     selected_chunks: list[Chunk] = []
     ranked_candidates: list[dict] = []
     ranked_documents: list[dict] = []
@@ -632,15 +656,21 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
     used_hyde = False
 
     if intent == "small_talk":
-        answer = _ensure_answer_language(_answer(question, prepared_history, target_language), question, target_language)
+        answer = await _ensure_answer_language(
+            await _answer(question, prepared_history, target_language),
+            question,
+            target_language,
+        )
         sources: list[dict] = []
     else:
-        retrieval_queries = _build_retrieval_queries(question, detected_lang, retrieval_context)
+        retrieval_queries = await _build_retrieval_queries(question, detected_lang, retrieval_context)
+        query_embeddings = await embed_chunks(retrieval_queries) if retrieval_queries else []
+
         query_candidates: list[tuple[Chunk, float]] = []
-        for retrieval_query in retrieval_queries:
-            query_embedding = embed_text(retrieval_query)
-            query_candidates.extend(_fetch_vector_candidates(query_embedding, db))
-        lexical_candidates = _fetch_keyword_candidates(retrieval_queries, db)
+        for query_embedding in query_embeddings:
+            query_candidates.extend(await _fetch_vector_candidates(query_embedding, db))
+
+        lexical_candidates = await _fetch_keyword_candidates(retrieval_queries, db)
         ranked_candidates = _merge_rank_candidates(
             question_texts=retrieval_queries,
             query_candidates=query_candidates,
@@ -649,9 +679,9 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
 
         if _should_use_hyde(ranked_candidates):
             used_hyde = True
-            hyde_text = generate_hypothetical_answer(question, retrieval_context)
-            hyde_embedding = embed_text(hyde_text)
-            hyde_candidates = _fetch_vector_candidates(hyde_embedding, db)
+            hyde_text = await generate_hypothetical_answer(question, retrieval_context)
+            hyde_embedding = await embed_text(hyde_text)
+            hyde_candidates = await _fetch_vector_candidates(hyde_embedding, db)
             ranked_candidates = _merge_rank_candidates(
                 question_texts=retrieval_queries,
                 query_candidates=query_candidates,
@@ -659,82 +689,81 @@ def ask(question: str, user_id: int, platform: str, history: list[dict], db: Ses
                 hyde_candidates=hyde_candidates,
             )
 
-        ranked_documents = _rank_documents(retrieval_queries, ranked_candidates, db)
+        ranked_documents = await _rank_documents(retrieval_queries, ranked_candidates, db)
         selected_document_ids = _select_top_documents(ranked_documents)
-        selected_chunks = _select_context_chunks(ranked_candidates, db, selected_document_ids)
-        context = _build_context(selected_chunks, db)
-        answer = _ensure_answer_language(
-            _answer(question, prepared_history, target_language, context=context),
+        selected_chunks = await _select_context_chunks(ranked_candidates, db, selected_document_ids)
+        context = await _build_context(selected_chunks, db)
+        answer = await _ensure_answer_language(
+            await _answer(question, prepared_history, target_language, context=context),
             question,
             target_language,
         )
-        sources = _build_sources(selected_chunks, db)
+        sources = await _build_sources(selected_chunks, db)
 
     score_by_chunk_id = {item["chunk"].id: item["score"] for item in ranked_candidates}
-    selected_documents = _load_documents_for_chunks(selected_chunks, db) if selected_chunks else {}
-    _append_rag_log(
-        {
-            "timestamp": datetime.now().astimezone().isoformat(),
-            "platform": platform,
-            "user_id": user_id,
-            "question": question,
-            "detected_language": detected_lang,
-            "target_language": target_language,
-            "intent": intent,
-            "used_hyde": used_hyde,
-            "retrieval_context": retrieval_context,
-            "retrieval_queries": retrieval_queries,
-            "history": prepared_history[-6:],
-            "answer": answer,
-            "sources": sources,
-            "top_candidates": [
-                {
-                    "chunk_id": item["chunk"].id,
-                    "document_id": item["chunk"].document_id,
-                    "chunk_index": item["chunk"].chunk_index,
-                    "document_title": next(
-                        (
-                            document_item["document"].file_name
-                            for document_item in ranked_documents
-                            if document_item["document_id"] == item["chunk"].document_id and document_item["document"]
-                        ),
-                        None,
+    selected_documents = await _load_documents_for_chunks(selected_chunks, db) if selected_chunks else {}
+    log_record = {
+        "timestamp": datetime.now().astimezone().isoformat(),
+        "platform": platform,
+        "user_id": user_id,
+        "question": question,
+        "detected_language": detected_lang,
+        "target_language": target_language,
+        "intent": intent,
+        "used_hyde": used_hyde,
+        "retrieval_context": retrieval_context,
+        "retrieval_queries": retrieval_queries,
+        "history": prepared_history[-6:],
+        "answer": answer,
+        "sources": sources,
+        "top_candidates": [
+            {
+                "chunk_id": item["chunk"].id,
+                "document_id": item["chunk"].document_id,
+                "chunk_index": item["chunk"].chunk_index,
+                "document_title": next(
+                    (
+                        document_item["document"].file_name
+                        for document_item in ranked_documents
+                        if document_item["document_id"] == item["chunk"].document_id and document_item["document"]
                     ),
-                    "score": round(float(item["score"]), 6),
-                    "vector_distance": round(float(item["vector_distance"]), 6),
-                    "lexical_overlap": round(float(item["lexical_overlap"]), 6),
-                    "keyword_similarity": round(float(item["keyword_similarity"]), 6),
-                    "text": item["chunk"].chunk_text,
-                }
-                for item in ranked_candidates[:12]
-            ],
-            "ranked_documents": [
-                {
-                    "document_id": item["document_id"],
-                    "title": item["document"].file_name if item["document"] else f"Document {item['document_id']}",
-                    "score": round(float(item["score"]), 6),
-                    "best_overlap": round(float(item["best_overlap"]), 6),
-                    "candidate_count": item["candidate_count"],
-                    "file_name_overlap": round(float(item["file_name_overlap"]), 6),
-                }
-                for item in ranked_documents
-            ],
-            "selected_chunks": [
-                {
-                    "chunk_id": chunk.id,
-                    "document_id": chunk.document_id,
-                    "chunk_index": chunk.chunk_index,
-                    "document_title": selected_documents[chunk.document_id].file_name if chunk.document_id in selected_documents else f"Document {chunk.document_id}",
-                    "score": round(float(score_by_chunk_id.get(chunk.id, 0.0)), 6),
-                    "text": chunk.chunk_text,
-                }
-                for chunk in selected_chunks
-            ],
-        }
-    )
+                    None,
+                ),
+                "score": round(float(item["score"]), 6),
+                "vector_distance": round(float(item["vector_distance"]), 6),
+                "lexical_overlap": round(float(item["lexical_overlap"]), 6),
+                "keyword_similarity": round(float(item["keyword_similarity"]), 6),
+                "text": item["chunk"].chunk_text,
+            }
+            for item in ranked_candidates[:12]
+        ],
+        "ranked_documents": [
+            {
+                "document_id": item["document_id"],
+                "title": item["document"].file_name if item["document"] else f"Document {item['document_id']}",
+                "score": round(float(item["score"]), 6),
+                "best_overlap": round(float(item["best_overlap"]), 6),
+                "candidate_count": item["candidate_count"],
+                "file_name_overlap": round(float(item["file_name_overlap"]), 6),
+            }
+            for item in ranked_documents
+        ],
+        "selected_chunks": [
+            {
+                "chunk_id": chunk.id,
+                "document_id": chunk.document_id,
+                "chunk_index": chunk.chunk_index,
+                "document_title": selected_documents[chunk.document_id].file_name if chunk.document_id in selected_documents else f"Document {chunk.document_id}",
+                "score": round(float(score_by_chunk_id.get(chunk.id, 0.0)), 6),
+                "text": chunk.chunk_text,
+            }
+            for chunk in selected_chunks
+        ],
+    }
+    await asyncio.to_thread(_append_rag_log, log_record)
 
     db.add(Message(user_id=user_id, platform=platform, question=question, answer=answer))
-    db.commit()
+    await db.commit()
     logger.info(
         "rag=%s",
         {

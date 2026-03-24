@@ -242,16 +242,6 @@
     animation: softRise 220ms ease-out both;
   }
 
-  .chat-composer-shell {
-    transition:
-      background-color 180ms ease;
-  }
-
-  .chat-composer-shell:focus-within {
-    animation: none;
-    background-color: rgba(14, 28, 43, 0.98);
-  }
-
   .chat-input-scroll {
     scroll-behavior: smooth;
     scrollbar-width: thin;

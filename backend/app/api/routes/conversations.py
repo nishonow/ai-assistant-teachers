@@ -3,8 +3,9 @@ import os
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import desc, func
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy import delete, desc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.dependencies import require_web_user
@@ -77,64 +78,68 @@ def _conversation_load_options():
     ]
 
 
-def _get_user_conversation(db: Session, conversation_id: int, user_id: int) -> ChatConversation:
+async def _get_user_conversation(db: AsyncSession, conversation_id: int, user_id: int) -> ChatConversation:
     conversation = (
-        db.query(ChatConversation)
-        .options(*_conversation_load_options())
-        .filter(ChatConversation.id == conversation_id, ChatConversation.user_id == user_id)
-        .first()
-    )
+        await db.execute(
+            select(ChatConversation)
+            .options(*_conversation_load_options())
+            .where(
+                ChatConversation.id == conversation_id,
+                ChatConversation.user_id == user_id,
+            )
+        )
+    ).scalar_one_or_none()
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return conversation
 
 
 @router.get("/")
-def list_conversations(current_user: User = Depends(require_web_user), db: Session = Depends(get_db)):
+async def list_conversations(current_user: User = Depends(require_web_user), db: AsyncSession = Depends(get_db)):
     conversations = (
-        db.query(ChatConversation)
-        .options(*_conversation_load_options())
-        .filter(ChatConversation.user_id == current_user.id)
-        .order_by(desc(ChatConversation.updated_at), desc(ChatConversation.id))
-        .all()
-    )
+        await db.execute(
+            select(ChatConversation)
+            .options(*_conversation_load_options())
+            .where(ChatConversation.user_id == current_user.id)
+            .order_by(desc(ChatConversation.updated_at), desc(ChatConversation.id))
+        )
+    ).scalars().all()
     return [_serialize_summary(conversation) for conversation in conversations]
 
 
 @router.post("/")
-def create_conversation(
+async def create_conversation(
     request: ConversationCreateRequest,
     current_user: User = Depends(require_web_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     conversation = ChatConversation(user_id=current_user.id, title=(request.title or "New chat").strip() or "New chat")
     db.add(conversation)
-    db.commit()
-    db.refresh(conversation)
-    return _serialize_detail(conversation)
+    await db.commit()
+    return _serialize_detail(await _get_user_conversation(db, conversation.id, current_user.id))
 
 
 @router.delete("/")
-def delete_all_conversations(current_user: User = Depends(require_web_user), db: Session = Depends(get_db)):
-    db.query(ChatConversation).filter(ChatConversation.user_id == current_user.id).delete(synchronize_session=False)
-    db.commit()
+async def delete_all_conversations(current_user: User = Depends(require_web_user), db: AsyncSession = Depends(get_db)):
+    await db.execute(delete(ChatConversation).where(ChatConversation.user_id == current_user.id))
+    await db.commit()
     return {"ok": True}
 
 
 @router.get("/{conversation_id}")
-def get_conversation(conversation_id: int, current_user: User = Depends(require_web_user), db: Session = Depends(get_db)):
-    conversation = _get_user_conversation(db, conversation_id, current_user.id)
+async def get_conversation(conversation_id: int, current_user: User = Depends(require_web_user), db: AsyncSession = Depends(get_db)):
+    conversation = await _get_user_conversation(db, conversation_id, current_user.id)
     return _serialize_detail(conversation)
 
 
 @router.get("/{conversation_id}/sources/{document_id}/download")
-def download_conversation_source(
+async def download_conversation_source(
     conversation_id: int,
     document_id: int,
     current_user: User = Depends(require_web_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    conversation = _get_user_conversation(db, conversation_id, current_user.id)
+    conversation = await _get_user_conversation(db, conversation_id, current_user.id)
     has_cited_document = any(
         source.document_id == document_id
         for message in conversation.messages
@@ -143,7 +148,7 @@ def download_conversation_source(
     if not has_cited_document:
         raise HTTPException(status_code=404, detail="Source not found in this conversation")
 
-    document = db.query(Document).filter(Document.id == document_id).first()
+    document = (await db.execute(select(Document).where(Document.id == document_id))).scalar_one_or_none()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     if not os.path.exists(document.file_path):
@@ -157,45 +162,45 @@ def download_conversation_source(
 
 
 @router.patch("/{conversation_id}")
-def rename_conversation(
+async def rename_conversation(
     conversation_id: int,
     request: ConversationRenameRequest,
     current_user: User = Depends(require_web_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    conversation = _get_user_conversation(db, conversation_id, current_user.id)
+    conversation = await _get_user_conversation(db, conversation_id, current_user.id)
     title = request.title.strip()
     if not title:
         raise HTTPException(status_code=400, detail="Title is required")
 
     conversation.title = title[:120]
     conversation.updated_at = func.now()
-    db.commit()
+    await db.commit()
 
-    refreshed = _get_user_conversation(db, conversation.id, current_user.id)
+    refreshed = await _get_user_conversation(db, conversation.id, current_user.id)
     return _serialize_detail(refreshed)
 
 
 @router.delete("/{conversation_id}")
-def delete_conversation(
+async def delete_conversation(
     conversation_id: int,
     current_user: User = Depends(require_web_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    conversation = _get_user_conversation(db, conversation_id, current_user.id)
-    db.delete(conversation)
-    db.commit()
+    conversation = await _get_user_conversation(db, conversation_id, current_user.id)
+    await db.delete(conversation)
+    await db.commit()
     return {"ok": True}
 
 
 @router.post("/{conversation_id}/exchange")
-def save_exchange(
+async def save_exchange(
     conversation_id: int,
     request: ConversationExchangeRequest,
     current_user: User = Depends(require_web_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    conversation = _get_user_conversation(db, conversation_id, current_user.id)
+    conversation = await _get_user_conversation(db, conversation_id, current_user.id)
 
     question = request.question.strip()
     answer = request.answer.strip()
@@ -214,7 +219,7 @@ def save_exchange(
     )
     db.add(user_message)
     db.add(assistant_message)
-    db.flush()
+    await db.flush()
 
     for source in request.sources:
         db.add(
@@ -232,7 +237,8 @@ def save_exchange(
             conversation.title = next_title
 
     conversation.updated_at = func.now()
-    db.commit()
+    await db.commit()
 
-    refreshed = _get_user_conversation(db, conversation.id, current_user.id)
+    db.expunge_all()
+    refreshed = await _get_user_conversation(db, conversation.id, current_user.id)
     return _serialize_detail(refreshed)

@@ -51,7 +51,8 @@ app.openapi = custom_openapi
 
 @app.on_event("startup")
 async def startup():
-    models.Base.metadata.create_all(bind=engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(models.Base.metadata.create_all)
 
 app.include_router(ask.router, prefix="/api/v1")
 app.include_router(conversations.router, prefix="/api/v1")
