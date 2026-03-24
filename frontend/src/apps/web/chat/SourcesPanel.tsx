@@ -107,9 +107,9 @@ function SourcesContent({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="group min-w-0 flex-1">
+                      <div className="group relative min-w-0 flex-1">
                         <p
-                          className="min-w-0 overflow-hidden text-sm font-semibold leading-6 text-slate-100 group-hover:hidden"
+                          className="min-w-0 overflow-hidden text-sm font-semibold leading-6 text-slate-100"
                           style={{
                             display: "-webkit-box",
                             WebkitLineClamp: 2,
@@ -118,9 +118,20 @@ function SourcesContent({
                         >
                           {source.title}
                         </p>
-                        <p className="hidden rounded-xl border border-[#325774] bg-[#102033] px-3 py-2 text-xs leading-5 text-slate-200 group-hover:block">
-                          {source.title}
-                        </p>
+                        <div className="pointer-events-none absolute left-0 right-0 top-full z-20 mt-2 hidden rounded-xl border border-[#325774] bg-[#102033] px-3 py-2 group-hover:block">
+                          <p
+                            className="text-xs leading-5 text-slate-200"
+                            style={{
+                              display: "-webkit-box",
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                              overflowWrap: "anywhere",
+                            }}
+                          >
+                            {source.title}
+                          </p>
+                        </div>
                       </div>
                       <span className="shrink-0 rounded-full border border-[#305169] bg-[#102033] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9af5ea]">
                         {getSourceExtension(source.title)}

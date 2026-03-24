@@ -142,22 +142,6 @@ export default function ChatPage() {
   const [profilePending, setProfilePending] = useState(false);
   const [downloadPendingId, setDownloadPendingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
-  const hasActiveSources = activeSources.length > 0;
-  const hadActiveSourcesRef = useRef(false);
-
-  useEffect(() => {
-    if (hasActiveSources && !hadActiveSourcesRef.current) {
-      setDesktopSourcesOpen(true);
-    }
-
-    hadActiveSourcesRef.current = hasActiveSources;
-  }, [hasActiveSources]);
-
-  useEffect(() => {
-    if (!hasActiveSources) {
-      setMobileSourcesOpen(false);
-    }
-  }, [hasActiveSources]);
 
   const showNotice = useCallback((type: NoticeState["type"], message: string) => {
     setNotice({ type, message });
@@ -636,10 +620,6 @@ export default function ChatPage() {
     selectedSourcesMessageIdRef.current = message.id;
     setSelectedSourcesMessageId(message.id);
     setActiveSources(message.sources);
-
-    if (window.innerWidth < 1024) {
-      setMobileSourcesOpen(true);
-    }
   }, []);
 
   const handleSelectSuggestion = useCallback((question: string) => {
@@ -702,28 +682,24 @@ export default function ChatPage() {
               >
                 <MessageSquarePlus size={16} />
               </button>
-              {hasActiveSources ? (
-                <>
-                  <button
-                    type="button"
-                    className="btn-muted hidden lg:inline-flex"
-                    onClick={() => setDesktopSourcesOpen((current) => !current)}
-                  >
-                    <BookOpenText size={16} />
-                    Источники
-                    <ChevronRight
-                      size={14}
-                      className={[
-                        "transition-transform duration-200",
-                        desktopSourcesOpen ? "rotate-180" : "rotate-0",
-                      ].join(" ")}
-                    />
-                  </button>
-                  <button type="button" className="btn-muted lg:hidden" onClick={() => setMobileSourcesOpen(true)}>
-                    <BookOpenText size={16} />
-                  </button>
-                </>
-              ) : null}
+              <button
+                type="button"
+                className="btn-muted hidden lg:inline-flex"
+                onClick={() => setDesktopSourcesOpen((current) => !current)}
+              >
+                <BookOpenText size={16} />
+                Источники
+                <ChevronRight
+                  size={14}
+                  className={[
+                    "transition-transform duration-200",
+                    desktopSourcesOpen ? "rotate-180" : "rotate-0",
+                  ].join(" ")}
+                />
+              </button>
+              <button type="button" className="btn-muted lg:hidden" onClick={() => setMobileSourcesOpen(true)}>
+                <BookOpenText size={16} />
+              </button>
             </div>
           </header>
 
@@ -744,21 +720,19 @@ export default function ChatPage() {
           />
         </main>
 
-        {hasActiveSources ? (
-          <SourcesPanel
-            activeConversationId={activeConversationId}
-            activeConversationTitle={activeConversation?.title ?? "Новый чат"}
-            downloadPendingId={downloadPendingId}
-            loading={isLoadingConversation}
-            desktopOpen={desktopSourcesOpen}
-            mobileOpen={mobileSourcesOpen}
-            sources={activeSources}
-            onCloseMobile={() => setMobileSourcesOpen(false)}
-            onDownloadSource={(source) => {
-              void handleDownloadSource(source);
-            }}
-          />
-        ) : null}
+        <SourcesPanel
+          activeConversationId={activeConversationId}
+          activeConversationTitle={activeConversation?.title ?? "Новый чат"}
+          downloadPendingId={downloadPendingId}
+          loading={isLoadingConversation}
+          desktopOpen={desktopSourcesOpen}
+          mobileOpen={mobileSourcesOpen}
+          sources={activeSources}
+          onCloseMobile={() => setMobileSourcesOpen(false)}
+          onDownloadSource={(source) => {
+            void handleDownloadSource(source);
+          }}
+        />
       </div>
 
       <DeleteConversationModal
