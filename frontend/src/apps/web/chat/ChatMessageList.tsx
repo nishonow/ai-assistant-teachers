@@ -249,9 +249,9 @@ export default function ChatMessageList({
       <>
         <style>{THINKING_ANIMATION_CSS}</style>
         <div className="grid flex-1 place-items-center px-6 py-10">
-          <div className="chat-card-enter w-full max-w-4xl rounded-[30px] border border-[#284863] bg-[#0d1827]/92 px-6 py-8 text-center sm:px-8 sm:py-10">
+          <div className="chat-card-enter w-full max-w-[50rem] rounded-[30px] border border-[#284863] bg-[#0d1827]/92 px-6 py-8 text-center sm:px-8 sm:py-10">
             <h2 className="font-heading text-3xl text-slate-100">Что вы хотите узнать?</h2>
-            <div className="mx-auto mt-7 grid w-full max-w-[700px] gap-3 text-left sm:grid-cols-3">
+            <div className="mx-auto mt-7 grid w-full max-w-[620px] gap-3 text-left sm:grid-cols-3">
               {SUGGESTED_QUESTIONS.map((question) => (
                 <button
                   key={question}

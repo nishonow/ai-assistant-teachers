@@ -18,6 +18,7 @@ export default function ChatComposer({
 }: ChatComposerProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const zoomedViewportRef = useRef<{ scrollX: number; scrollY: number } | null>(null);
 
   useEffect(() => {
     const element = textareaRef.current;
@@ -97,6 +98,29 @@ export default function ChatComposer({
     event.currentTarget.form?.requestSubmit();
   };
 
+  const captureZoomedViewport = () => {
+    const scale = window.visualViewport?.scale ?? 1;
+    if (Math.abs(scale - 1) < 0.01) {
+      zoomedViewportRef.current = null;
+      return;
+    }
+
+    zoomedViewportRef.current = {
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+    };
+  };
+
+  const stabilizeZoomedFocus = () => {
+    const snapshot = zoomedViewportRef.current;
+    if (!snapshot) return;
+
+    requestAnimationFrame(() => {
+      window.scrollTo(snapshot.scrollX, snapshot.scrollY);
+      textareaRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    });
+  };
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -108,9 +132,11 @@ export default function ChatComposer({
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
+          onPointerDownCapture={captureZoomedViewport}
+          onFocus={stabilizeZoomedFocus}
           placeholder="Напишите Mugallim AI..."
           rows={1}
-          className="chat-input-scroll min-h-[20px] max-h-[220px] flex-1 resize-none bg-transparent px-2 py-[5px] text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[22px] md:py-[7px]"
+          className="chat-input-scroll min-h-[20px] max-h-[220px] flex-1 resize-none bg-transparent px-2 py-[5px] text-[17px] leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[22px] md:py-[7px] md:text-base"
         />
         <button
           type="submit"
