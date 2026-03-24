@@ -107,16 +107,18 @@ function SourcesContent({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="relative min-w-0 flex-1">
+                      <div className="group min-w-0 flex-1">
                         <p
-                          title={source.title}
-                          className="min-w-0 overflow-hidden text-sm font-semibold leading-6 text-slate-100"
+                          className="min-w-0 overflow-hidden text-sm font-semibold leading-6 text-slate-100 group-hover:hidden"
                           style={{
                             display: "-webkit-box",
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: "vertical",
                           }}
                         >
+                          {source.title}
+                        </p>
+                        <p className="hidden rounded-xl border border-[#325774] bg-[#102033] px-3 py-2 text-xs leading-5 text-slate-200 group-hover:block">
                           {source.title}
                         </p>
                       </div>
