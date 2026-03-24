@@ -61,7 +61,7 @@ function SourcesContent({
         </header>
       ) : null}
 
-      <div className="scroll-area min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="scroll-area min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4">
         {loading ? (
           <div className="space-y-3" role="status" aria-live="polite">
             {Array.from({ length: 3 }).map((_, index) => (
@@ -109,6 +109,7 @@ function SourcesContent({
                     <div className="flex items-start justify-between gap-3">
                       <div className="relative min-w-0 flex-1">
                         <p
+                          title={source.title}
                           className="min-w-0 overflow-hidden text-sm font-semibold leading-6 text-slate-100"
                           style={{
                             display: "-webkit-box",
@@ -118,7 +119,6 @@ function SourcesContent({
                         >
                           {source.title}
                         </p>
-                        <span className="ui-tooltip">{source.title}</span>
                       </div>
                       <span className="shrink-0 rounded-full border border-[#305169] bg-[#102033] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9af5ea]">
                         {getSourceExtension(source.title)}
