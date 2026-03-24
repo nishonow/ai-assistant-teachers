@@ -649,14 +649,14 @@ export default function ChatPage() {
 
       <div className="flex min-w-0 flex-1 bg-[#07101a]">
         <main className="flex min-w-0 flex-1 flex-col bg-[#07101a]">
-          <header className="flex h-[56px] items-center justify-between gap-2 border-b border-[#21384b] bg-[#08111c] px-3 md:h-[72px] md:gap-3 md:px-6">
+          <header className="flex h-[50px] items-center justify-between gap-2 border-b border-[#21384b] bg-[#08111c] px-3 md:h-[62px] md:gap-2.5 md:px-5">
             <div className="flex min-w-0 items-center gap-2 md:gap-3">
               <button type="button" className="btn-muted md:hidden" onClick={() => setMobileSidebarOpen(true)}>
                 <PanelLeft size={16} />
               </button>
 
               <div className="min-w-0">
-                <h1 className="truncate font-heading text-[14px] text-slate-100 md:text-lg">
+                <h1 className="truncate font-heading text-[13px] text-slate-100 md:text-[16px]">
                   {activeConversation?.title ?? "Новый чат"}
                 </h1>
               </div>
