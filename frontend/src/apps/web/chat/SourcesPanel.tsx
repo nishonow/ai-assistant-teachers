@@ -107,9 +107,9 @@ function SourcesContent({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="group relative min-w-0 flex-1">
+                      <div className="group relative min-w-0 flex-1 rounded-lg transition-colors hover:bg-[#102033]">
                         <p
-                          className="min-w-0 overflow-hidden text-sm font-semibold leading-6 text-slate-100"
+                          className="min-w-0 overflow-hidden rounded-lg px-2 py-1 text-sm font-semibold leading-6 text-slate-100"
                           style={{
                             display: "-webkit-box",
                             WebkitLineClamp: 2,

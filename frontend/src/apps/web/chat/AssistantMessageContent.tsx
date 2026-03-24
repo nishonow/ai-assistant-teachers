@@ -1,4 +1,4 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
 
 interface AssistantMessageContentProps {
   content: string;
@@ -181,6 +181,20 @@ function sanitizeHtml(input: string): string {
   });
 
   return wrapper.innerHTML;
+}
+
+export function getAssistantMessagePlainText(content: string): string {
+  const normalized = normalizeContent(content);
+  const sanitized = sanitizeHtml(normalized);
+
+  if (typeof window === "undefined") {
+    return sanitized;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = sanitized;
+
+  return (wrapper.innerText || wrapper.textContent || "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 export default function AssistantMessageContent({ content }: AssistantMessageContentProps) {

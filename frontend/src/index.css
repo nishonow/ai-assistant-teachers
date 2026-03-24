@@ -80,6 +80,11 @@
     @apply h-full;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-ink-950 text-slate-100 font-body;
     min-height: 100svh;
@@ -98,6 +103,11 @@
     input,
     select,
     textarea {
+      font-size: 17px !important;
+    }
+
+    .input,
+    .chat-input-scroll {
       font-size: 17px !important;
     }
   }

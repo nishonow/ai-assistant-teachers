@@ -1,7 +1,7 @@
 import { BookOpenText, Check, Copy } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
-import AssistantMessageContent from "./AssistantMessageContent";
+import AssistantMessageContent, { getAssistantMessagePlainText } from "./AssistantMessageContent";
 import type { ChatMessage } from "./types";
 
 interface ChatMessageListProps {
@@ -306,13 +306,12 @@ export default function ChatMessageList({
                           type="button"
                           className={[
                             "inline-flex h-7 items-center gap-1 rounded-full border px-2 text-[10px] font-medium transition-colors md:px-2.5 md:text-[11px]",
-                            "group",
-                            selectedSourcesMessageId === message.id
-                              ? "border-brand-300/50 bg-brand-500/15 text-brand-100"
-                              : "border-[#284863] bg-transparent text-slate-400 hover:bg-[#102033] hover:text-slate-200",
+                            "group border-[#284863] bg-transparent text-slate-400 hover:bg-[#102033] hover:text-slate-200",
+                            selectedSourcesMessageId === message.id ? "border-[#3a5f7d] text-slate-200" : "",
                           ].join(" ")}
                           onClick={() => onSelectSources(message)}
                           aria-label={`Показать источники для этого ответа (${message.sources.length})`}
+                          aria-pressed={selectedSourcesMessageId === message.id}
                         >
                           <BookOpenText size={12} />
                           <span>Источники</span>
@@ -328,7 +327,9 @@ export default function ChatMessageList({
                         type="button"
                         className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#284863] bg-transparent text-slate-400 transition-colors hover:bg-[#102033] hover:text-slate-200"
                         onClick={() => {
-                          void handleCopy(message.id, message.content);
+                          const contentToCopy =
+                            message.role === "assistant" ? getAssistantMessagePlainText(message.content) : message.content;
+                          void handleCopy(message.id, contentToCopy);
                         }}
                         aria-label={copiedMessageId === message.id ? "Скопировано" : "Копировать"}
                       >
