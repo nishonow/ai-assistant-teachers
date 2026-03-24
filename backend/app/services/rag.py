@@ -65,6 +65,35 @@ MIN_KEYWORD_LENGTH = 3
 RAG_LOG_DIR = os.path.join("uploads", "rag_logs")
 
 ALLOWED_ROLES = {"user", "assistant"}
+FOLLOW_UP_PREVIOUS_ANSWER_PHRASES = {
+    "previous answer",
+    "last answer",
+    "your answer",
+    "previous reply",
+    "last reply",
+    "what you said",
+    "say that",
+    "tell me that",
+    "tell me your answer",
+    "answer in english",
+    "reply in english",
+    "that in english",
+    "previous answer in english",
+    "предыдущий ответ",
+    "последний ответ",
+    "твой ответ",
+    "ваш ответ",
+    "то что ты сказал",
+    "что ты сказал",
+    "ответ на английском",
+    "на английском",
+    "переведи ответ",
+}
+OUTPUT_LANGUAGE_HINTS = {
+    "English": ("in english", "english please", "answer in english", "reply in english", "на английском", "по-английски"),
+    "Russian": ("in russian", "russian please", "answer in russian", "reply in russian", "на русском", "по-русски"),
+    "Kyrgyz": ("in kyrgyz", "kyrgyz please", "answer in kyrgyz", "reply in kyrgyz", "кыргызча", "на кыргызском"),
+}
 STOPWORDS = {
     "about", "after", "all", "also", "and", "any", "are", "but", "can", "does", "for", "from",
     "have", "how", "into", "its", "may", "not", "now", "one", "only", "other", "our", "out", "should",
@@ -556,12 +585,61 @@ async def _build_sources(selected_chunks: list[Chunk], db: AsyncSession) -> list
 
 def _prepare_history(history: list[dict], target_language: str) -> list[dict]:
     filtered = [item for item in history if item.get("role") in ALLOWED_ROLES and item.get("content")]
-    recent = filtered[-MAX_HISTORY_MESSAGES:]
-    if target_language == "unknown":
-        return recent
+    return filtered[-MAX_HISTORY_MESSAGES:]
 
-    matching_language = [item for item in recent if detect_language(str(item.get("content", ""))) == target_language]
-    return matching_language[-MAX_HISTORY_MESSAGES:] if matching_language else recent[-2:]
+
+def _normalize_message_text(text: str) -> str:
+    return re.sub(r"\s+", " ", text.lower()).strip()
+
+
+def _get_last_assistant_message(history: list[dict]) -> dict | None:
+    for item in reversed(history):
+        if item.get("role") == "assistant" and item.get("content"):
+            return item
+    return None
+
+
+def _is_previous_answer_follow_up(question: str, history: list[dict]) -> bool:
+    if not history or not _get_last_assistant_message(history):
+        return False
+
+    normalized = _normalize_message_text(question)
+    if any(phrase in normalized for phrase in FOLLOW_UP_PREVIOUS_ANSWER_PHRASES):
+        return True
+
+    referential_terms = ("that", "it", "this", "previous", "last", "answer", "reply", "translate", "переведи", "ответ")
+    return len(normalized) <= 160 and sum(term in normalized for term in referential_terms) >= 2
+
+
+def _detect_requested_output_language(question: str, fallback_language: str) -> str:
+    normalized = _normalize_message_text(question)
+    for language, hints in OUTPUT_LANGUAGE_HINTS.items():
+        if any(hint in normalized for hint in hints):
+            return language
+    return fallback_language
+
+
+async def _answer_from_previous_exchange(question: str, history: list[dict], target_language: str) -> str:
+    previous_turns = history[-4:]
+    return postprocess(
+        await _call_chat(
+            [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are Mugallim AI, a legal helper for teachers.\n"
+                        "The user is asking a follow-up about the immediately previous assistant answer.\n"
+                        "Use the recent conversation to resolve references like 'that', 'previous answer', or 'what you said'.\n"
+                        f"Answer in {target_language}.\n"
+                        "Be direct, concise, and preserve the meaning of the previous answer."
+                    ),
+                },
+                *previous_turns,
+                {"role": "user", "content": question},
+            ],
+            temperature=0.2,
+        )
+    )
 
 
 async def _answer(question: str, history: list[dict], target_language: str, context: str = "") -> str:
@@ -642,6 +720,9 @@ async def ask(question: str, user_id: int, platform: str, history: list[dict], d
     detected_lang = detect_language(question)
     target_language = detected_lang if detected_lang != "unknown" else "the same language as the user's question"
     prepared_history = _prepare_history(history, detected_lang)
+    follow_up_to_previous_answer = _is_previous_answer_follow_up(question, prepared_history)
+    if follow_up_to_previous_answer:
+        target_language = _detect_requested_output_language(question, target_language)
     retrieval_history = [
         item.get("content", "").strip()
         for item in prepared_history
@@ -655,7 +736,15 @@ async def ask(question: str, user_id: int, platform: str, history: list[dict], d
     retrieval_queries: list[str] = []
     used_hyde = False
 
-    if intent == "small_talk":
+    if follow_up_to_previous_answer:
+        intent = "follow_up_previous_answer"
+        answer = await _ensure_answer_language(
+            await _answer_from_previous_exchange(question, prepared_history, target_language),
+            question,
+            target_language,
+        )
+        sources = []
+    elif intent == "small_talk":
         answer = await _ensure_answer_language(
             await _answer(question, prepared_history, target_language),
             question,
