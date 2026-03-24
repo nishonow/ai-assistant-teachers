@@ -313,6 +313,40 @@ export default function ChatPage() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  useEffect(() => {
+    if (!window.matchMedia("(pointer: coarse)").matches) return;
+
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    if (!viewportMeta) return;
+
+    const originalContent = viewportMeta.getAttribute("content") || "width=device-width, initial-scale=1, viewport-fit=cover";
+
+    const isFocusableFormControl = (target: EventTarget | null): target is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement =>
+      target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
+
+    const lockViewportScale = (event: FocusEvent) => {
+      if (!isFocusableFormControl(event.target)) return;
+
+      viewportMeta.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover");
+    };
+
+    const restoreViewportScale = () => {
+      window.setTimeout(() => {
+        if (isFocusableFormControl(document.activeElement)) return;
+        viewportMeta.setAttribute("content", originalContent);
+      }, 0);
+    };
+
+    document.addEventListener("focusin", lockViewportScale);
+    document.addEventListener("focusout", restoreViewportScale);
+
+    return () => {
+      viewportMeta.setAttribute("content", originalContent);
+      document.removeEventListener("focusin", lockViewportScale);
+      document.removeEventListener("focusout", restoreViewportScale);
+    };
+  }, []);
+
   const handleSelectConversation = useCallback(
     (conversationId: string) => {
       if (!session || conversationId === routeConversationId) return;
