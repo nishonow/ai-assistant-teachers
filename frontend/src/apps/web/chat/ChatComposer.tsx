@@ -124,9 +124,9 @@ export default function ChatComposer({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-[#08111c]/96 px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-1.5 md:px-6 md:pb-4 md:pt-2"
+      className="relative bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:px-6 md:pb-4 md:pt-0"
     >
-      <div className="chat-composer-shell mx-auto flex w-full max-w-4xl items-end gap-2 rounded-[22px] bg-[#0d1827] px-2 py-1.5 md:gap-2.5 md:rounded-[24px] md:px-2.5 md:py-2">
+      <div className="chat-composer-shell mx-auto flex w-full max-w-4xl items-end gap-2 overflow-hidden rounded-[999px] bg-[#0d1827] px-2.5 py-1.5 md:gap-2.5 md:px-3 md:py-2">
         <textarea
           ref={textareaRef}
           value={value}
@@ -136,7 +136,7 @@ export default function ChatComposer({
           onFocus={stabilizeZoomedFocus}
           placeholder="Напишите Mugallim AI..."
           rows={1}
-          className="chat-input-scroll min-h-[20px] max-h-[220px] flex-1 resize-none bg-transparent px-2 py-[5px] text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[22px] md:py-[7px]"
+          className="chat-input-scroll min-h-[20px] max-h-[220px] flex-1 resize-none bg-transparent px-1.5 py-[5px] text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[22px] md:py-[7px]"
         />
         <button
           type="submit"
@@ -147,7 +147,7 @@ export default function ChatComposer({
           <SendHorizontal size={16} />
         </button>
       </div>
-      <p className="mx-auto mt-1 w-full max-w-4xl px-2 text-center text-[10px] leading-4 text-slate-500 md:mt-1.5 md:text-[11px] md:leading-4">
+      <p className="mx-auto mt-0.5 w-full max-w-4xl px-2 text-center text-[10px] leading-4 text-slate-500 md:mt-1 md:text-[11px] md:leading-4">
         Проверяйте источники. История сохраняется.
       </p>
     </form>

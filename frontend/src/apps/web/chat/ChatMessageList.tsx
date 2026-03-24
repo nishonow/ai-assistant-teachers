@@ -137,7 +137,15 @@ const THINKING_ANIMATION_CSS = `
 `;
 
 function ChatScrollShell({ children }: { children: ReactNode }) {
-  return <div className="scroll-area flex-1 overflow-y-auto px-3 py-4 md:px-6 md:py-5">{children}</div>;
+  return (
+    <div className="relative flex-1 min-h-0">
+      <div className="scroll-area h-full overflow-y-auto px-3 py-4 pb-0 md:px-6 md:py-5 md:pb-0">{children}</div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-5 bg-gradient-to-b from-transparent to-[#07101a]/70 md:h-6"
+      />
+    </div>
+  );
 }
 
 export default function ChatMessageList({

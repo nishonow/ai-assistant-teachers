@@ -1,4 +1,4 @@
-import { LogOut, MoreHorizontal, PanelLeftClose, Pencil, Trash2, UserRound } from "lucide-react";
+import { LogOut, MoreHorizontal, PanelLeftClose, Pencil, Shield, Trash2, UserRound } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from "react";
 
 import logo from "../../../../logo.png";
@@ -12,6 +12,7 @@ interface ChatSidebarProps {
   loading?: boolean;
   isMobileOpen: boolean;
   username?: string | null;
+  isAdmin?: boolean;
   historyPending?: boolean;
   onCloseMobile: () => void;
   onSelectConversation: (id: string) => void;
@@ -19,6 +20,7 @@ interface ChatSidebarProps {
   onDeleteConversation: (conversation: ConversationSummary) => void;
   onDeleteAllHistory: () => void;
   onEditProfile: () => void;
+  onOpenAdmin: () => void;
   onLogout: () => void;
 }
 
@@ -39,8 +41,10 @@ interface SidebarAccountMenuProps {
   menuOpen: boolean;
   setMenuOpen: Dispatch<SetStateAction<boolean>>;
   username: string;
+  isAdmin: boolean;
   onDeleteAllHistory: () => void;
   onEditProfile: () => void;
+  onOpenAdmin: () => void;
   onLogout: () => void;
 }
 
@@ -228,8 +232,10 @@ function SidebarAccountMenu({
   menuOpen,
   setMenuOpen,
   username,
+  isAdmin,
   onDeleteAllHistory,
   onEditProfile,
+  onOpenAdmin,
   onLogout,
 }: SidebarAccountMenuProps) {
   return (
@@ -250,6 +256,19 @@ function SidebarAccountMenu({
             <UserRound size={15} />
             Профиль
           </button>
+          {isAdmin ? (
+            <button
+              type="button"
+              className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-slate-100 transition-colors hover:bg-[#1c3045]"
+              onClick={() => {
+                setMenuOpen(false);
+                onOpenAdmin();
+              }}
+            >
+              <Shield size={15} />
+              Админ панель
+            </button>
+          ) : null}
           <button
             type="button"
             className={[
@@ -305,6 +324,7 @@ export default function ChatSidebar({
   loading = false,
   isMobileOpen,
   username,
+  isAdmin = false,
   historyPending = false,
   onCloseMobile,
   onSelectConversation,
@@ -312,6 +332,7 @@ export default function ChatSidebar({
   onDeleteConversation,
   onDeleteAllHistory,
   onEditProfile,
+  onOpenAdmin,
   onLogout,
 }: ChatSidebarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -393,8 +414,10 @@ export default function ChatSidebar({
             menuOpen={menuOpen}
             setMenuOpen={setMenuOpen}
             username={safeUsername}
+            isAdmin={isAdmin}
             onDeleteAllHistory={onDeleteAllHistory}
             onEditProfile={onEditProfile}
+            onOpenAdmin={onOpenAdmin}
             onLogout={onLogout}
           />
         </div>
@@ -431,8 +454,10 @@ export default function ChatSidebar({
                 menuOpen={menuOpen}
                 setMenuOpen={setMenuOpen}
                 username={safeUsername}
+                isAdmin={isAdmin}
                 onDeleteAllHistory={onDeleteAllHistory}
                 onEditProfile={onEditProfile}
+                onOpenAdmin={onOpenAdmin}
                 onLogout={onLogout}
               />
             </div>

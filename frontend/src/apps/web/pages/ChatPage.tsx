@@ -627,12 +627,17 @@ export default function ChatPage() {
         hasHistory={conversations.length > 0}
         loading={isLoadingList}
         isMobileOpen={mobileSidebarOpen}
+        isAdmin={session.user.role === "admin"}
         historyPending={deleteAllPending}
         username={session.user.displayName || session.user.username}
         onCloseMobile={() => setMobileSidebarOpen(false)}
         onDeleteAllHistory={() => setDeleteAllConfirmOpen(true)}
         onDeleteConversation={handleOpenDeleteConversation}
         onEditProfile={handleOpenProfile}
+        onOpenAdmin={() => {
+          setMobileSidebarOpen(false);
+          navigate("/admin");
+        }}
         onLogout={() => setLogoutConfirmOpen(true)}
         onRenameConversation={handleOpenRenameConversation}
         onSelectConversation={handleSelectConversation}
