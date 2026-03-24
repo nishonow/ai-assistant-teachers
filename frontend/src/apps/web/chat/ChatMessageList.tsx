@@ -1,4 +1,4 @@
-import { BookOpenText, Check, Copy } from "lucide-react";
+import { BookOpenText, Check, Copy, MessageSquare } from "lucide-react";
 import { type ReactNode, type Ref, useCallback, useEffect, useRef, useState } from "react";
 
 import AssistantMessageContent, { getAssistantMessagePlainText } from "./AssistantMessageContent";
@@ -20,14 +20,7 @@ const SUGGESTED_QUESTIONS = [
   "Как получить отпуск по беременности и родам?",
 ] as const;
 
-const THINKING_STAGES = [
-  "Анализирую запрос...",
-  "Ищу подходящие документы...",
-  "Проверяю контекст и нормы...",
-  "Формирую ответ...",
-] as const;
 const AUTO_SCROLL_THRESHOLD = 96;
-
 const THINKING_ANIMATION_CSS = `
   @keyframes webchatThinkingCorePulse {
     0%, 100% {
@@ -41,25 +34,15 @@ const THINKING_ANIMATION_CSS = `
     }
   }
 
-  @keyframes webchatThinkingDotBounce {
+  @keyframes webchatThinkingDotPulse {
     0%, 80%, 100% {
+      opacity: 0.28;
       transform: translateY(0);
-      opacity: 0.35;
     }
 
     40% {
-      transform: translateY(-4px);
       opacity: 1;
-    }
-  }
-
-  @keyframes webchatThinkingSweep {
-    from {
-      transform: translateX(-120%);
-    }
-
-    to {
-      transform: translateX(120%);
+      transform: translateY(-2px);
     }
   }
 
@@ -71,67 +54,40 @@ const THINKING_ANIMATION_CSS = `
       linear-gradient(180deg, rgba(13, 24, 39, 0.98) 0%, rgba(10, 19, 31, 0.98) 100%);
   }
 
-  .thinking-shell::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(142, 241, 229, 0.08), transparent);
-    transform: translateX(-120%);
-    animation: webchatThinkingSweep 2.4s ease-in-out infinite;
-    pointer-events: none;
-  }
-
   .thinking-core {
     display: inline-flex;
-    width: 12px;
-    height: 12px;
+    width: 0.72rem;
+    height: 0.72rem;
     border-radius: 9999px;
     background: radial-gradient(circle, rgba(198, 255, 247, 0.98) 0%, rgba(142, 241, 229, 0.92) 45%, rgba(68, 171, 158, 0.85) 100%);
     animation: webchatThinkingCorePulse 1.6s ease-in-out infinite;
   }
 
-  .thinking-dots {
+  .thinking-inline-dots {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.28rem;
   }
 
-  .thinking-dots span {
-    width: 0.375rem;
-    height: 0.375rem;
+  .thinking-inline-dots span {
+    width: 0.32rem;
+    height: 0.32rem;
     border-radius: 9999px;
     background: rgba(142, 241, 229, 0.92);
-    animation: webchatThinkingDotBounce 1s ease-in-out infinite;
+    animation: webchatThinkingDotPulse 1.1s ease-in-out infinite;
   }
 
-  .thinking-dots span:nth-child(2) {
+  .thinking-inline-dots span:nth-child(2) {
     animation-delay: 120ms;
   }
 
-  .thinking-dots span:nth-child(3) {
+  .thinking-inline-dots span:nth-child(3) {
     animation-delay: 240ms;
   }
 
-  .thinking-line {
-    position: relative;
-    overflow: hidden;
-    background: rgba(71, 96, 121, 0.45);
-  }
-
-  .thinking-line::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(186, 255, 246, 0.18), transparent);
-    transform: translateX(-120%);
-    animation: webchatThinkingSweep 1.9s ease-in-out infinite;
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .thinking-shell::after,
     .thinking-core,
-    .thinking-dots span,
-    .thinking-line::after {
+    .thinking-inline-dots span {
       animation: none !important;
     }
   }
@@ -145,8 +101,10 @@ function ChatScrollShell({
   scrollRef?: Ref<HTMLDivElement>;
 }) {
   return (
-    <div ref={scrollRef} className="scroll-area flex-1 overflow-y-auto px-3 py-4 pb-3 md:px-6 md:py-5 md:pb-4">
-      {children}
+    <div className="relative min-h-0 flex-1">
+      <div ref={scrollRef} className="scroll-area h-full overflow-y-auto px-3 py-4 pb-16 md:px-6 md:py-5 md:pb-20">
+        {children}
+      </div>
     </div>
   );
 }
@@ -166,7 +124,6 @@ export default function ChatMessageList({
   const previousPendingRef = useRef(false);
   const shouldStickToBottomRef = useRef(true);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const [thinkingStageIndex, setThinkingStageIndex] = useState(0);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
     const element = scrollRef.current;
@@ -238,21 +195,6 @@ export default function ChatMessageList({
     return () => window.clearTimeout(timer);
   }, [copiedMessageId]);
 
-  useEffect(() => {
-    if (!pending) {
-      setThinkingStageIndex(0);
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setThinkingStageIndex((current) => (current + 1) % THINKING_STAGES.length);
-    }, 1800);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [pending]);
-
   const handleCopy = async (messageId: string, content: string) => {
     try {
       await navigator.clipboard.writeText(content);
@@ -290,7 +232,9 @@ export default function ChatMessageList({
             </div>
 
             <div className="flex items-center gap-3 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm text-slate-300 [animation-delay:180ms]">
-              <span className="inline-flex h-3 w-3 animate-pulse rounded-full bg-brand-200" />
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#305169] bg-[#102033] text-brand-200">
+                <MessageSquare size={14} />
+              </span>
               <span>Загружаем диалог...</span>
             </div>
           </div>
@@ -301,32 +245,29 @@ export default function ChatMessageList({
 
   if (!messages.length) {
     return (
-      <>
-        <style>{THINKING_ANIMATION_CSS}</style>
-        <div className="grid flex-1 place-items-center px-4 py-5 md:px-6 md:py-10">
-          <div className="w-full max-w-[50rem] rounded-[24px] border border-[#284863] bg-[#0d1827]/92 px-4 py-5 text-center sm:rounded-[30px] sm:px-8 sm:py-10">
-            <h2 className="font-heading text-[2rem] leading-tight text-slate-100 sm:text-3xl">Что вы хотите узнать?</h2>
-            <div className="mx-auto mt-5 grid w-full max-w-[760px] gap-2.5 text-left sm:mt-7 sm:gap-3.5 sm:grid-cols-3">
-              {SUGGESTED_QUESTIONS.map((question) => (
-                <button
-                  key={question}
-                  type="button"
-                  className={[
-                    "rounded-[18px] border border-[#284863] bg-[#0d1827] px-4 py-4 text-sm leading-6 text-slate-200 transition duration-200 sm:rounded-[22px] sm:px-5 sm:py-5",
-                    "min-h-[84px] sm:min-h-[96px]",
-                    "hover:border-[#3a5f7d] hover:bg-[#112033] hover:text-slate-100",
-                    "disabled:cursor-not-allowed disabled:opacity-55",
-                  ].join(" ")}
-                  disabled={suggestionsDisabled}
-                  onClick={() => onSelectSuggestion(question)}
-                >
-                  {question}
-                </button>
-              ))}
-            </div>
+      <div className="grid flex-1 place-items-center px-4 py-5 md:px-6 md:py-10">
+        <div className="w-full max-w-[50rem] rounded-[24px] border border-[#284863] bg-[#0d1827]/92 px-4 py-5 text-center sm:rounded-[30px] sm:px-8 sm:py-10">
+          <h2 className="font-heading text-[2rem] leading-tight text-slate-100 sm:text-3xl">Что вы хотите узнать?</h2>
+          <div className="mx-auto mt-5 grid w-full max-w-[760px] gap-2.5 text-left sm:mt-7 sm:gap-3.5 sm:grid-cols-3">
+            {SUGGESTED_QUESTIONS.map((question) => (
+              <button
+                key={question}
+                type="button"
+                className={[
+                  "rounded-[18px] border border-[#284863] bg-[#0d1827] px-4 py-4 text-sm leading-6 text-slate-200 transition duration-200 sm:rounded-[22px] sm:px-5 sm:py-5",
+                  "min-h-[84px] sm:min-h-[96px]",
+                  "hover:border-[#3a5f7d] hover:bg-[#112033] hover:text-slate-100",
+                  "disabled:cursor-not-allowed disabled:opacity-55",
+                ].join(" ")}
+                disabled={suggestionsDisabled}
+                onClick={() => onSelectSuggestion(question)}
+              >
+                {question}
+              </button>
+            ))}
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -401,31 +342,20 @@ export default function ChatMessageList({
           ))}
 
           {pending ? (
-            <div className="thinking-shell mr-auto max-w-[70%] rounded-[24px] border border-[#284863] bg-[#0d1827] px-4 py-4 text-sm text-slate-300">
-              <div className="flex items-start gap-3.5">
-                <span className="thinking-core mt-1.5 shrink-0" />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-200/80">Ассистент</p>
-                    <div className="thinking-dots" aria-hidden="true">
-                      <span />
-                      <span />
-                      <span />
-                    </div>
-                  </div>
-                  <p className="mt-2.5 text-sm font-medium text-slate-100" aria-live="polite">
-                    {THINKING_STAGES[thinkingStageIndex]}
-                  </p>
-                  <div className="mt-3 space-y-2.5" aria-hidden="true">
-                    <div className="thinking-line h-2.5 w-[88%] rounded-full" />
-                    <div className="thinking-line h-2.5 w-[72%] rounded-full" />
-                    <div className="thinking-line h-2.5 w-[54%] rounded-full" />
-                  </div>
-                </div>
+            <div className="thinking-shell mr-auto inline-flex items-center gap-3 rounded-[22px] border border-[#284863] px-4 py-3 text-sm text-slate-300">
+              <span className="thinking-core shrink-0" aria-hidden="true" />
+              <div className="flex items-center gap-2.5">
+                <span className="text-sm text-slate-100" aria-live="polite">
+                  Mugallim AI думает...
+                </span>
+                <span className="thinking-inline-dots" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
               </div>
             </div>
           ) : null}
-
         </div>
       </ChatScrollShell>
     </>

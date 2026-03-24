@@ -129,13 +129,9 @@ export default function ChatComposer({
   return (
     <form
       onSubmit={handleSubmit}
-      className="relative bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:px-6 md:pb-4 md:pt-0"
+      className="relative -mt-7 bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:-mt-8 md:px-6 md:pb-4 md:pt-0"
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 -top-12 h-14 bg-gradient-to-b from-transparent via-[#07101a]/74 to-[#07101a] md:-top-16 md:h-20"
-      />
-      <div className="chat-composer-shell relative mx-auto flex w-full max-w-4xl items-end gap-2 overflow-hidden rounded-[28px] border border-[#284863]/85 bg-[#0d1827]/92 px-2.5 py-1.5 backdrop-blur-md focus-within:border-[#5ddfd0]/35 focus-within:bg-[#0e1c2b]/95 md:gap-2.5 md:px-3 md:py-2">
+      <div className="chat-composer-shell relative mx-auto flex w-full max-w-4xl items-end gap-2 overflow-hidden rounded-[28px] border border-[#284863]/65 bg-[#0d1827] px-2.5 py-1.5 focus-within:border-[#5ddfd0]/35 focus-within:bg-[#0e1c2b] md:-translate-x-[6px] md:gap-2.5 md:px-3 md:py-2">
         <textarea
           ref={textareaRef}
           value={value}

@@ -649,55 +649,76 @@ export default function ChatPage() {
 
       <div className="flex min-w-0 flex-1 bg-[#07101a]">
         <main className="flex min-w-0 flex-1 flex-col bg-[#07101a]">
-          <header className="flex h-[50px] items-center justify-between gap-2 border-b border-[#21384b] bg-[#08111c] px-3 md:h-[62px] md:gap-2.5 md:px-5">
-            <div className="flex min-w-0 items-center gap-2 md:gap-3">
-              <button type="button" className="btn-muted md:hidden" onClick={() => setMobileSidebarOpen(true)}>
-                <PanelLeft size={16} />
-              </button>
+          <header className="border-b border-[#21384b] bg-[#08111c]">
+            <div className="flex h-[48px] items-center justify-between gap-2 px-3 md:hidden">
+              <div className="flex w-10 items-center justify-start">
+                <button type="button" className="btn-muted px-2.5 py-2" onClick={() => setMobileSidebarOpen(true)} aria-label="Открыть меню">
+                  <PanelLeft size={16} />
+                </button>
+              </div>
 
-              <div className="min-w-0">
-                <h1 className="truncate font-heading text-[13px] text-slate-100 md:text-[16px]">
-                  {activeConversation?.title ?? "Новый чат"}
+              <div className="min-w-0 flex-1 px-2 text-center">
+                <h1 className="truncate font-heading text-[13px] text-slate-100">
+                  {activeConversation?.title ?? "Mugallim AI"}
                 </h1>
+              </div>
+
+              <div className="flex w-10 items-center justify-end">
+                <button
+                  type="button"
+                  className="btn-muted px-2.5 py-2"
+                  onClick={handleStartDraftConversation}
+                  disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
+                  aria-label="Новый чат"
+                >
+                  <MessageSquarePlus size={16} />
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="btn-muted hidden sm:inline-flex"
-                onClick={handleStartDraftConversation}
-                disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
-              >
-                <MessageSquarePlus size={16} />
-                Новый чат
-              </button>
-              <button
-                type="button"
-                className="btn-muted sm:hidden"
-                onClick={handleStartDraftConversation}
-                disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
-              >
-                <MessageSquarePlus size={16} />
-              </button>
-              <button
-                type="button"
-                className="btn-muted hidden lg:inline-flex"
-                onClick={() => setDesktopSourcesOpen((current) => !current)}
-              >
-                <BookOpenText size={16} />
-                Источники
-                <ChevronRight
-                  size={14}
-                  className={[
-                    "transition-transform duration-200",
-                    desktopSourcesOpen ? "rotate-180" : "rotate-0",
-                  ].join(" ")}
-                />
-              </button>
-              <button type="button" className="btn-muted lg:hidden" onClick={() => setMobileSourcesOpen(true)}>
-                <BookOpenText size={16} />
-              </button>
+            <div className="hidden h-[62px] items-center justify-between gap-2.5 px-5 md:flex">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="min-w-0">
+                  <h1 className="truncate font-heading text-[16px] text-slate-100">
+                    {activeConversation?.title ?? "Новый чат"}
+                  </h1>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="btn-muted hidden sm:inline-flex"
+                  onClick={handleStartDraftConversation}
+                  disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
+                >
+                  <MessageSquarePlus size={16} />
+                  Новый чат
+                </button>
+                <button
+                  type="button"
+                  className="btn-muted sm:hidden"
+                  onClick={handleStartDraftConversation}
+                  disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
+                >
+                  <MessageSquarePlus size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="btn-muted hidden lg:inline-flex"
+                  onClick={() => setDesktopSourcesOpen((current) => !current)}
+                >
+                  <BookOpenText size={16} />
+                  Источники
+                  <ChevronRight
+                    size={14}
+                    className={[
+                      "transition-transform duration-200",
+                      desktopSourcesOpen ? "rotate-180" : "rotate-0",
+                    ].join(" ")}
+                  />
+                </button>
+              </div>
             </div>
           </header>
 

@@ -152,7 +152,7 @@ function SidebarList({
           <div
             key={conversation.id}
             className={[
-              "chat-card-enter isolate relative flex items-start gap-2 rounded-2xl border px-3 py-3 transition-all duration-200 hover:-translate-y-0.5",
+              "chat-card-enter group isolate relative flex items-start gap-2 rounded-2xl border px-3 py-3 transition-all duration-200 hover:-translate-y-0.5",
               openMenuId === conversation.id ? "z-20" : "z-0",
               conversation.id === activeConversationId
                 ? "border-brand-400/35 bg-brand-500/15 text-slate-100"
@@ -169,13 +169,16 @@ function SidebarList({
               }}
             >
               <p className="truncate font-medium">{conversation.title}</p>
-              <p className="mt-1 truncate text-xs text-slate-500">{conversation.lastMessagePreview || "Начните диалог"}</p>
             </button>
 
             <div className="relative z-30 shrink-0 self-center" data-chat-actions-menu>
               <button
                 type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-transparent text-slate-400"
+                className={[
+                  "inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 transition-[opacity,color,background-color] duration-150",
+                  "hover:bg-[#152638] hover:text-slate-200",
+                  openMenuId === conversation.id ? "opacity-100" : "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100",
+                ].join(" ")}
                 onClick={(event) => {
                   event.stopPropagation();
                   setOpenMenuId((current) => (current === conversation.id ? null : conversation.id));
@@ -309,7 +312,7 @@ function SidebarAccountMenu({
           </span>
           <p className="truncate text-sm font-semibold text-slate-100">{username}</p>
         </div>
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#284863] bg-[#09111d] text-slate-300">
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-300">
           <MoreHorizontal size={16} />
         </span>
       </button>
