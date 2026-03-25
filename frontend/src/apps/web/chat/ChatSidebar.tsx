@@ -168,7 +168,23 @@ function SidebarList({
                 onCloseMobile();
               }}
             >
-              <p className="truncate text-[13px] font-medium leading-5">{conversation.title}</p>
+              <div className="relative min-w-0">
+                <p className="truncate text-[13px] font-medium leading-5">{conversation.title}</p>
+                <div className="pointer-events-none absolute left-0 right-0 top-full z-20 mt-2 hidden rounded-xl border border-[#325774] bg-[#102033] px-3 py-2 md:group-hover:block md:group-focus-within:block">
+                  <p
+                    className="text-xs leading-5 text-slate-200"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {conversation.title}
+                  </p>
+                </div>
+              </div>
             </button>
 
             <div className="relative z-30 shrink-0 self-center" data-chat-actions-menu>
