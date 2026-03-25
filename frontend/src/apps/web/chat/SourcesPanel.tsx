@@ -42,7 +42,7 @@ function SourcesContent({
   return (
     <>
       {showHeader ? (
-        <header className="flex h-[62px] flex-col justify-center border-b border-[#21384b] px-4 md:px-5">
+        <header className="flex h-[62px] shrink-0 flex-col justify-center border-b border-[#21384b] px-4 md:px-5">
           <h2 className="font-heading text-sm uppercase tracking-[0.15em] text-slate-300">{"Источники"}</h2>
           <div className="mt-1 flex items-center justify-between gap-3">
             <p className="truncate text-xs text-slate-500">{activeConversationTitle}</p>
@@ -221,7 +221,7 @@ export default function SourcesPanel({
           <button type="button" className="drawer-overlay-enter absolute inset-0 bg-black/62" onClick={onCloseMobile} aria-label={"Закрыть источники"} />
 
           <aside className="drawer-sheet-right drawer-sheet-surface absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden rounded-l-[28px] border-l border-[#21384b]">
-            <div className="flex h-[62px] items-center justify-between border-b border-[#21384b] bg-[#0a1624] px-4">
+            <div className="flex h-[62px] shrink-0 items-center justify-between border-b border-[#21384b] bg-[#0a1624] px-4">
               <div className="flex items-center gap-2 text-slate-200">
                 <BookOpenText size={16} />
                 <span className="text-sm font-semibold">{"Источники"}</span>

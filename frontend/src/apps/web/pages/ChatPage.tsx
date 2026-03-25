@@ -619,8 +619,8 @@ export default function ChatPage() {
 
       <div className="flex min-w-0 flex-1 bg-[#07101a]">
         <main className="flex min-w-0 flex-1 flex-col bg-[#07101a]">
-          <header className="border-b border-[#21384b] bg-[#08111c]">
-            <div className="flex h-[48px] items-center justify-between gap-2 px-3 md:hidden">
+          <header className="flex flex-col justify-center border-b border-[#21384b] bg-[#08111c] shrink-0 md:h-[62px]">
+            <div className="flex h-[48px] md:hidden items-center justify-between gap-2 px-3">
               <div className="flex w-10 items-center justify-start">
                 <button type="button" className="btn-muted px-2.5 py-2" onClick={() => setMobileSidebarOpen(true)} aria-label="Открыть меню">
                   <PanelLeft size={16} />
@@ -646,7 +646,7 @@ export default function ChatPage() {
               </div>
             </div>
 
-            <div className="hidden h-[62px] items-center justify-between gap-2.5 px-5 md:flex">
+            <div className="hidden h-full items-center justify-between gap-2.5 px-5 md:flex">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="min-w-0">
                   <h1 className="truncate font-heading text-[16px] text-slate-100">
