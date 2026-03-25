@@ -93,6 +93,18 @@ function toConversationSummary(conversation: Conversation): ConversationSummary 
   };
 }
 
+function sortConversationsByRecent(conversations: ConversationSummary[]): ConversationSummary[] {
+  return [...conversations].sort((left, right) => {
+    const leftTs = Date.parse(left.updatedAt || "");
+    const rightTs = Date.parse(right.updatedAt || "");
+
+    if (Number.isNaN(leftTs) && Number.isNaN(rightTs)) return 0;
+    if (Number.isNaN(leftTs)) return 1;
+    if (Number.isNaN(rightTs)) return -1;
+    return rightTs - leftTs;
+  });
+}
+
 function upsertConversationSummary(
   conversations: ConversationSummary[],
   conversation: Conversation,
@@ -102,11 +114,62 @@ function upsertConversationSummary(
   const existingIndex = conversations.findIndex((item) => item.id === next.id);
 
   if (mode === "move-to-top" || existingIndex === -1) {
-    return [next, ...conversations.filter((item) => item.id !== next.id)];
+    return sortConversationsByRecent([next, ...conversations.filter((item) => item.id !== next.id)]);
   }
 
-  return conversations.map((item) => (item.id === next.id ? next : item));
+  return sortConversationsByRecent(conversations.map((item) => (item.id === next.id ? next : item)));
 }
+
+function isBlockedMessagingError(error: unknown): boolean {
+  return error instanceof Error && /user is blocked/i.test(error.message);
+}
+
+function isRateLimitError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return /rate limit exceeded|too many requests|\(429\)/i.test(error.message);
+}
+
+function localizeUserErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof Error)) return fallback;
+
+  const message = error.message.trim();
+  const normalized = message.toLowerCase();
+
+  if (/rate limit exceeded|too many requests|\(429\)/i.test(message)) {
+    return "Слишком много запросов. Подождите немного и попробуйте снова.";
+  }
+  if (/user is blocked/i.test(message)) {
+    return "Пользователь заблокирован.";
+  }
+  if (/unauthorized|\(401\)/i.test(message)) {
+    return "Сессия истекла. Войдите снова.";
+  }
+  if (/user mismatch|forbidden|\(403\)/i.test(message)) {
+    return "Доступ запрещен.";
+  }
+  if (/conversation not found/i.test(message)) {
+    return "Диалог не найден.";
+  }
+  if (/source not found/i.test(message)) {
+    return "Источник для этого диалога не найден.";
+  }
+  if (/document not found|file not found/i.test(message)) {
+    return "Документ не найден.";
+  }
+  if (/title is required/i.test(message)) {
+    return "Укажите название диалога.";
+  }
+  if (/question and answer are required/i.test(message)) {
+    return "Не удалось сохранить диалог.";
+  }
+  if (/request failed/i.test(message)) {
+    return fallback;
+  }
+
+  return normalized ? message : fallback;
+}
+
+const RATE_LIMIT_WINDOW_SECONDS = 60;
 
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -142,6 +205,9 @@ export default function ChatPage() {
   const [profilePassword, setProfilePassword] = useState("");
   const [profilePending, setProfilePending] = useState(false);
   const [downloadPendingId, setDownloadPendingId] = useState<string | null>(null);
+  const [isMessagingBlocked, setIsMessagingBlocked] = useState(false);
+  const [rateLimitUntil, setRateLimitUntil] = useState<number | null>(null);
+  const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState(0);
   const [notice, setNotice] = useState<NoticeState | null>(null);
 
   const showNotice = useCallback((type: NoticeState["type"], message: string) => {
@@ -178,7 +244,7 @@ export default function ChatPage() {
       try {
         const items = await listConversations(currentSession);
         if (cancelled) return;
-        setConversations(items);
+        setConversations(sortConversationsByRecent(items));
 
         void (async () => {
           const hydratedItems = await Promise.allSettled(
@@ -197,22 +263,24 @@ export default function ChatPage() {
           );
 
           setConversations((prev) =>
-            prev.map((item) => {
-              const hydratedItem = previewById.get(item.id);
-              if (!hydratedItem || hydratedItem.updatedAt !== item.updatedAt) {
-                return item;
-              }
+            sortConversationsByRecent(
+              prev.map((item) => {
+                const hydratedItem = previewById.get(item.id);
+                if (!hydratedItem || hydratedItem.updatedAt !== item.updatedAt) {
+                  return item;
+                }
 
-              return {
-                ...item,
-                lastMessagePreview: hydratedItem.preview,
-              };
-            }),
+                return {
+                  ...item,
+                  lastMessagePreview: hydratedItem.preview,
+                };
+              }),
+            ),
           );
         })();
       } catch (requestError) {
         if (cancelled) return;
-        showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось загрузить диалоги.");
+        showNotice("error", localizeUserErrorMessage(requestError, "Не удалось загрузить диалоги."));
       } finally {
         if (!cancelled) {
           setIsLoadingList(false);
@@ -274,7 +342,7 @@ export default function ChatPage() {
       } catch (requestError) {
         if (cancelled || conversationRequestIdRef.current !== requestId) return;
 
-        showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось открыть диалог.");
+        showNotice("error", localizeUserErrorMessage(requestError, "Не удалось открыть диалог."));
         navigate("/app", { replace: true });
         setActiveConversationId(null);
         setActiveConversation(null);
@@ -303,6 +371,25 @@ export default function ChatPage() {
 
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  useEffect(() => {
+    if (!rateLimitUntil) {
+      setRateLimitSecondsLeft(0);
+      return;
+    }
+
+    const tick = () => {
+      const secondsLeft = Math.max(0, Math.ceil((rateLimitUntil - Date.now()) / 1000));
+      setRateLimitSecondsLeft(secondsLeft);
+      if (secondsLeft === 0) {
+        setRateLimitUntil(null);
+      }
+    };
+
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [rateLimitUntil]);
 
   useEffect(() => {
     const previousBodyOverflow = document.body.style.overflow;
@@ -346,7 +433,7 @@ export default function ChatPage() {
 
   const handleSend = useCallback(
     async (prompt: string) => {
-      if (!session || pending || sendLockRef.current) return;
+      if (!session || pending || sendLockRef.current || rateLimitSecondsLeft > 0) return;
 
       sendLockRef.current = true;
       setPending(true);
@@ -359,7 +446,7 @@ export default function ChatPage() {
           conversation = await createConversation({ session });
           isFreshConversation = true;
         } catch (requestError) {
-          showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось начать новый диалог.");
+          showNotice("error", localizeUserErrorMessage(requestError, "Не удалось начать новый диалог."));
           setPending(false);
           sendLockRef.current = false;
           return;
@@ -388,6 +475,8 @@ export default function ChatPage() {
           session,
           history: optimisticConversation.messages,
         });
+        setIsMessagingBlocked(false);
+        setRateLimitUntil(null);
         const answer = response.answer || "Ответ не был получен.";
         const sources = response.sources || [];
         const answeredConversation: Conversation = {
@@ -417,13 +506,28 @@ export default function ChatPage() {
           );
         }
       } catch (requestError) {
-        showNotice("error", requestError instanceof Error ? requestError.message : "Запрос не выполнен.");
+        if (isBlockedMessagingError(requestError)) {
+          setIsMessagingBlocked(true);
+          showNotice("error", "Пользователь заблокирован. Отправка сообщений недоступна.");
+          syncActiveConversation(conversation, "preserve", "preserve");
+          return;
+        }
+
+        if (isRateLimitError(requestError)) {
+          setRateLimitUntil(Date.now() + RATE_LIMIT_WINDOW_SECONDS * 1000);
+          showNotice("warning", localizeUserErrorMessage(requestError, "Слишком много запросов."));
+          syncActiveConversation(conversation, "preserve", "preserve");
+          return;
+        }
+
+        showNotice("error", localizeUserErrorMessage(requestError, "Запрос не выполнен."));
+        syncActiveConversation(conversation, "preserve", "preserve");
       } finally {
         setPending(false);
         sendLockRef.current = false;
       }
     },
-    [activeConversation, navigate, pending, session, showNotice, syncActiveConversation],
+    [activeConversation, navigate, pending, rateLimitSecondsLeft, session, showNotice, syncActiveConversation],
   );
 
   const handleConfirmLogout = () => {
@@ -463,7 +567,7 @@ export default function ChatPage() {
       setProfilePassword("");
       showNotice("success", "Профиль успешно обновлён.");
     } catch (requestError) {
-      showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось обновить профиль.");
+      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось обновить профиль."));
     } finally {
       setProfilePending(false);
     }
@@ -502,7 +606,7 @@ export default function ChatPage() {
       setRenameTargetConversation(null);
       setRenameValue("");
     } catch (requestError) {
-      showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось переименовать диалог.");
+      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось переименовать диалог."));
     } finally {
       setRenamePending(false);
     }
@@ -536,7 +640,7 @@ export default function ChatPage() {
         navigate("/app", { replace: true });
       }
     } catch (requestError) {
-      showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось удалить диалог.");
+      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось удалить диалог."));
     } finally {
       setDeletePending(false);
     }
@@ -564,7 +668,7 @@ export default function ChatPage() {
       setMobileSourcesOpen(false);
       navigate("/app", { replace: true });
     } catch (requestError) {
-      showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось удалить историю чатов.");
+      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось удалить историю чатов."));
     } finally {
       setDeleteAllPending(false);
     }
@@ -592,7 +696,7 @@ export default function ChatPage() {
         anchor.remove();
         URL.revokeObjectURL(objectUrl);
       } catch (requestError) {
-        showNotice("error", requestError instanceof Error ? requestError.message : "Не удалось скачать источник.");
+        showNotice("error", localizeUserErrorMessage(requestError, "Не удалось скачать источник."));
       } finally {
         setDownloadPendingId(null);
       }
@@ -729,10 +833,20 @@ export default function ChatPage() {
             selectedSourcesMessageId={selectedSourcesMessageId}
             onSelectSources={handleSelectMessageSources}
             onSelectSuggestion={handleSelectSuggestion}
-            suggestionsDisabled={pending || isLoadingList || isLoadingConversation}
+            suggestionsDisabled={pending || isLoadingList || isLoadingConversation || isMessagingBlocked || rateLimitSecondsLeft > 0}
           />
+          {rateLimitSecondsLeft > 0 ? (
+            <div className="mx-3 mb-2 rounded-xl border border-amber-400/35 bg-amber-500/10 px-3 py-2 text-sm text-amber-200 md:mx-6">
+              Слишком много запросов. Попробуйте снова через {rateLimitSecondsLeft} сек.
+            </div>
+          ) : null}
+          {isMessagingBlocked ? (
+            <div className="mx-3 mb-2 rounded-xl border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-200 md:mx-6">
+              Вы заблокированы. Отправка новых сообщений временно недоступна.
+            </div>
+          ) : null}
           <ChatComposer
-            disabled={pending || isLoadingList || isLoadingConversation}
+            disabled={pending || isLoadingList || isLoadingConversation || isMessagingBlocked || rateLimitSecondsLeft > 0}
             onSubmit={handleSend}
             suggestedValue={suggestedQuestion}
             onSuggestedValueConsumed={() => setSuggestedQuestion(null)}
