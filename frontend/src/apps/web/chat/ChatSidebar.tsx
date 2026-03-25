@@ -168,7 +168,7 @@ function SidebarList({
                 onCloseMobile();
               }}
             >
-              <p className="truncate font-medium">{conversation.title}</p>
+              <p className="truncate text-[13px] font-medium leading-5">{conversation.title}</p>
             </button>
 
             <div className="relative z-30 shrink-0 self-center" data-chat-actions-menu>
