@@ -310,10 +310,11 @@
     box-shadow: 0 8px 24px rgba(2, 8, 18, 0.35);
   }
 
-  .relative:hover > .ui-tooltip,
-  .relative:focus-within > .ui-tooltip {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
+  @media (hover: hover) and (pointer: fine) {
+    .relative:hover > .ui-tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
   }
 
 

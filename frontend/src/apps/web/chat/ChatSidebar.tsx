@@ -152,7 +152,7 @@ function SidebarList({
           <div
             key={conversation.id}
                     className={[
-                      "chat-card-enter group isolate relative flex items-center gap-2 rounded-2xl border px-3 py-3 transition-all duration-200 hover:-translate-y-0.5",
+                      "chat-card-enter group isolate relative flex items-center gap-2 rounded-2xl border px-3 py-3 transition-all duration-200 hover:-translate-y-0.5 md:hover:z-30 md:focus-within:z-30",
               openMenuId === conversation.id ? "z-20" : "z-0",
               conversation.id === activeConversationId
                 ? "border-brand-400/35 bg-brand-500/15 text-slate-100"
@@ -168,9 +168,9 @@ function SidebarList({
                 onCloseMobile();
               }}
             >
-              <div className="relative min-w-0">
+              <div className="group/title relative min-w-0">
                 <p className="truncate text-[13px] font-medium leading-5">{conversation.title}</p>
-                <div className="pointer-events-none absolute left-0 right-0 top-full z-20 mt-2 hidden rounded-xl border border-[#325774] bg-[#102033] px-3 py-2 md:group-hover:block md:group-focus-within:block">
+                <div className="pointer-events-none absolute left-0 top-full z-40 mt-2 hidden max-w-[18rem] rounded-xl border border-[#325774] bg-[#102033] px-3 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)] md:group-hover/title:block">
                   <p
                     className="text-xs leading-5 text-slate-200"
                     style={{
