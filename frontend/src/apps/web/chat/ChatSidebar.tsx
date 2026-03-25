@@ -151,8 +151,8 @@ function SidebarList({
         conversations.map((conversation) => (
           <div
             key={conversation.id}
-            className={[
-              "chat-card-enter group isolate relative flex items-start gap-2 rounded-2xl border px-3 py-3 transition-all duration-200 hover:-translate-y-0.5",
+                    className={[
+                      "chat-card-enter group isolate relative flex items-center gap-2 rounded-2xl border px-3 py-3 transition-all duration-200 hover:-translate-y-0.5",
               openMenuId === conversation.id ? "z-20" : "z-0",
               conversation.id === activeConversationId
                 ? "border-brand-400/35 bg-brand-500/15 text-slate-100"
@@ -161,7 +161,7 @@ function SidebarList({
           >
             <button
               type="button"
-              className="min-w-0 flex-1 text-left"
+                      className="min-w-0 flex-1 self-center text-left"
               onClick={() => {
                 setOpenMenuId(null);
                 onSelectConversation(conversation.id);

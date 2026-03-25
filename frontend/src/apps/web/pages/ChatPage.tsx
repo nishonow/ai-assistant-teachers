@@ -7,9 +7,11 @@ import { useAuth } from "../../../core/auth";
 import type { NoticeState } from "../../../core/types";
 import {
   askAssistant,
+  RATE_LIMIT_WINDOW_SECONDS,
   ChatComposer,
   ChatMessageList,
   ChatSidebar,
+  createTransientMessage,
   createConversation,
   DeleteAllHistoryModal,
   DeleteConversationModal,
@@ -18,158 +20,21 @@ import {
   downloadConversationSource,
   EditProfileModal,
   getConversation,
+  getConversationPreview,
+  isBlockedMessagingError,
+  isRateLimitError,
   listConversations,
+  localizeUserErrorMessage,
   RenameConversationModal,
+  resolveSelectedSources,
   renameConversation,
   saveConversationExchange,
+  sortConversationsByRecent,
   SourcesPanel,
+  upsertConversationSummary,
   WebLogoutConfirmModal,
 } from "../chat";
 import type { ChatMessage, ChatSource, Conversation, ConversationSummary } from "../chat";
-
-function createTransientMessage(role: ChatMessage["role"], content: string, sources?: ChatSource[]): ChatMessage {
-  return {
-    id: `temp-${crypto.randomUUID()}`,
-    role,
-    content,
-    createdAt: new Date().toISOString(),
-    sources,
-  };
-}
-
-function getLatestAssistantMessage(conversation: Conversation | null): ChatMessage | null {
-  if (!conversation) return null;
-
-  for (let index = conversation.messages.length - 1; index >= 0; index -= 1) {
-    const message = conversation.messages[index];
-    if (message.role === "assistant") {
-      return message;
-    }
-  }
-
-  return null;
-}
-
-function resolveSelectedSources(
-  conversation: Conversation | null,
-  preferredMessageId: string | null,
-): { messageId: string | null; sources: ChatSource[] } {
-  if (!conversation) {
-    return { messageId: null, sources: [] };
-  }
-
-  if (preferredMessageId) {
-    const preferredMessage = conversation.messages.find(
-      (message) => message.id === preferredMessageId && message.role === "assistant" && Boolean(message.sources?.length),
-    );
-    if (preferredMessage) {
-      return { messageId: preferredMessage.id, sources: preferredMessage.sources || [] };
-    }
-  }
-
-  const latestAssistantMessage = getLatestAssistantMessage(conversation);
-  if (!latestAssistantMessage?.sources?.length) {
-    return { messageId: null, sources: [] };
-  }
-
-  return {
-    messageId: latestAssistantMessage.id,
-    sources: latestAssistantMessage.sources,
-  };
-}
-
-function getConversationPreview(conversation: Conversation): string {
-  const firstUserMessage = conversation.messages.find((message) => message.role === "user" && message.content.trim());
-  return (firstUserMessage?.content || conversation.title).slice(0, 120);
-}
-
-function toConversationSummary(conversation: Conversation): ConversationSummary {
-  return {
-    id: conversation.id,
-    title: conversation.title,
-    updatedAt: conversation.updatedAt,
-    lastMessagePreview: getConversationPreview(conversation),
-    messageCount: conversation.messages.length,
-  };
-}
-
-function sortConversationsByRecent(conversations: ConversationSummary[]): ConversationSummary[] {
-  return [...conversations].sort((left, right) => {
-    const leftTs = Date.parse(left.updatedAt || "");
-    const rightTs = Date.parse(right.updatedAt || "");
-
-    if (Number.isNaN(leftTs) && Number.isNaN(rightTs)) return 0;
-    if (Number.isNaN(leftTs)) return 1;
-    if (Number.isNaN(rightTs)) return -1;
-    return rightTs - leftTs;
-  });
-}
-
-function upsertConversationSummary(
-  conversations: ConversationSummary[],
-  conversation: Conversation,
-  mode: "preserve" | "move-to-top" = "preserve",
-): ConversationSummary[] {
-  const next = toConversationSummary(conversation);
-  const existingIndex = conversations.findIndex((item) => item.id === next.id);
-
-  if (mode === "move-to-top" || existingIndex === -1) {
-    return sortConversationsByRecent([next, ...conversations.filter((item) => item.id !== next.id)]);
-  }
-
-  return sortConversationsByRecent(conversations.map((item) => (item.id === next.id ? next : item)));
-}
-
-function isBlockedMessagingError(error: unknown): boolean {
-  return error instanceof Error && /user is blocked/i.test(error.message);
-}
-
-function isRateLimitError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  return /rate limit exceeded|too many requests|\(429\)/i.test(error.message);
-}
-
-function localizeUserErrorMessage(error: unknown, fallback: string): string {
-  if (!(error instanceof Error)) return fallback;
-
-  const message = error.message.trim();
-  const normalized = message.toLowerCase();
-
-  if (/rate limit exceeded|too many requests|\(429\)/i.test(message)) {
-    return "Слишком много запросов. Подождите немного и попробуйте снова.";
-  }
-  if (/user is blocked/i.test(message)) {
-    return "Пользователь заблокирован.";
-  }
-  if (/unauthorized|\(401\)/i.test(message)) {
-    return "Сессия истекла. Войдите снова.";
-  }
-  if (/user mismatch|forbidden|\(403\)/i.test(message)) {
-    return "Доступ запрещен.";
-  }
-  if (/conversation not found/i.test(message)) {
-    return "Диалог не найден.";
-  }
-  if (/source not found/i.test(message)) {
-    return "Источник для этого диалога не найден.";
-  }
-  if (/document not found|file not found/i.test(message)) {
-    return "Документ не найден.";
-  }
-  if (/title is required/i.test(message)) {
-    return "Укажите название диалога.";
-  }
-  if (/question and answer are required/i.test(message)) {
-    return "Не удалось сохранить диалог.";
-  }
-  if (/request failed/i.test(message)) {
-    return fallback;
-  }
-
-  return normalized ? message : fallback;
-}
-
-const RATE_LIMIT_WINDOW_SECONDS = 60;
 
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -744,7 +609,8 @@ export default function ChatPage() {
         onEditProfile={handleOpenProfile}
         onOpenAdmin={() => {
           setMobileSidebarOpen(false);
-          navigate("/admin");
+          const adminUrl = new URL("/admin", window.location.origin);
+          window.open(adminUrl.toString(), "_blank", "noopener,noreferrer");
         }}
         onLogout={() => setLogoutConfirmOpen(true)}
         onRenameConversation={handleOpenRenameConversation}
@@ -835,11 +701,6 @@ export default function ChatPage() {
             onSelectSuggestion={handleSelectSuggestion}
             suggestionsDisabled={pending || isLoadingList || isLoadingConversation || isMessagingBlocked || rateLimitSecondsLeft > 0}
           />
-          {rateLimitSecondsLeft > 0 ? (
-            <div className="mx-3 mb-2 rounded-xl border border-amber-400/35 bg-amber-500/10 px-3 py-2 text-sm text-amber-200 md:mx-6">
-              Слишком много запросов. Попробуйте снова через {rateLimitSecondsLeft} сек.
-            </div>
-          ) : null}
           {isMessagingBlocked ? (
             <div className="mx-3 mb-2 rounded-xl border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-200 md:mx-6">
               Вы заблокированы. Отправка новых сообщений временно недоступна.
