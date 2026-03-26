@@ -1,5 +1,5 @@
-import { BookOpenText, Check, Copy, MessageSquare } from "lucide-react";
-import { type ReactNode, type Ref, useCallback, useEffect, useRef, useState } from "react";
+import { ArrowDown, BookOpenText, Check, Copy, MessageSquare, Sparkles } from "lucide-react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import AssistantMessageContent, { getAssistantMessagePlainText } from "./AssistantMessageContent";
 import type { ChatMessage } from "./types";
@@ -96,15 +96,38 @@ const THINKING_ANIMATION_CSS = `
 function ChatScrollShell({
   children,
   scrollRef,
+  onScrollToBottom,
+  showScrollButton,
+  onScroll,
 }: {
   children: ReactNode;
-  scrollRef?: Ref<HTMLDivElement>;
+  scrollRef: React.MutableRefObject<HTMLDivElement | null>;
+  onScrollToBottom: () => void;
+  showScrollButton: boolean;
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
 }) {
   return (
     <div className="relative min-h-0 flex-1">
-      <div ref={scrollRef} className="scroll-area h-full overflow-y-auto px-3 py-4 pb-16 md:px-6 md:py-5 md:pb-20">
+      <div 
+        ref={scrollRef} 
+        onScroll={onScroll}
+        className="scroll-area h-full overflow-y-auto px-3 py-4 pb-16 md:px-6 md:py-5 md:pb-20"
+      >
         {children}
       </div>
+      
+      {showScrollButton && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 md:bottom-6 z-10">
+          <button
+            type="button"
+            onClick={onScrollToBottom}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#1e3448] bg-[#0d1827]/90 text-brand-300 backdrop-blur-sm transition-all hover:bg-[#15283f] hover:scale-105 active:scale-95"
+            aria-label="Вниз"
+          >
+            <ArrowDown size={18} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -122,8 +145,10 @@ export default function ChatMessageList({
   const contentRef = useRef<HTMLDivElement | null>(null);
   const previousLengthRef = useRef(0);
   const previousPendingRef = useRef(false);
+  const previousFirstMessageIdRef = useRef<string | undefined>(undefined);
   const shouldStickToBottomRef = useRef(true);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
     const element = scrollRef.current;
@@ -131,43 +156,49 @@ export default function ChatMessageList({
     element.scrollTo({ top: element.scrollHeight, behavior });
   }, []);
 
-  useEffect(() => {
+  const handleScroll = useCallback(() => {
     const element = scrollRef.current;
     if (!element) return;
-
-    const updateStickiness = () => {
-      const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
-      shouldStickToBottomRef.current = distanceFromBottom <= AUTO_SCROLL_THRESHOLD;
-    };
-
-    updateStickiness();
-    element.addEventListener("scroll", updateStickiness, { passive: true });
-    return () => {
-      element.removeEventListener("scroll", updateStickiness);
-    };
+    
+    const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
+    const isSticky = distanceFromBottom <= AUTO_SCROLL_THRESHOLD;
+    shouldStickToBottomRef.current = isSticky;
+    setShowScrollButton(!isSticky);
   }, []);
+
+  // Update stickiness on initial render or when messages change
+  useEffect(() => {
+    handleScroll();
+  }, [messages.length, pending, handleScroll]);
 
   useEffect(() => {
     if (!messages.length && !pending) {
       previousLengthRef.current = 0;
       previousPendingRef.current = false;
+      previousFirstMessageIdRef.current = undefined;
       return;
     }
 
-    const shouldSmooth = messages.length > previousLengthRef.current || (pending && !previousPendingRef.current);
+    const isNewConversation = messages[0]?.id !== previousFirstMessageIdRef.current;
+    const shouldSmooth = !isNewConversation && (messages.length > previousLengthRef.current || (pending && !previousPendingRef.current));
     const behavior: ScrollBehavior = shouldSmooth ? "smooth" : "auto";
 
-    if (shouldStickToBottomRef.current) {
+    if (isNewConversation || shouldStickToBottomRef.current) {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           scrollToBottom(behavior);
+          if (isNewConversation) {
+             shouldStickToBottomRef.current = true;
+             setShowScrollButton(false);
+          }
         });
       });
     }
 
     previousLengthRef.current = messages.length;
     previousPendingRef.current = pending;
-  }, [messages.length, pending, scrollToBottom]);
+    previousFirstMessageIdRef.current = messages[0]?.id;
+  }, [messages, pending, scrollToBottom]);
 
   useEffect(() => {
     const content = contentRef.current;
@@ -208,7 +239,12 @@ export default function ChatMessageList({
     return (
       <>
         <style>{THINKING_ANIMATION_CSS}</style>
-        <ChatScrollShell scrollRef={scrollRef}>
+        <ChatScrollShell 
+          scrollRef={scrollRef}
+          onScrollToBottom={() => scrollToBottom("smooth")}
+          showScrollButton={showScrollButton}
+          onScroll={handleScroll}
+        >
           <div className="mx-auto w-full max-w-4xl space-y-3.5 md:space-y-4" role="status" aria-live="polite">
             <div className="max-w-[72%] animate-pulse rounded-[24px] border border-[#284863] bg-[#0f1c2c] px-4 py-4">
               <div className="mb-3 flex items-center gap-2">
@@ -246,18 +282,22 @@ export default function ChatMessageList({
   if (!messages.length) {
     return (
       <div className="grid flex-1 place-items-center px-4 py-5 md:px-6 md:py-10">
-        <div className="w-full max-w-[50rem] rounded-[24px] border border-[#284863] bg-[#0d1827]/92 px-4 py-5 text-center sm:rounded-[30px] sm:px-8 sm:py-10">
+        <div className="w-full max-w-[50rem] px-4 py-5 text-center sm:px-8 sm:py-10">
+          <div className="mx-auto mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[#284863] bg-[linear-gradient(135deg,_#0f2233_0%,_#0a1824_100%)] text-brand-300">
+            <Sparkles size={24} />
+          </div>
           <h2 className="font-heading text-[2rem] leading-tight text-slate-100 sm:text-3xl">Что вы хотите узнать?</h2>
-          <div className="mx-auto mt-5 grid w-full max-w-[760px] gap-2.5 text-left sm:mt-7 sm:gap-3.5 sm:grid-cols-3">
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-400">Задайте вопрос или выберите один из примеров ниже</p>
+          <div className="mx-auto mt-6 grid w-full max-w-[760px] gap-2.5 text-left sm:mt-8 sm:gap-3 sm:grid-cols-3">
             {SUGGESTED_QUESTIONS.map((question) => (
               <button
                 key={question}
                 type="button"
                 className={[
-                  "rounded-[18px] border border-[#284863] bg-[#0d1827] px-4 py-4 text-sm leading-6 text-slate-200 transition duration-200 sm:rounded-[22px] sm:px-5 sm:py-5",
+                  "group rounded-2xl border border-[#1e3448] bg-[#0b1520] px-4 py-4 text-sm leading-6 text-slate-300 transition-all duration-250 sm:px-5 sm:py-5",
                   "min-h-[84px] sm:min-h-[96px]",
-                  "hover:border-[#3a5f7d] hover:bg-[#112033] hover:text-slate-100",
-                  "disabled:cursor-not-allowed disabled:opacity-55",
+                  "hover:border-brand-400/30 hover:bg-[#0e1c2b] hover:text-slate-100 hover:-translate-y-0.5",
+                  "disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0",
                 ].join(" ")}
                 disabled={suggestionsDisabled}
                 onClick={() => onSelectSuggestion(question)}
@@ -274,26 +314,22 @@ export default function ChatMessageList({
   return (
     <>
       <style>{THINKING_ANIMATION_CSS}</style>
-      <ChatScrollShell scrollRef={scrollRef}>
+      <ChatScrollShell 
+        scrollRef={scrollRef} 
+        onScrollToBottom={() => scrollToBottom("smooth")}
+        showScrollButton={showScrollButton}
+        onScroll={handleScroll}
+      >
         <div ref={contentRef} className="mx-auto w-full max-w-4xl space-y-3.5 md:space-y-4">
-          {messages.map((message) => (
-            <article
-              key={message.id}
-              className={[
-                "rounded-[22px] px-3.5 py-2.5 text-sm",
-                message.role === "user"
-                  ? "ml-auto max-w-[82%] border border-brand-400/35 bg-brand-500/15 text-slate-100 md:max-w-[48%]"
-                  : "mr-auto max-w-[90%] border border-[#284863] bg-[#0d1827] text-slate-200 md:max-w-[70%]",
-              ].join(" ")}
-              style={undefined}
-            >
-              <div className="mb-1 flex items-center justify-between gap-3">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">{message.role === "user" ? "Вы" : "Ассистент"}</p>
-                {message.role === "assistant" ? <span /> : null}
+          {messages.map((message) =>
+            message.role === "user" ? (
+              <div key={message.id} className="flex justify-end">
+                <article className="max-w-[85%] rounded-[20px] rounded-br-md bg-[linear-gradient(135deg,_#0c3a4d_0%,_#0a2f42_50%,_#082638_100%)] px-4 py-3 text-sm text-slate-100 md:max-w-[52%]">
+                  <p className="whitespace-pre-wrap leading-[1.65]">{message.content}</p>
+                </article>
               </div>
-
-              {message.role === "assistant" ? (
-                <>
+            ) : (
+              <article key={message.id} className="mr-auto max-w-[90%] rounded-[20px] rounded-bl-md border border-[#1e3448]/60 bg-[#0b1520] px-4 py-3 text-sm text-slate-200 md:max-w-[75%]">
                   <AssistantMessageContent content={message.content} />
                   <div className="mt-3 flex flex-wrap items-center justify-start gap-1.5">
                     {message.sources?.length ? (
@@ -302,8 +338,8 @@ export default function ChatMessageList({
                           type="button"
                           className={[
                             "inline-flex h-7 items-center gap-1 rounded-full border px-2 text-[10px] font-medium transition-colors md:px-2.5 md:text-[11px]",
-                            "group border-[#284863] bg-transparent text-slate-400 hover:bg-[#102033] hover:text-slate-200",
-                            selectedSourcesMessageId === message.id ? "border-[#3a5f7d] text-slate-200" : "",
+                            "group border-[#1e3448] bg-transparent text-slate-400 hover:bg-[#102033] hover:text-slate-200",
+                            selectedSourcesMessageId === message.id ? "border-brand-400/30 text-slate-200" : "",
                           ].join(" ")}
                           onClick={() => onSelectSources(message)}
                           aria-label={`Показать источники для этого ответа (${message.sources.length})`}
@@ -321,7 +357,7 @@ export default function ChatMessageList({
                     <div className="relative">
                       <button
                         type="button"
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#284863] bg-transparent text-slate-400 transition-colors hover:bg-[#102033] hover:text-slate-200"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#1e3448] bg-transparent text-slate-400 transition-colors hover:bg-[#102033] hover:text-slate-200"
                         onClick={() => {
                           const contentToCopy =
                             message.role === "assistant" ? getAssistantMessagePlainText(message.content) : message.content;
@@ -334,26 +370,23 @@ export default function ChatMessageList({
                       <span className="ui-tooltip">{copiedMessageId === message.id ? "Скопировано" : "Копировать"}</span>
                     </div>
                   </div>
-                </>
-              ) : (
-                <p className="whitespace-pre-wrap leading-6">{message.content}</p>
-              )}
-            </article>
-          ))}
+              </article>
+            ),
+          )}
 
           {pending ? (
-            <div className="thinking-shell mr-auto inline-flex items-center gap-3 rounded-[22px] border border-[#284863] px-4 py-3 text-sm text-slate-300">
-              <span className="thinking-core shrink-0" aria-hidden="true" />
-              <div className="flex items-center gap-2.5">
-                <span className="text-sm text-slate-100" aria-live="polite">
-                  Mugallim AI думает...
-                </span>
-                <span className="thinking-inline-dots" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </span>
-              </div>
+            <div className="thinking-shell mr-auto inline-flex items-center gap-3 rounded-[20px] rounded-bl-md border border-[#1e3448]/60 px-4 py-3 text-sm text-slate-300">
+                <span className="thinking-core shrink-0" aria-hidden="true" />
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm text-slate-100" aria-live="polite">
+                    Mugallim AI думает...
+                  </span>
+                  <span className="thinking-inline-dots" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                </div>
             </div>
           ) : null}
         </div>

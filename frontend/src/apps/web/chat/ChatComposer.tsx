@@ -89,7 +89,7 @@ export default function ChatComposer({
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== "Enter") return;
 
-    if (event.ctrlKey) {
+    if (event.shiftKey) {
       event.preventDefault();
       insertNewLineAtCursor();
       return;
@@ -131,7 +131,7 @@ export default function ChatComposer({
       onSubmit={handleSubmit}
       className="relative -mt-7 bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:-mt-8 md:px-6 md:pb-4 md:pt-0"
     >
-      <div className="chat-composer-shell relative mx-auto flex w-full max-w-4xl items-end gap-2 overflow-hidden rounded-[28px] border border-[#284863]/65 bg-[#0d1827] px-2.5 py-1.5 focus-within:border-[#5ddfd0]/35 focus-within:bg-[#0e1c2b] md:-translate-x-[6px] md:gap-2.5 md:px-3 md:py-2">
+      <div className="chat-composer-shell relative mx-auto flex w-full max-w-4xl items-end gap-2 overflow-hidden rounded-[24px] border border-[#1e3448]/70 bg-[#0b1520] px-3 py-2 transition-all duration-250 focus-within:border-brand-400/25 md:gap-2.5 md:px-4 md:py-2.5">
         <textarea
           ref={textareaRef}
           value={value}
@@ -141,20 +141,25 @@ export default function ChatComposer({
           onFocus={stabilizeZoomedFocus}
           placeholder="Напишите Mugallim AI..."
           rows={1}
-          className="chat-input-scroll min-h-[20px] max-h-[220px] flex-1 resize-none bg-transparent px-1.5 py-[5px] text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[22px] md:py-[7px]"
+          className="chat-input-scroll min-h-[24px] max-h-[220px] flex-1 resize-none bg-transparent px-1 py-[5px] text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[26px] md:py-[7px]"
         />
         <button
           type="submit"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#8ef1e5] text-[#10221d] transition duration-200 hover:bg-[#b7fbf3] disabled:cursor-not-allowed disabled:opacity-50 md:h-9 md:w-9"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-300 text-[#0a1e18] transition-all duration-200 hover:bg-[#b7fbf3] disabled:cursor-not-allowed disabled:opacity-40 md:h-10 md:w-10"
           disabled={disabled || !value.trim()}
           aria-label="Отправить сообщение"
         >
-          <SendHorizontal size={16} />
+          <SendHorizontal size={17} />
         </button>
       </div>
-      <p className="mx-auto mt-0.5 w-full max-w-4xl px-2 text-center text-[10px] leading-4 text-slate-500 md:mt-1 md:text-[11px] md:leading-4">
-        Проверяйте источники. История сохраняется.
-      </p>
+      <div className="mx-auto mt-1 flex w-full max-w-4xl items-center justify-between px-2 md:mt-1.5">
+        <p className="text-[10px] leading-4 text-slate-500 md:text-[11px]">
+          Проверяйте источники. История сохраняется.
+        </p>
+        <p className="hidden text-[10px] leading-4 text-slate-600 md:block">
+          Enter — отправить · Shift+Enter — новая строка
+        </p>
+      </div>
     </form>
   );
 }

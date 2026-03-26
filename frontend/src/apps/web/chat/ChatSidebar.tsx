@@ -170,7 +170,7 @@ function SidebarList({
             >
               <div className="group/title relative min-w-0">
                 <p className="truncate text-[13px] font-medium leading-5">{conversation.title}</p>
-                <div className="pointer-events-none absolute left-0 top-full z-40 mt-2 hidden max-w-[18rem] rounded-xl border border-[#325774] bg-[#102033] px-3 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)] md:group-hover/title:block">
+                <div className="pointer-events-none absolute left-0 top-full z-40 mt-2 hidden max-w-[18rem] rounded-xl border border-[#325774] bg-[#102033] px-3 py-2 md:group-hover/title:block">
                   <p
                     className="text-xs leading-5 text-slate-200"
                     style={{
@@ -444,8 +444,8 @@ export default function ChatSidebar({
 
       {isMobileOpen ? (
         <>
-          <div className="drawer-overlay-enter fixed inset-0 z-30 bg-black/62 md:hidden" onClick={onCloseMobile} />
-          <aside className="drawer-sheet-left drawer-sheet-surface fixed inset-y-0 left-0 z-40 flex h-full w-[88vw] max-w-[22rem] flex-col overflow-hidden rounded-r-[28px] border-r border-[#21384b] px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] md:hidden">
+          <div className="drawer-overlay-enter fixed inset-0 z-30 bg-[#020508]/70 md:hidden" onClick={onCloseMobile} />
+          <aside className="drawer-sheet-left fixed inset-y-0 left-0 z-40 flex h-full w-[88vw] max-w-[22rem] flex-col overflow-hidden rounded-r-[32px] border-r border-[#1e3448]/60 bg-[#08121c]/85 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-2xl md:hidden">
             <div className="mb-3 flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <SidebarBrand />

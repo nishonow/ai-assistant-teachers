@@ -75,8 +75,24 @@ export default function ChatPage() {
   const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState(0);
   const [notice, setNotice] = useState<NoticeState | null>(null);
 
+  const noticeTimerRef = useRef<number | null>(null);
+
   const showNotice = useCallback((type: NoticeState["type"], message: string) => {
     setNotice({ type, message });
+    if (noticeTimerRef.current !== null) {
+      window.clearTimeout(noticeTimerRef.current);
+    }
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNotice(null);
+    }, 4000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (noticeTimerRef.current !== null) {
+        window.clearTimeout(noticeTimerRef.current);
+      }
+    };
   }, []);
 
   const syncActiveConversation = useCallback(
@@ -255,6 +271,17 @@ export default function ChatPage() {
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
   }, [rateLimitUntil]);
+
+  useEffect(() => {
+    const title = activeConversation?.title?.trim();
+    document.title = title ? `${title} — Mugallim AI` : "Mugallim AI";
+  }, [activeConversation?.title]);
+
+  useEffect(() => {
+    return () => {
+      document.title = "Mugallim AI";
+    };
+  }, []);
 
   useEffect(() => {
     const previousBodyOverflow = document.body.style.overflow;
@@ -468,6 +495,7 @@ export default function ChatPage() {
         setConversations((prev) => upsertConversationSummary(prev, renamedConversation, "preserve"));
       }
 
+      showNotice("success", "Диалог успешно переименован.");
       setRenameTargetConversation(null);
       setRenameValue("");
     } catch (requestError) {
@@ -492,6 +520,7 @@ export default function ChatPage() {
       await deleteConversation(session, deleteTargetConversation.id);
 
       setConversations((prev) => prev.filter((item) => item.id !== deleteTargetConversation.id));
+      showNotice("success", "Диалог удален.");
       setDeleteTargetConversation(null);
 
       if (deleteTargetConversation.id === activeConversationId) {
@@ -593,7 +622,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="relative flex h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] text-slate-100">
+    <div className="relative flex w-full h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] text-slate-100">
       <ChatSidebar
         activeConversationId={activeConversationId}
         conversations={conversations}
@@ -619,7 +648,7 @@ export default function ChatPage() {
 
       <div className="flex min-w-0 flex-1 bg-[#07101a]">
         <main className="flex min-w-0 flex-1 flex-col bg-[#07101a]">
-          <header className="flex flex-col justify-center border-b border-[#21384b] bg-[#08111c] shrink-0 md:h-[62px]">
+          <header className="relative z-20 flex flex-col justify-center border-b border-[#1e3448]/60 bg-[#08121c]/85 shrink-0 md:bg-[#08111c] md:backdrop-blur-none backdrop-blur-xl md:border-[#21384b] md:h-[62px]">
             <div className="flex h-[48px] md:hidden items-center justify-between gap-2 px-3">
               <div className="flex w-10 items-center justify-start">
                 <button type="button" className="btn-muted px-2.5 py-2" onClick={() => setMobileSidebarOpen(true)} aria-label="Открыть меню">

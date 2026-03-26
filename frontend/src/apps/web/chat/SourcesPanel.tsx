@@ -218,10 +218,10 @@ export default function SourcesPanel({
 
       {mobileOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <button type="button" className="drawer-overlay-enter absolute inset-0 bg-black/62" onClick={onCloseMobile} aria-label={"Закрыть источники"} />
+          <button type="button" className="drawer-overlay-enter absolute inset-0 bg-[#020508]/70" onClick={onCloseMobile} aria-label={"Закрыть источники"} />
 
-          <aside className="drawer-sheet-right drawer-sheet-surface absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden rounded-l-[28px] border-l border-[#21384b]">
-            <div className="flex h-[62px] shrink-0 items-center justify-between border-b border-[#21384b] bg-[#0a1624] px-4">
+          <aside className="drawer-sheet-right absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden rounded-l-[32px] border-l border-[#1e3448]/60 bg-[#08121c]/85 backdrop-blur-2xl">
+            <div className="flex h-[62px] shrink-0 items-center justify-between border-b border-[#1e3448]/50 bg-[#0b1623]/60 px-4 pt-[env(safe-area-inset-top)]">
               <div className="flex items-center gap-2 text-slate-200">
                 <BookOpenText size={16} />
                 <span className="text-sm font-semibold">{"Источники"}</span>
