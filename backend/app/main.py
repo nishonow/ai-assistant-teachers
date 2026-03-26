@@ -16,14 +16,17 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1",
     "http://127.0.0.1:5173",
     "https://ai-assistant-teachers.vercel.app",
+    "https://www.ai-assistant-teachers.vercel.app",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"] if not ALLOWED_ORIGINS else ALLOWED_ORIGINS,
+    allow_origin_regex="https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition", "Content-Length"],
 )
 
 def custom_openapi():

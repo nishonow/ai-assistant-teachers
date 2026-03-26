@@ -609,29 +609,17 @@ export default function ChatPage() {
       setIsViewLoading(true);
       setViewSource(source);
 
-      try {
-        const blob = await downloadConversationSource({
-          session,
-          conversationId: activeConversationId,
-          documentId: source.documentId,
-        });
-
-        const objectUrl = URL.createObjectURL(blob);
-        const viewUrl = getConversationSourceViewUrl(
-          activeConversationId,
-          source.documentId,
-          source.pageNumber,
-        );
-        
-        // Combine blob URL with hash fragment for specialized browser navigation
-        const finalUrl = `${objectUrl}${new URL(viewUrl).hash}`;
-        setViewBlobUrl(finalUrl);
-      } catch (requestError) {
-        showNotice("error", localizeUserErrorMessage(requestError, "Не удалось открыть просмотр."));
-        setViewSource(null);
-      } finally {
-        setIsViewLoading(false);
-      }
+      // We use a direct URL with a query token instead of fetching a blob
+      // to avoid complex cross-origin PDF rendering issues and CORS fetch blocks.
+      const viewUrl = getConversationSourceViewUrl(
+        session,
+        activeConversationId,
+        source.documentId,
+        source.pageNumber,
+      );
+      
+      setViewBlobUrl(viewUrl);
+      setIsViewLoading(false);
     },
     [activeConversationId, session, showNotice],
   );

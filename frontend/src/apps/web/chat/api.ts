@@ -1,4 +1,4 @@
-import { apiRequest } from "../../../core/api";
+import { apiRequest, API_BASE_URL } from "../../../core/api";
 import type { AuthSession } from "../../../core/auth";
 import type { AskApiResponse, ChatMessage, ChatSource, Conversation, ConversationSummary } from "./types";
 
@@ -133,14 +133,16 @@ export async function downloadConversationSource({
   });
 }
 export function getConversationSourceViewUrl(
+  session: AuthSession,
   conversationId: string,
   documentId: number,
   pageNumber?: number | null,
 ): string {
   const url = new URL(
-    `/api/v1/conversations/${conversationId}/sources/${documentId}/download`,
+    `${API_BASE_URL}/api/v1/conversations/${conversationId}/sources/${documentId}/download`,
     window.location.origin
   );
+  url.searchParams.set("token", session.token);
   if (pageNumber) {
     url.hash = `page=${pageNumber}`;
   }

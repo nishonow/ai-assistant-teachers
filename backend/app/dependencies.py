@@ -63,8 +63,21 @@ async def require_admin(authorization: str = Header(...), db: AsyncSession = Dep
         raise HTTPException(status_code=403, detail="Admin access required")
 
 
-async def require_web_user(authorization: str = Header(...), db: AsyncSession = Depends(get_db)) -> User:
-    subject = get_token_subject_from_authorization(authorization)
+async def require_web_user(
+    authorization: str | None = Header(None),
+    token: str | None = None,
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    auth_token = None
+    if authorization:
+        auth_token = _get_bearer_token(authorization)
+    elif token:
+        auth_token = token
+
+    if not auth_token:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    subject = _decode_subject(auth_token)
 
     user = (
         await db.execute(
