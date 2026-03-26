@@ -179,8 +179,14 @@ async def get_document_file(document_id: int, db: AsyncSession = Depends(get_db)
     if not os.path.exists(document.file_path):
         raise HTTPException(status_code=404, detail="File not found on disk")
 
+    media_type = "application/octet-stream"
+    if document.file_type == "pdf":
+        media_type = "application/pdf"
+    elif document.file_type == "txt":
+        media_type = "text/plain"
+
     return FileResponse(
         path=document.file_path,
-        filename=document.file_name,
-        media_type="application/octet-stream",
+        media_type=media_type,
+        headers={"Content-Disposition": f'inline; filename="{document.file_name}"'},
     )

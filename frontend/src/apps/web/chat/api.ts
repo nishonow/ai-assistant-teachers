@@ -132,3 +132,17 @@ export async function downloadConversationSource({
     responseType: "blob",
   });
 }
+export function getConversationSourceViewUrl(
+  conversationId: string,
+  documentId: number,
+  pageNumber?: number | null,
+): string {
+  const url = new URL(
+    `/api/v1/conversations/${conversationId}/sources/${documentId}/download`,
+    window.location.origin
+  );
+  if (pageNumber) {
+    url.hash = `page=${pageNumber}`;
+  }
+  return url.toString();
+}

@@ -37,6 +37,7 @@ class Chunk(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     document_id = Column(BigInteger, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
     chunk_index = Column(Integer, nullable=False)
+    page_number = Column(Integer, nullable=True)
     chunk_text = Column(Text, nullable=False)
     embedding = Column(Vector(1536), nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
@@ -95,6 +96,7 @@ class ChatConversationMessageSource(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     message_id = Column(BigInteger, ForeignKey("chat_conversation_messages.id", ondelete="CASCADE"), nullable=False)
     document_id = Column(BigInteger, nullable=True)
+    page_number = Column(Integer, nullable=True)
     title = Column(Text, nullable=False)
     snippet = Column(Text, nullable=False)
 

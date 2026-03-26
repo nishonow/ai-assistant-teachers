@@ -1,5 +1,5 @@
-import { BookOpenText, Download, FileText, X } from "lucide-react";
-import { useEffect } from "react";
+import { BookOpenText, ChevronDown, ChevronUp, Download, Eye, FileText, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import type { ChatSource } from "./types";
 
@@ -12,6 +12,7 @@ interface SourcesPanelProps {
   mobileOpen: boolean;
   sources: ChatSource[];
   onDownloadSource: (source: ChatSource) => void;
+  onViewSource: (source: ChatSource) => void;
   onCloseMobile: () => void;
 }
 
@@ -22,6 +23,7 @@ interface SourcesContentProps {
   loading: boolean;
   sources: ChatSource[];
   onDownloadSource: (source: ChatSource) => void;
+  onViewSource: (source: ChatSource) => void;
   showHeader: boolean;
 }
 
@@ -37,8 +39,14 @@ function SourcesContent({
   loading,
   sources,
   onDownloadSource,
+  onViewSource,
   showHeader,
 }: SourcesContentProps) {
+  const [expandedSourceId, setExpandedSourceId] = useState<string | null>(null);
+
+  const toggleExpand = (id: string) => {
+    setExpandedSourceId((prev) => (prev === id ? null : id));
+  };
   return (
     <>
       {showHeader ? (
@@ -137,20 +145,61 @@ function SourcesContent({
                         {getSourceExtension(source.title)}
                       </span>
                     </div>
-                    <p className="mt-2 text-xs uppercase tracking-[0.14em] text-slate-500">{"Указанный документ"}</p>
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <div className="text-xs leading-5 text-slate-500">
-                        {source.documentId ? `Документ #${source.documentId}` : "Прикреплённый источник"}
-                      </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                        {source.pageNumber ? `Стр. ${source.pageNumber}` : "Указанный документ"}
+                      </p>
                       <button
                         type="button"
-                        className="inline-flex items-center gap-2 rounded-full border border-[#305169] bg-[#102033] px-3 py-2 text-xs font-semibold text-slate-200 transition-colors hover:bg-[#15304a] disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={!activeConversationId || !source.documentId || downloadPendingId === source.id}
-                        onClick={() => onDownloadSource(source)}
+                        onClick={() => toggleExpand(source.id)}
+                        className="flex items-center gap-1 text-[10px] font-medium text-[#9af5ea] hover:underline"
                       >
-                        <Download size={14} />
-                        {downloadPendingId === source.id ? "Скачивание..." : "Скачать"}
+                        {expandedSourceId === source.id ? (
+                          <>
+                            Скрыть <ChevronUp size={12} />
+                          </>
+                        ) : (
+                          <>
+                            Показать фрагмент <ChevronDown size={12} />
+                          </>
+                        )}
                       </button>
+                    </div>
+
+                    {expandedSourceId === source.id && (
+                      <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="rounded-xl border border-[#21384b] bg-[#09111d] p-3">
+                          <p className="text-xs leading-5 text-slate-300 italic">
+                            &ldquo;{source.snippet}&rdquo;
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#305169] bg-[#102033] text-slate-200 transition-colors hover:bg-[#15304a] disabled:opacity-50"
+                          title="Просмотреть онлайн"
+                          disabled={!source.documentId}
+                          onClick={() => onViewSource(source)}
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#305169] bg-[#102033] text-slate-200 transition-colors hover:bg-[#15304a] disabled:opacity-50"
+                          title="Скачать файл"
+                          disabled={!activeConversationId || !source.documentId || downloadPendingId === source.id}
+                          onClick={() => onDownloadSource(source)}
+                        >
+                          <Download size={14} />
+                        </button>
+                      </div>
+                      <div className="text-[11px] leading-5 text-slate-600">
+                        ID: {source.documentId ?? "—"}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -176,6 +225,7 @@ export default function SourcesPanel({
   mobileOpen,
   sources,
   onDownloadSource,
+  onViewSource,
   onCloseMobile,
 }: SourcesPanelProps) {
   useEffect(() => {
@@ -208,9 +258,10 @@ export default function SourcesPanel({
             activeConversationId={activeConversationId}
             activeConversationTitle={activeConversationTitle}
             downloadPendingId={downloadPendingId}
-            loading={loading}
+             loading={loading}
             sources={sources}
             onDownloadSource={onDownloadSource}
+            onViewSource={onViewSource}
             showHeader
           />
         ) : null}
@@ -234,9 +285,10 @@ export default function SourcesPanel({
               activeConversationId={activeConversationId}
               activeConversationTitle={activeConversationTitle}
               downloadPendingId={downloadPendingId}
-              loading={loading}
+               loading={loading}
               sources={sources}
               onDownloadSource={onDownloadSource}
+              onViewSource={onViewSource}
               showHeader={false}
             />
           </aside>

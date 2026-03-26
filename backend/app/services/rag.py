@@ -575,6 +575,7 @@ async def _build_sources(selected_chunks: list[Chunk], db: AsyncSession) -> list
             {
                 "id": f"doc-{chunk.document_id}",
                 "documentId": chunk.document_id,
+                "pageNumber": chunk.page_number,
                 "title": document.file_name if document else f"Document {chunk.document_id}",
                 "snippet": collapsed[:220] + ("..." if len(collapsed) > 220 else ""),
             }

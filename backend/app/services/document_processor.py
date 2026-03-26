@@ -34,20 +34,20 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
-def extract_text(file_path: str, file_type: str) -> str:
+def extract_text(file_path: str, file_type: str) -> list[tuple[str, int | None]]:
     if file_type == "txt":
         with open(file_path, "r", encoding="utf-8") as f:
-            return clean_text(f.read())
+            return [(clean_text(f.read()), 1)]
 
     elif file_type == "pdf":
         import pdfplumber
         pages = []
         with pdfplumber.open(file_path) as pdf:
-            for page in pdf.pages:
+            for i, page in enumerate(pdf.pages):
                 page_text = page.extract_text() or ""
                 if page_text.strip():
-                    pages.append(page_text.strip())
-        return clean_text("\n\n".join(pages))
+                    pages.append((clean_text(page_text), i + 1))
+        return pages
 
     elif file_type == "docx":
         import docx
@@ -68,7 +68,7 @@ def extract_text(file_path: str, file_type: str) -> str:
                 if row_text:
                     parts.append(row_text)
 
-        return clean_text("\n\n".join(parts))
+        return [(clean_text("\n\n".join(parts)), 1)]
 
     else:
         raise ValueError(f"Unsupported file type: {file_type}")
@@ -86,19 +86,28 @@ async def process_document(document_id: int):
             document.status = "processing"
             await session.commit()
 
-            text = await asyncio.to_thread(extract_text, document.file_path, document.file_type)
-            chunks = split_text(text)
-            embeddings = await embed_chunks(chunks)
+            pages = await asyncio.to_thread(extract_text, document.file_path, document.file_type)
+            
+            chunk_global_index = 0
+            for page_text, page_number in pages:
+                # Split current page into chunks
+                chunks = split_text(page_text)
+                if not chunks:
+                    continue
+                
+                embeddings = await embed_chunks(chunks)
 
-            for i, (chunk_text, embedding) in enumerate(zip(chunks, embeddings)):
-                session.add(
-                    Chunk(
-                        document_id=document.id,
-                        chunk_index=i,
-                        chunk_text=chunk_text,
-                        embedding=embedding,
+                for chunk_text, embedding in zip(chunks, embeddings):
+                    session.add(
+                        Chunk(
+                            document_id=document.id,
+                            chunk_index=chunk_global_index,
+                            page_number=page_number,
+                            chunk_text=chunk_text,
+                            embedding=embedding,
+                        )
                     )
-                )
+                    chunk_global_index += 1
 
             document.status = "indexed"
             await session.commit()
