@@ -1,5 +1,4 @@
 import os
-import urllib.parse
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -180,15 +179,8 @@ async def get_document_file(document_id: int, db: AsyncSession = Depends(get_db)
     if not os.path.exists(document.file_path):
         raise HTTPException(status_code=404, detail="File not found on disk")
 
-    media_type = "application/octet-stream"
-    if document.file_type == "pdf":
-        media_type = "application/pdf"
-    elif document.file_type == "txt":
-        media_type = "text/plain"
-
-    encoded_filename = urllib.parse.quote(document.file_name)
     return FileResponse(
         path=document.file_path,
-        media_type=media_type,
-        headers={"Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}"},
+        filename=document.file_name,
+        media_type="application/octet-stream",
     )

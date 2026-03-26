@@ -3,7 +3,6 @@ export type ChatMessageRole = "user" | "assistant";
 export interface ChatSource {
   id: string;
   documentId?: number | null;
-  pageNumber?: number | null;
   title: string;
   snippet: string;
 }

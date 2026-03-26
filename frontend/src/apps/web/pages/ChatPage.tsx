@@ -1,4 +1,4 @@
-import { BookOpenText, ChevronRight, Eye, MessageSquarePlus, PanelLeft, X } from "lucide-react";
+import { BookOpenText, ChevronRight, MessageSquarePlus, PanelLeft } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -21,7 +21,6 @@ import {
   EditProfileModal,
   getConversation,
   getConversationPreview,
-  getConversationSourceViewUrl,
   isBlockedMessagingError,
   isRateLimitError,
   listConversations,
@@ -75,9 +74,6 @@ export default function ChatPage() {
   const [rateLimitUntil, setRateLimitUntil] = useState<number | null>(null);
   const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState(0);
   const [notice, setNotice] = useState<NoticeState | null>(null);
-  const [viewSource, setViewSource] = useState<ChatSource | null>(null);
-  const [viewBlobUrl, setViewBlobUrl] = useState<string | null>(null);
-  const [isViewLoading, setIsViewLoading] = useState(false);
 
   const noticeTimerRef = useRef<number | null>(null);
 
@@ -602,36 +598,6 @@ export default function ChatPage() {
     [activeConversationId, session, showNotice],
   );
 
-  const handleViewSource = useCallback(
-    async (source: ChatSource) => {
-      if (!session || !activeConversationId || !source.documentId) return;
-
-      setIsViewLoading(true);
-      setViewSource(source);
-
-      // We use a direct URL with a query token instead of fetching a blob
-      // to avoid complex cross-origin PDF rendering issues and CORS fetch blocks.
-      const viewUrl = getConversationSourceViewUrl(
-        session,
-        activeConversationId,
-        source.documentId,
-        source.pageNumber,
-      );
-      
-      setViewBlobUrl(viewUrl);
-      setIsViewLoading(false);
-    },
-    [activeConversationId, session, showNotice],
-  );
-
-  const handleCloseView = useCallback(() => {
-    if (viewBlobUrl) {
-      URL.revokeObjectURL(viewBlobUrl.split("#")[0]);
-    }
-    setViewSource(null);
-    setViewBlobUrl(null);
-  }, [viewBlobUrl]);
-
   const handleSelectMessageSources = useCallback((message: ChatMessage) => {
     if (message.role !== "assistant" || !message.sources?.length) return;
 
@@ -789,9 +755,6 @@ export default function ChatPage() {
           onDownloadSource={(source) => {
             void handleDownloadSource(source);
           }}
-          onViewSource={(source) => {
-            void handleViewSource(source);
-          }}
         />
       </div>
 
@@ -845,74 +808,6 @@ export default function ChatPage() {
       />
       <WebLogoutConfirmModal open={logoutConfirmOpen} onCancel={() => setLogoutConfirmOpen(false)} onConfirm={handleConfirmLogout} />
       <ToastNotice notice={notice} />
-
-      {viewSource && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020508]/80 backdrop-blur-sm p-4 md:p-8 animate-in fade-in duration-300">
-          <div className="relative flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-[32px] border border-[#21384b] bg-[#08111c] shadow-2xl chat-card-enter">
-            <header className="flex shrink-0 items-center justify-between border-b border-[#21384b] bg-[#0b1623] px-6 py-4">
-              <div className="flex items-center gap-3 overflow-hidden">
-                <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#305169] bg-[#102033] text-[#9af5ea]">
-                  <Eye size={18} />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="truncate font-heading text-sm font-semibold tracking-wide text-slate-100">
-                    {viewSource.title}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    {viewSource.pageNumber ? `Страница ${viewSource.pageNumber}` : "Просмотр документа"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  className="btn-muted hidden h-10 px-4 text-xs font-semibold sm:inline-flex"
-                  onClick={() => handleDownloadSource(viewSource)}
-                  disabled={!!downloadPendingId}
-                >
-                  Скачать оригинал
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#305169] bg-[#102033] text-slate-200 transition-colors hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30"
-                  onClick={handleCloseView}
-                  aria-label="Закрыть"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </header>
-
-            <div className="relative flex-1 bg-[#04080d]">
-              {isViewLoading ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                  <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#9af5ea] border-t-transparent" />
-                  <p className="text-xs font-medium tracking-[0.14em] text-[#9af5ea] uppercase">
-                    Загрузка документа...
-                  </p>
-                </div>
-              ) : viewBlobUrl ? (
-                <iframe
-                  src={viewBlobUrl}
-                  className="h-full w-full border-none"
-                  title={viewSource.title}
-                />
-              ) : (
-                <div className="flex h-full flex-col items-center justify-center p-8 text-center text-slate-500">
-                  <p>Не удалось отобразить документ в реальном времени.</p>
-                  <button
-                    type="button"
-                    className="mt-4 text-sm font-semibold text-[#9af5ea] underline underline-offset-4"
-                    onClick={() => handleDownloadSource(viewSource)}
-                  >
-                    Скачать и посмотреть локально
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

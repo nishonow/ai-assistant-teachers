@@ -1,5 +1,4 @@
 import os
-import urllib.parse
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -17,7 +16,6 @@ router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 class ConversationSourceRequest(BaseModel):
     documentId: int | None = None
-    pageNumber: int | None = None
     title: str
     snippet: str
 
@@ -63,7 +61,6 @@ def _serialize_detail(conversation: ChatConversation) -> dict:
                     {
                         "id": str(source.id),
                         "documentId": source.document_id,
-                        "pageNumber": source.page_number,
                         "title": source.title,
                         "snippet": source.snippet,
                     }
@@ -157,17 +154,10 @@ async def download_conversation_source(
     if not os.path.exists(document.file_path):
         raise HTTPException(status_code=404, detail="File not found on disk")
 
-    media_type = "application/octet-stream"
-    if document.file_type == "pdf":
-        media_type = "application/pdf"
-    elif document.file_type == "txt":
-        media_type = "text/plain"
-
-    encoded_filename = urllib.parse.quote(document.file_name)
     return FileResponse(
         path=document.file_path,
-        media_type=media_type,
-        headers={"Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}"},
+        filename=document.file_name,
+        media_type="application/octet-stream",
     )
 
 
@@ -236,7 +226,6 @@ async def save_exchange(
             ChatConversationMessageSource(
                 message_id=assistant_message.id,
                 document_id=source.documentId,
-                page_number=source.pageNumber,
                 title=source.title.strip(),
                 snippet=source.snippet.strip(),
             )

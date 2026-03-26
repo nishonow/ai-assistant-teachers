@@ -16,7 +16,6 @@ export {
   deleteConversation,
   downloadConversationSource,
   getConversation,
-  getConversationSourceViewUrl,
   listConversations,
   renameConversation,
   saveConversationExchange,
