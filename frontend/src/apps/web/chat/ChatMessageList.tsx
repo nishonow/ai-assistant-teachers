@@ -281,7 +281,12 @@ export default function ChatMessageList({
 
   if (!messages.length) {
     return (
-      <div className="grid flex-1 place-items-center px-4 py-5 md:px-6 md:py-10">
+      <ChatScrollShell 
+        scrollRef={scrollRef}
+        onScrollToBottom={() => {}}
+        showScrollButton={false}
+      >
+        <div className="grid h-full place-items-center px-4 py-5 md:px-6 md:py-10">
         <div className="w-full max-w-[50rem] px-4 py-5 text-center sm:px-8 sm:py-10">
           <div className="mx-auto mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[#284863] bg-[linear-gradient(135deg,_#0f2233_0%,_#0a1824_100%)] text-brand-300">
             <Sparkles size={24} />
@@ -308,7 +313,8 @@ export default function ChatMessageList({
           </div>
         </div>
       </div>
-    );
+    </ChatScrollShell>
+  );
   }
 
   return (
