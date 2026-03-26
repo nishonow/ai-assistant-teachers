@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -162,10 +163,11 @@ async def download_conversation_source(
     elif document.file_type == "txt":
         media_type = "text/plain"
 
+    encoded_filename = urllib.parse.quote(document.file_name)
     return FileResponse(
         path=document.file_path,
         media_type=media_type,
-        headers={"Content-Disposition": f'inline; filename="{document.file_name}"'},
+        headers={"Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}"},
     )
 
 
