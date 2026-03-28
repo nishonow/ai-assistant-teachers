@@ -1,4 +1,4 @@
-import { ArrowDown, BookOpenText, Check, Copy, MessageSquare, Sparkles } from "lucide-react";
+import { ArrowDown, BookOpenText, Check, Copy, MessageSquare } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import AssistantMessageContent, { getAssistantMessagePlainText } from "./AssistantMessageContent";
@@ -288,9 +288,7 @@ export default function ChatMessageList({
       >
         <div className="grid h-full place-items-center px-4 py-5 md:px-6 md:py-10">
         <div className="w-full max-w-[50rem] px-4 py-5 text-center sm:px-8 sm:py-10">
-          <div className="mx-auto mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[#284863] bg-[linear-gradient(135deg,_#0f2233_0%,_#0a1824_100%)] text-brand-300">
-            <Sparkles size={24} />
-          </div>
+
           <h2 className="font-heading text-[2rem] leading-tight text-slate-100 sm:text-3xl">Что вы хотите узнать?</h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-400">Задайте вопрос или выберите один из примеров ниже</p>
           <div className="mx-auto mt-6 grid w-full max-w-[760px] gap-2.5 text-left sm:mt-8 sm:gap-3 sm:grid-cols-3">
@@ -326,16 +324,16 @@ export default function ChatMessageList({
         showScrollButton={showScrollButton}
         onScroll={handleScroll}
       >
-        <div ref={contentRef} className="mx-auto w-full max-w-4xl space-y-3.5 md:space-y-4">
+        <div ref={contentRef} className="mx-auto w-full max-w-4xl space-y-1 md:space-y-1.5">
           {messages.map((message) =>
             message.role === "user" ? (
               <div key={message.id} className="flex justify-end">
-                <article className="max-w-[85%] rounded-[20px] rounded-br-md bg-[linear-gradient(135deg,_#0c3a4d_0%,_#0a2f42_50%,_#082638_100%)] px-4 py-3 text-sm text-slate-100 md:max-w-[52%]">
+                <article className="max-w-[85%] rounded-[20px] rounded-br-md bg-[linear-gradient(135deg,_#0c3a4d_0%,_#0a2f42_50%,_#082638_100%)] px-4 py-2 text-sm text-slate-100 md:max-w-[52%]">
                   <p className="whitespace-pre-wrap leading-[1.65]">{message.content}</p>
                 </article>
               </div>
             ) : (
-              <article key={message.id} className="mr-auto max-w-[90%] rounded-[20px] rounded-bl-md border border-[#1e3448]/60 bg-[#0b1520] px-4 py-3 text-sm text-slate-200 md:max-w-[75%]">
+              <article key={message.id} className="mr-auto max-w-[90%] rounded-[20px] rounded-bl-md border border-[#1e3448]/60 bg-[#0b1520] px-4 py-2 text-sm text-slate-200 md:max-w-[75%]">
                   <AssistantMessageContent content={message.content} />
                   <div className="mt-3 flex flex-wrap items-center justify-start gap-1.5">
                     {message.sources?.length ? (

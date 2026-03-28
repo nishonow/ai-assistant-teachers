@@ -121,14 +121,10 @@ function SidebarList({
           {Array.from({ length: 5 }).map((_, index) => (
             <div
               key={index}
-              className="chat-card-enter animate-pulse rounded-[22px] border border-[#284863] bg-[#0f1c2c] px-3 py-3.5"
+              className="chat-card-enter animate-pulse rounded-[22px] border border-[#284863] bg-[#0f1c2c] px-3 py-1.5"
               style={{ animationDelay: `${index * 60}ms` }}
             >
               <div className="h-4 w-[68%] rounded-full bg-slate-700/70" />
-              <div className="mt-3 space-y-2">
-                <div className="h-3 w-full rounded-full bg-slate-800/70" />
-                <div className="h-3 w-[82%] rounded-full bg-slate-800/60" />
-              </div>
             </div>
           ))}
         </div>
@@ -137,8 +133,8 @@ function SidebarList({
   }
 
   return (
-    <div className="scroll-area min-h-0 flex-1 space-y-1.5 overflow-y-auto overflow-x-visible pr-2">
-      <div className="flex items-center justify-between gap-3 px-2 pb-2">
+    <div className="scroll-area min-h-0 flex-1 space-y-0.5 overflow-y-auto overflow-x-visible pr-2">
+      <div className="flex items-center justify-between gap-3 px-2 pb-1">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Мои чаты</p>
         {loading ? (
           <span className="inline-flex animate-pulse items-center justify-center rounded-full border border-[#305169] bg-[#102033] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-brand-200">
@@ -152,7 +148,7 @@ function SidebarList({
           <div
             key={conversation.id}
                     className={[
-                      "chat-card-enter group isolate relative flex items-center gap-2 rounded-2xl border px-3 py-3 transition-all duration-200 hover:-translate-y-0.5 md:hover:z-30 md:focus-within:z-30",
+                      "chat-card-enter group isolate relative flex items-center gap-2 rounded-2xl border px-3 py-1.5 transition-all duration-200 hover:-translate-y-0.5 md:hover:z-30 md:focus-within:z-30",
               openMenuId === conversation.id ? "z-20" : "z-0",
               conversation.id === activeConversationId
                 ? "border-brand-400/35 bg-brand-500/15 text-slate-100"
@@ -168,22 +164,10 @@ function SidebarList({
                 onCloseMobile();
               }}
             >
-              <div className="group/title relative min-w-0">
-                <p className="truncate text-[13px] font-medium leading-5">{conversation.title}</p>
-                <div className="pointer-events-none absolute left-0 top-full z-40 mt-2 hidden max-w-[18rem] rounded-xl border border-[#325774] bg-[#102033] px-3 py-2 md:group-hover/title:block">
-                  <p
-                    className="text-xs leading-5 text-slate-200"
-                    style={{
-                      display: "-webkit-box",
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                      overflowWrap: "anywhere",
-                    }}
-                  >
-                    {conversation.title}
-                  </p>
-                </div>
+              <div className="min-w-0">
+                <p className="truncate text-[13px] font-medium leading-5" title={conversation.title}>
+                  {conversation.title}
+                </p>
               </div>
             </button>
 

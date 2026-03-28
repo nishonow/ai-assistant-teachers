@@ -15,11 +15,8 @@ from app.config import settings
 from app.models import Chunk, Document, Message
 from app.services.embeddings import embed_chunks, embed_text
 from app.services.rag_prompts import (
+    ANALYZE_QUESTION_SYSTEM_PROMPT,
     HYDE_SYSTEM_PROMPT,
-    INTENT_SYSTEM_PROMPT,
-    LANGUAGE_MATCH_CHECK_SYSTEM_PROMPT,
-    LANGUAGE_REWRITE_SYSTEM_PROMPT,
-    RETRIEVAL_QUERY_SYSTEM_PROMPT,
     build_answer_system_prompt,
     build_small_talk_system_prompt,
 )
@@ -120,7 +117,7 @@ def detect_language(question: str) -> str:
         return "Cyrillic" if cyrillic >= latin else "English"
 
 
-async def _call_chat(messages: list[dict], *, temperature: float = 0, max_tokens: int | None = None) -> str:
+async def _call_chat(messages: list[dict], *, temperature: float = 0, max_tokens: int | None = None, response_format: dict | None = None) -> str:
     payload = {
         "model": CHAT_MODEL,
         "messages": messages,
@@ -128,28 +125,32 @@ async def _call_chat(messages: list[dict], *, temperature: float = 0, max_tokens
     }
     if max_tokens is not None:
         payload["max_tokens"] = max_tokens
+    if response_format is not None:
+        payload["response_format"] = response_format
 
     response = await client.chat.completions.create(**payload)
     return (response.choices[0].message.content or "").strip()
 
 
-async def classify_question_intent(question: str) -> str:
+async def analyze_question(question: str, retrieval_context: str = "") -> dict:
+    prompt = question if not retrieval_context else f"Current question:\n{question}\n\nRecent context:\n{retrieval_context}"
     try:
-        label = (
-            await _call_chat(
-                [
-                    {"role": "system", "content": INTENT_SYSTEM_PROMPT},
-                    {"role": "user", "content": question},
-                ],
-                temperature=0,
-                max_tokens=8,
-            )
-        ).lower()
+        response_text = await _call_chat(
+            [
+                {"role": "system", "content": ANALYZE_QUESTION_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0,
+            response_format={"type": "json_object"}
+        )
+        return json.loads(response_text)
     except Exception:
-        logger.exception("intent classification failed; defaulting to document_question")
-        return "document_question"
-
-    return "small_talk" if "small_talk" in label else "document_question"
+        logger.exception("analyze_question failed; falling back to basic defaults")
+        return {
+            "intent": "document_question",
+            "language": "unknown",
+            "queries": [question.strip()]
+        }
 
 
 async def generate_hypothetical_answer(question: str, retrieval_context: str = "") -> str:
@@ -166,29 +167,7 @@ async def generate_hypothetical_answer(question: str, retrieval_context: str = "
     )
 
 
-async def _build_retrieval_queries(question: str, detected_lang: str, retrieval_context: str = "") -> list[str]:
-    queries = [question.strip()]
-    prompt = question if not retrieval_context else f"Current question:\n{question}\n\nRecent related context:\n{retrieval_context}"
 
-    try:
-        retrieval_query = (
-            await _call_chat(
-                [
-                    {"role": "system", "content": RETRIEVAL_QUERY_SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0,
-                max_tokens=64,
-            )
-        ).strip()
-    except Exception:
-        logger.exception("retrieval query rewrite failed; using original question only")
-        return queries
-
-    if retrieval_query and retrieval_query.lower() != question.strip().lower():
-        queries.append(retrieval_query)
-
-    return queries
 
 
 async def _fetch_vector_candidates(embedding: list[float], db: AsyncSession) -> list[tuple[Chunk, float]]:
@@ -668,91 +647,55 @@ async def _answer(question: str, history: list[dict], target_language: str, cont
     return postprocess(await _call_chat(messages, temperature=0.1 if use_context else 0.4))
 
 
-async def _is_same_language(answer: str, question: str) -> bool:
-    try:
-        label = (
-            await _call_chat(
-                [
-                    {"role": "system", "content": LANGUAGE_MATCH_CHECK_SYSTEM_PROMPT},
-                    {"role": "user", "content": f"User question:\n{question}\n\nAssistant answer:\n{answer}"},
-                ],
-                temperature=0,
-                max_tokens=4,
-            )
-        ).strip().lower()
-        return "same_language" in label
-    except Exception:
-        logger.exception("language match check failed; falling back to script comparison")
-        question_cyrillic = sum(0x0410 <= ord(char) <= 0x044F or ord(char) in {0x0401, 0x0451} for char in question)
-        question_latin = sum(0x0041 <= ord(char) <= 0x005A or 0x0061 <= ord(char) <= 0x007A for char in question)
-        answer_text = re.sub(r"<[^>]+>", " ", answer)
-        answer_cyrillic = sum(0x0410 <= ord(char) <= 0x044F or ord(char) in {0x0401, 0x0451} for char in answer_text)
-        answer_latin = sum(0x0041 <= ord(char) <= 0x005A or 0x0061 <= ord(char) <= 0x007A for char in answer_text)
-        if not (question_cyrillic or question_latin) or not (answer_cyrillic or answer_latin):
-            return True
-        return (question_cyrillic >= question_latin) == (answer_cyrillic >= answer_latin)
 
-
-async def _ensure_answer_language(answer: str, question: str, target_language: str) -> str:
-    cleaned = answer.strip()
-    if not cleaned:
-        return cleaned
-
-    if len(cleaned) > 48 and not await _is_same_language(cleaned, question):
-        try:
-            return postprocess(
-                await _call_chat(
-                    [
-                        {"role": "system", "content": f"{LANGUAGE_REWRITE_SYSTEM_PROMPT}\n- Rewrite in {target_language}."},
-                        {"role": "user", "content": f"User question:\n{question}\n\nAnswer:\n{cleaned}"},
-                    ],
-                    temperature=0.1,
-                )
-            )
-        except Exception:
-            logger.exception("answer rewrite failed; returning original answer")
-            return cleaned
-
-    return cleaned
 
 
 async def ask(question: str, user_id: int, platform: str, history: list[dict], db: AsyncSession) -> dict:
-    detected_lang = detect_language(question)
-    target_language = detected_lang if detected_lang != "unknown" else "the same language as the user's question"
-    prepared_history = _prepare_history(history, detected_lang)
+    prepared_history = _prepare_history(history, "dummy")
     follow_up_to_previous_answer = _is_previous_answer_follow_up(question, prepared_history)
-    if follow_up_to_previous_answer:
-        target_language = _detect_requested_output_language(question, target_language)
     retrieval_history = [
         item.get("content", "").strip()
         for item in prepared_history
         if item.get("role") == "user" and item.get("content")
     ][-MAX_RETRIEVAL_HISTORY_MESSAGES:]
     retrieval_context = "\n".join(f"- {turn}" for turn in retrieval_history if turn)[:MAX_RETRIEVAL_CONTEXT_CHARS].rstrip()
-    intent = await classify_question_intent(question)
+    
+    intent = "document_question"
+    retrieval_queries = [question.strip()]
+    target_language = "the same language as the user's question"
+    detected_lang = "unknown"
+    
+    if follow_up_to_previous_answer:
+        intent = "follow_up_previous_answer"
+        detected_lang = detect_language(question)
+        target_language = detected_lang if detected_lang != "unknown" else target_language
+        target_language = _detect_requested_output_language(question, target_language)
+    else:
+        analysis = await analyze_question(question, retrieval_context)
+        intent = analysis.get("intent", "document_question")
+        detected_lang = analysis.get("language", "unknown")
+        
+        # Fallback to lingua if LLM failed to detect language
+        if not detected_lang or detected_lang.lower() == "unknown":
+            detected_lang = detect_language(question)
+            
+        target_language = detected_lang if detected_lang != "unknown" else "the same language as the user's question"
+        retrieval_queries = analysis.get("queries", [question.strip()])
+        if not retrieval_queries:
+            retrieval_queries = [question.strip()]
+
     selected_chunks: list[Chunk] = []
     ranked_candidates: list[dict] = []
     ranked_documents: list[dict] = []
-    retrieval_queries: list[str] = []
     used_hyde = False
 
     if follow_up_to_previous_answer:
-        intent = "follow_up_previous_answer"
-        answer = await _ensure_answer_language(
-            await _answer_from_previous_exchange(question, prepared_history, target_language),
-            question,
-            target_language,
-        )
+        answer = await _answer_from_previous_exchange(question, prepared_history, target_language)
         sources = []
     elif intent == "small_talk":
-        answer = await _ensure_answer_language(
-            await _answer(question, prepared_history, target_language),
-            question,
-            target_language,
-        )
+        answer = await _answer(question, prepared_history, target_language)
         sources: list[dict] = []
     else:
-        retrieval_queries = await _build_retrieval_queries(question, detected_lang, retrieval_context)
         query_embeddings = await embed_chunks(retrieval_queries) if retrieval_queries else []
 
         query_candidates: list[tuple[Chunk, float]] = []
@@ -782,11 +725,7 @@ async def ask(question: str, user_id: int, platform: str, history: list[dict], d
         selected_document_ids = _select_top_documents(ranked_documents)
         selected_chunks = await _select_context_chunks(ranked_candidates, db, selected_document_ids)
         context = await _build_context(selected_chunks, db)
-        answer = await _ensure_answer_language(
-            await _answer(question, prepared_history, target_language, context=context),
-            question,
-            target_language,
-        )
+        answer = await _answer(question, prepared_history, target_language, context=context)
         sources = await _build_sources(selected_chunks, db)
 
     score_by_chunk_id = {item["chunk"].id: item["score"] for item in ranked_candidates}
