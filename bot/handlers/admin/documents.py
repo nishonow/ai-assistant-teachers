@@ -63,14 +63,14 @@ def _documents_overview_message(documents: list[dict], limit: int = 20) -> str:
     return "\n".join(lines)
 
 
-@router.message(F.text.in_(("⬅️ Back to Menu",)))
+@router.message(F.text == "⬅️ Back")
 async def back_to_user_menu_from_admin(message: Message, state: FSMContext, db: Database) -> None:
     lang = await db.get_user_lang(message.from_user.id) or "ru"
     await state.clear()
     await message.answer("👇 Choose an action from the menu.", reply_markup=main_menu_keyboard(lang))
 
 
-@router.message(F.text.in_(("📤 Add File",)))
+@router.message(F.text == "📤 Add")
 async def admin_add_file_button(message: Message, state: FSMContext) -> None:
     await state.set_state(AdminState.waiting_file)
     await message.answer("📤 Send a file (.txt, .pdf, .docx).", reply_markup=admin_action_keyboard())
@@ -134,7 +134,7 @@ async def admin_waiting_file(message: Message, state: FSMContext, http_client: h
         await message.answer("Choose an action:", reply_markup=admin_action_keyboard())
 
 
-@router.message(F.text.in_(("📚 Documents",)))
+@router.message(F.text == "📚 Documents")
 async def admin_list_documents(message: Message, http_client: httpx.AsyncClient) -> None:
     try:
         response = await http_client.get("/api/v1/documents/")
@@ -151,7 +151,7 @@ async def admin_list_documents(message: Message, http_client: httpx.AsyncClient)
     await message.answer(_documents_overview_message(docs), reply_markup=admin_menu_keyboard(), parse_mode="HTML")
 
 
-@router.message(F.text.in_(("🔄 Reindex",)))
+@router.message(F.text == "🔄 Index")
 async def admin_reindex_documents(message: Message, http_client: httpx.AsyncClient) -> None:
     try:
         response = await http_client.get("/api/v1/documents/")
@@ -171,7 +171,7 @@ async def admin_reindex_documents(message: Message, http_client: httpx.AsyncClie
     )
 
 
-@router.message(F.text.in_(("🗑 Delete Document",)))
+@router.message(F.text == "🗑 Delete")
 async def admin_delete_prompt(message: Message, http_client: httpx.AsyncClient) -> None:
     try:
         response = await http_client.get("/api/v1/documents/")

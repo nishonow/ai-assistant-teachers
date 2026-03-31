@@ -121,7 +121,7 @@ function ChatScrollShell({
           <button
             type="button"
             onClick={onScrollToBottom}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#1e3448] bg-[#0d1827]/90 text-brand-300 backdrop-blur-sm transition-all hover:bg-[#15283f] hover:scale-105 active:scale-95"
+            className="webchat-scroll-button flex h-10 w-10 items-center justify-center rounded-full border border-[#1e3448] bg-[#0d1827]/90 text-brand-300 backdrop-blur-sm transition-all hover:bg-[#15283f] hover:scale-105 active:scale-95"
             aria-label="Вниз"
           >
             <ArrowDown size={18} />
@@ -246,29 +246,29 @@ export default function ChatMessageList({
           onScroll={handleScroll}
         >
           <div className="mx-auto w-full max-w-4xl space-y-3.5 md:space-y-4" role="status" aria-live="polite">
-            <div className="max-w-[72%] animate-pulse rounded-[24px] border border-[#284863] bg-[#0f1c2c] px-4 py-4">
+            <div className="webchat-loading-card max-w-[72%] animate-pulse rounded-[24px] border border-[#284863] bg-[#0f1c2c] px-4 py-4">
               <div className="mb-3 flex items-center gap-2">
-                <span className="inline-flex h-6 w-24 rounded-full border border-[#305169] bg-[#102033]" />
+                <span className="webchat-loading-chip inline-flex h-6 w-24 rounded-full border border-[#305169] bg-[#102033]" />
               </div>
               <div className="space-y-2.5">
-                <div className="h-4 w-[88%] rounded-full bg-slate-700/70" />
-                <div className="h-4 w-[74%] rounded-full bg-slate-700/60" />
-                <div className="h-4 w-[61%] rounded-full bg-slate-700/50" />
+                <div className="webchat-loading-line h-4 w-[88%] rounded-full bg-slate-700/70" />
+                <div className="webchat-loading-line h-4 w-[74%] rounded-full bg-slate-700/60" />
+                <div className="webchat-loading-line h-4 w-[61%] rounded-full bg-slate-700/50" />
               </div>
             </div>
 
-            <div className="ml-auto max-w-[54%] animate-pulse rounded-[24px] border border-brand-400/25 bg-brand-500/10 px-4 py-4 [animation-delay:120ms]">
+            <div className="webchat-loading-card ml-auto max-w-[54%] animate-pulse rounded-[24px] border border-brand-400/25 bg-brand-500/10 px-4 py-4 [animation-delay:120ms]">
               <div className="mb-3 flex justify-end">
-                <span className="inline-flex h-6 w-16 rounded-full border border-brand-400/20 bg-brand-500/10" />
+                <span className="webchat-loading-chip inline-flex h-6 w-16 rounded-full border border-brand-400/20 bg-brand-500/10" />
               </div>
               <div className="space-y-2.5">
-                <div className="h-4 w-full rounded-full bg-brand-500/20" />
-                <div className="h-4 w-[72%] rounded-full bg-brand-500/15" />
+                <div className="webchat-loading-line h-4 w-full rounded-full bg-brand-500/20" />
+                <div className="webchat-loading-line h-4 w-[72%] rounded-full bg-brand-500/15" />
               </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm text-slate-300 [animation-delay:180ms]">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#305169] bg-[#102033] text-brand-200">
+            <div className="webchat-loading-note flex items-center gap-3 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm text-slate-300 [animation-delay:180ms]">
+              <span className="webchat-loading-chip inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#305169] bg-[#102033] text-brand-200">
                 <MessageSquare size={14} />
               </span>
               <span>Загружаем диалог...</span>
@@ -297,7 +297,7 @@ export default function ChatMessageList({
                 key={question}
                 type="button"
                 className={[
-                  "group rounded-2xl border border-[#1e3448] bg-[#0b1520] px-4 py-4 text-sm leading-6 text-slate-300 transition-all duration-250 sm:px-5 sm:py-5",
+                  "webchat-suggestion-card group rounded-2xl border border-[#1e3448] bg-[#0b1520] px-4 py-4 text-sm leading-6 text-slate-300 transition-all duration-250 sm:px-5 sm:py-5",
                   "min-h-[84px] sm:min-h-[96px]",
                   "hover:border-brand-400/30 hover:bg-[#0e1c2b] hover:text-slate-100 hover:-translate-y-0.5",
                   "disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0",
@@ -328,12 +328,12 @@ export default function ChatMessageList({
           {messages.map((message) =>
             message.role === "user" ? (
               <div key={message.id} className="flex justify-end">
-                <article className="max-w-[85%] rounded-[20px] rounded-br-md bg-[linear-gradient(135deg,_#0c3a4d_0%,_#0a2f42_50%,_#082638_100%)] px-4 py-2 text-sm text-slate-100 md:max-w-[52%]">
+                <article className="webchat-user-bubble max-w-[85%] rounded-[20px] rounded-br-md bg-[linear-gradient(135deg,_#0c3a4d_0%,_#0a2f42_50%,_#082638_100%)] px-4 py-2 text-sm text-slate-100 md:max-w-[52%]">
                   <p className="whitespace-pre-wrap leading-[1.65]">{message.content}</p>
                 </article>
               </div>
             ) : (
-              <article key={message.id} className="mr-auto max-w-[90%] rounded-[20px] rounded-bl-md border border-[#1e3448]/60 bg-[#0b1520] px-4 py-2 text-sm text-slate-200 md:max-w-[75%]">
+              <article key={message.id} className="webchat-assistant-bubble mr-auto max-w-[90%] rounded-[20px] rounded-bl-md border border-[#1e3448]/60 bg-[#0b1520] px-4 py-2 text-sm text-slate-200 md:max-w-[75%]">
                   <AssistantMessageContent content={message.content} />
                   <div className="mt-3 flex flex-wrap items-center justify-start gap-1.5">
                     {message.sources?.length ? (
@@ -341,7 +341,7 @@ export default function ChatMessageList({
                         <button
                           type="button"
                           className={[
-                            "inline-flex h-7 items-center gap-1 rounded-full border px-2 text-[10px] font-medium transition-colors md:px-2.5 md:text-[11px]",
+                            "webchat-source-chip inline-flex h-7 items-center gap-1 rounded-full border px-2 text-[10px] font-medium transition-colors md:px-2.5 md:text-[11px]",
                             "group border-[#1e3448] bg-transparent text-slate-400 hover:bg-[#102033] hover:text-slate-200",
                             selectedSourcesMessageId === message.id ? "border-brand-400/30 text-slate-200" : "",
                           ].join(" ")}
@@ -361,7 +361,7 @@ export default function ChatMessageList({
                     <div className="relative">
                       <button
                         type="button"
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#1e3448] bg-transparent text-slate-400 transition-colors hover:bg-[#102033] hover:text-slate-200"
+                        className="webchat-copy-chip inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#1e3448] bg-transparent text-slate-400 transition-colors hover:bg-[#102033] hover:text-slate-200"
                         onClick={() => {
                           const contentToCopy =
                             message.role === "assistant" ? getAssistantMessagePlainText(message.content) : message.content;
@@ -382,7 +382,7 @@ export default function ChatMessageList({
             <div className="thinking-shell mr-auto inline-flex items-center gap-3 rounded-[20px] rounded-bl-md border border-[#1e3448]/60 px-4 py-3 text-sm text-slate-300">
                 <span className="thinking-core shrink-0" aria-hidden="true" />
                 <div className="flex items-center gap-2.5">
-                  <span className="text-sm text-slate-100" aria-live="polite">
+                  <span className="webchat-thinking-label text-sm text-slate-100" aria-live="polite">
                     Mugallim AI думает...
                   </span>
                   <span className="thinking-inline-dots" aria-hidden="true">

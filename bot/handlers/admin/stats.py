@@ -7,7 +7,7 @@ from utils.keyboards import admin_menu_keyboard
 router = Router()
 
 
-@router.message(F.text.in_(("📊 Stats",)))
+@router.message(F.text == "📊 Stats")
 async def admin_stats(message: Message, http_client: httpx.AsyncClient) -> None:
     try:
         response = await http_client.get("/api/v1/admin/stats")

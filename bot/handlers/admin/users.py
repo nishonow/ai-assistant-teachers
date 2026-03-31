@@ -25,7 +25,7 @@ def _users_header(users: list[dict], page: int, page_size: int = PAGE_SIZE) -> s
     return f"👥 <b>Users</b> — {total} total (page {page}/{total_pages})"
 
 
-@router.message(F.text.in_(("👤 Users",)))
+@router.message(F.text == "👤 Users")
 async def admin_users_handler(message: Message, http_client: httpx.AsyncClient) -> None:
     users = await _fetch_users(http_client)
     if users is None:

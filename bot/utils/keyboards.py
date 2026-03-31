@@ -1,4 +1,4 @@
-﻿from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
 
 def main_menu_keyboard(lang: str) -> ReplyKeyboardMarkup:
@@ -36,10 +36,10 @@ def question_mode_keyboard(lang: str) -> ReplyKeyboardMarkup:
 def admin_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📊 Stats"), KeyboardButton(text="👤 Users")],
-            [KeyboardButton(text="📤 Add File"), KeyboardButton(text="📚 Documents")],
-            [KeyboardButton(text="🔄 Reindex"), KeyboardButton(text="🗑 Delete Document")],
-            [KeyboardButton(text="⬅️ Back to Menu")],
+            [KeyboardButton(text="📊 Stats"), KeyboardButton(text="👤 Users"), KeyboardButton(text="📚 Documents")],
+            [KeyboardButton(text="📢 Broadcast")],
+            [KeyboardButton(text="📤 Add"), KeyboardButton(text="🗑 Delete"), KeyboardButton(text="🔄 Index")],
+            [KeyboardButton(text="⬅️ Back")],
         ],
         resize_keyboard=True,
     )
@@ -154,3 +154,21 @@ def admin_users_keyboard(
     ])
 
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def admin_broadcast_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🚀 Start", callback_data="admin:broadcast:confirm"),
+            ]
+        ]
+    )
+
+
+def admin_skip_button_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="⏩ Skip Buttons", callback_data="admin:broadcast:skip")]
+        ]
+    )

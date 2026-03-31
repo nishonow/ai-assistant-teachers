@@ -16,7 +16,7 @@ export default function ToastNotice({ notice }: ToastNoticeProps) {
     <div className="pointer-events-none fixed bottom-4 right-4 z-[80] w-[calc(100vw-2rem)] max-w-sm md:bottom-6 md:right-6">
       <div
         className={[
-          "chat-card-enter pointer-events-auto flex items-start gap-2 rounded-2xl border px-3 py-2.5 text-sm backdrop-blur-sm",
+          "toast-notice-card chat-card-enter pointer-events-auto flex items-start gap-2 rounded-2xl border px-3 py-2.5 text-sm backdrop-blur-sm",
           success
             ? "border-emerald-400/35 bg-emerald-400/15 text-emerald-100"
             : warning

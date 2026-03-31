@@ -1,8 +1,9 @@
-import { LogOut, MoreHorizontal, PanelLeftClose, Pencil, Shield, Trash2, UserRound } from "lucide-react";
+import { LogOut, Moon, MoreHorizontal, Palette, PanelLeftClose, Pencil, Shield, Sun, Trash2, UserRound } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from "react";
 
 import logo from "../../../../logo.png";
 
+import type { WebchatResolvedTheme, WebchatThemePreference } from "./theme";
 import type { ConversationSummary } from "./types";
 
 interface ChatSidebarProps {
@@ -22,6 +23,8 @@ interface ChatSidebarProps {
   onEditProfile: () => void;
   onOpenAdmin: () => void;
   onLogout: () => void;
+  onThemeChange: (themePreference: WebchatThemePreference) => void;
+  resolvedTheme: WebchatResolvedTheme;
 }
 
 interface SidebarListProps {
@@ -46,6 +49,8 @@ interface SidebarAccountMenuProps {
   onEditProfile: () => void;
   onOpenAdmin: () => void;
   onLogout: () => void;
+  onThemeChange: (themePreference: WebchatThemePreference) => void;
+  resolvedTheme: WebchatResolvedTheme;
 }
 
 function SidebarBrand() {
@@ -112,7 +117,7 @@ function SidebarList({
       <div className="scroll-area min-h-0 flex-1 overflow-y-auto pr-1">
         <div className="mb-3 flex items-center justify-between gap-3 px-2 pb-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Мои чаты</p>
-          <span className="inline-flex animate-pulse items-center justify-center rounded-full border border-[#305169] bg-[#102033] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-brand-200">
+          <span className="webchat-loading-chip inline-flex animate-pulse items-center justify-center rounded-full border border-[#305169] bg-[#102033] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-brand-200">
             Загрузка
           </span>
         </div>
@@ -121,10 +126,10 @@ function SidebarList({
           {Array.from({ length: 5 }).map((_, index) => (
             <div
               key={index}
-              className="chat-card-enter animate-pulse rounded-[22px] border border-[#284863] bg-[#0f1c2c] px-3 py-1.5"
+              className="webchat-loading-card chat-card-enter animate-pulse rounded-[22px] border border-[#284863] bg-[#0f1c2c] px-3 py-1.5"
               style={{ animationDelay: `${index * 60}ms` }}
             >
-              <div className="h-4 w-[68%] rounded-full bg-slate-700/70" />
+              <div className="webchat-loading-line h-4 w-[68%] rounded-full bg-slate-700/70" />
             </div>
           ))}
         </div>
@@ -137,7 +142,7 @@ function SidebarList({
       <div className="flex items-center justify-between gap-3 px-2 pb-1">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Мои чаты</p>
         {loading ? (
-          <span className="inline-flex animate-pulse items-center justify-center rounded-full border border-[#305169] bg-[#102033] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-brand-200">
+          <span className="webchat-loading-chip inline-flex animate-pulse items-center justify-center rounded-full border border-[#305169] bg-[#102033] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-brand-200">
             Обновляем
           </span>
         ) : null}
@@ -147,8 +152,9 @@ function SidebarList({
         conversations.map((conversation) => (
           <div
             key={conversation.id}
-                    className={[
-                      "chat-card-enter group isolate relative flex items-center gap-2 rounded-2xl border px-3 py-1.5 transition-all duration-200 hover:-translate-y-0.5 md:hover:z-30 md:focus-within:z-30",
+            data-active={conversation.id === activeConversationId ? "true" : "false"}
+            className={[
+                      "webchat-conversation-item chat-card-enter group isolate relative flex items-center gap-2 rounded-2xl border px-3 py-1.5 transition-all duration-200 hover:-translate-y-0.5 md:hover:z-30 md:focus-within:z-30",
               openMenuId === conversation.id ? "z-20" : "z-0",
               conversation.id === activeConversationId
                 ? "border-brand-400/35 bg-brand-500/15 text-slate-100"
@@ -172,10 +178,10 @@ function SidebarList({
             </button>
 
             <div className="relative z-30 shrink-0 self-center" data-chat-actions-menu>
-              <button
-                type="button"
-                className={[
-                  "inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 transition-[opacity,color,background-color] duration-150",
+                <button
+                  type="button"
+                  className={[
+                  "webchat-chat-actions-trigger inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 transition-[opacity,color,background-color] duration-150",
                   "hover:bg-[#152638] hover:text-slate-200",
                   openMenuId === conversation.id ? "opacity-100" : "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100",
                 ].join(" ")}
@@ -189,7 +195,7 @@ function SidebarList({
               </button>
 
               {openMenuId === conversation.id ? (
-                <div className="absolute right-0 top-[calc(100%+10px)] z-40 min-w-[182px] rounded-2xl border border-[#3a6382] bg-[#152434] p-2 ring-1 ring-black/35 backdrop-blur-xl">
+                <div className="webchat-floating-menu absolute right-0 top-[calc(100%+10px)] z-40 min-w-[182px] rounded-2xl border border-[#3a6382] bg-[#152434] p-2 ring-1 ring-black/35 backdrop-blur-xl">
                   <button
                     type="button"
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-slate-100 transition-colors hover:bg-[#1c3045]"
@@ -220,7 +226,7 @@ function SidebarList({
           </div>
         ))
       ) : (
-        <div className="rounded-2xl border border-dashed border-[#284863] bg-[#0d1827]/70 px-4 py-5 text-sm leading-6 text-slate-400">
+        <div className="webchat-empty-state rounded-2xl border border-dashed border-[#284863] bg-[#0d1827]/70 px-4 py-5 text-sm leading-6 text-slate-400">
           Сохранённые чаты появятся здесь после первого сообщения.
         </div>
       )}
@@ -240,13 +246,47 @@ function SidebarAccountMenu({
   onEditProfile,
   onOpenAdmin,
   onLogout,
+  onThemeChange,
+  resolvedTheme,
 }: SidebarAccountMenuProps) {
   return (
     <div className="relative mt-3 border-t border-[#21384b] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-3 md:border-t-0 md:pt-0">
       {menuOpen ? (
-        <div className="absolute inset-x-0 bottom-[calc(100%+12px)] z-40 rounded-2xl border border-[#3a6382] bg-[#152434] p-2 ring-1 ring-black/35 backdrop-blur-xl">
+        <div className="webchat-account-panel absolute inset-x-0 bottom-[calc(100%+12px)] z-40 rounded-2xl border border-[#3a6382] bg-[#152434] p-2 ring-1 ring-black/35 backdrop-blur-xl">
           <div className="border-b border-[#294459] px-3 py-2">
             <p className="truncate text-sm font-semibold text-slate-100">{username}</p>
+          </div>
+          <div className="webchat-theme-row mt-1 flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm text-slate-100">
+            <span className="inline-flex items-center gap-2">
+              <Palette size={15} />
+              <span className="font-medium text-slate-100">Тема</span>
+            </span>
+            <div className="webchat-theme-toggle inline-flex items-center gap-0.5 rounded-full bg-[#0d1827] p-0.5">
+              <button
+                type="button"
+                className={[
+                  "webchat-theme-toggle-button inline-flex h-6 w-6 items-center justify-center rounded-full transition-colors",
+                  resolvedTheme === "light" ? "bg-white text-slate-900 shadow-sm" : "text-slate-300 hover:bg-white/10 hover:text-slate-100",
+                ].join(" ")}
+                onClick={() => onThemeChange("light")}
+                aria-label="Светлая тема"
+                aria-pressed={resolvedTheme === "light"}
+              >
+                <Sun size={12} />
+              </button>
+              <button
+                type="button"
+                className={[
+                  "webchat-theme-toggle-button inline-flex h-6 w-6 items-center justify-center rounded-full transition-colors",
+                  resolvedTheme === "dark" ? "bg-white text-slate-900 shadow-sm" : "text-slate-300 hover:bg-white/10 hover:text-slate-100",
+                ].join(" ")}
+                onClick={() => onThemeChange("dark")}
+                aria-label="Тёмная тема"
+                aria-pressed={resolvedTheme === "dark"}
+              >
+                <Moon size={12} />
+              </button>
+            </div>
           </div>
           <button
             type="button"
@@ -303,11 +343,11 @@ function SidebarAccountMenu({
 
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[#284863] bg-[#0d1827] px-3 py-3 text-left transition-colors hover:bg-[#102033]"
+        className="webchat-account-button flex w-full items-center justify-between gap-3 rounded-2xl border border-[#284863] bg-[#0d1827] px-3 py-3 text-left transition-colors hover:bg-[#102033]"
         onClick={() => setMenuOpen((current) => !current)}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#2d5775] bg-[linear-gradient(180deg,_#14324c_0%,_#0c1827_100%)] text-sm font-semibold text-brand-300">
+          <span className="webchat-account-avatar inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#2d5775] bg-[linear-gradient(180deg,_#14324c_0%,_#0c1827_100%)] text-sm font-semibold text-brand-300">
             {avatarLetter}
           </span>
           <p className="truncate text-sm font-semibold text-slate-100">{username}</p>
@@ -337,6 +377,8 @@ export default function ChatSidebar({
   onEditProfile,
   onOpenAdmin,
   onLogout,
+  onThemeChange,
+  resolvedTheme,
 }: ChatSidebarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const safeUsername = (username || "").trim() || "User";
@@ -396,7 +438,7 @@ export default function ChatSidebar({
 
   return (
     <>
-      <aside className="sidebar-shell hidden h-full w-[290px] flex-col border-r border-[#21384b] bg-[#09111d] px-3 py-3 md:flex">
+      <aside className="webchat-sidebar-shell sidebar-shell hidden h-full w-[290px] flex-col border-r border-[#21384b] bg-[#09111d] px-3 py-3 md:flex">
         <SidebarBrand />
 
         <SidebarList
@@ -422,6 +464,8 @@ export default function ChatSidebar({
             onEditProfile={onEditProfile}
             onOpenAdmin={onOpenAdmin}
             onLogout={onLogout}
+            onThemeChange={onThemeChange}
+            resolvedTheme={resolvedTheme}
           />
         </div>
       </aside>
@@ -429,7 +473,7 @@ export default function ChatSidebar({
       {isMobileOpen ? (
         <>
           <div className="drawer-overlay-enter fixed inset-0 z-30 bg-[#020508]/70 md:hidden" onClick={onCloseMobile} />
-          <aside className="drawer-sheet-left fixed inset-y-0 left-0 z-40 flex h-full w-[88vw] max-w-[22rem] flex-col overflow-hidden rounded-r-[32px] border-r border-[#1e3448]/60 bg-[#08121c]/85 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-2xl md:hidden">
+          <aside className="webchat-sidebar-shell drawer-sheet-left fixed inset-y-0 left-0 z-40 flex h-full w-[88vw] max-w-[22rem] flex-col overflow-hidden rounded-r-[32px] border-r border-[#1e3448]/60 bg-[#08121c]/85 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-2xl md:hidden">
             <div className="mb-3 flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <SidebarBrand />
@@ -462,6 +506,8 @@ export default function ChatSidebar({
                 onEditProfile={onEditProfile}
                 onOpenAdmin={onOpenAdmin}
                 onLogout={onLogout}
+                onThemeChange={onThemeChange}
+                resolvedTheme={resolvedTheme}
               />
             </div>
           </aside>

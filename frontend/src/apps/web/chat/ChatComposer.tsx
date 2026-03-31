@@ -1,5 +1,5 @@
 import { SendHorizontal } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 interface ChatComposerProps {
   disabled: boolean;
@@ -9,6 +9,7 @@ interface ChatComposerProps {
 }
 
 const MAX_TEXTAREA_HEIGHT = 220;
+const MIN_TEXTAREA_HEIGHT = 34;
 const MOBILE_ENTER_QUERY = "(pointer: coarse), (max-width: 767px)";
 
 export default function ChatComposer({
@@ -21,15 +22,40 @@ export default function ChatComposer({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const zoomedViewportRef = useRef<{ scrollX: number; scrollY: number } | null>(null);
 
-  useEffect(() => {
-    const element = textareaRef.current;
+  const resizeTextarea = (element: HTMLTextAreaElement | null) => {
     if (!element) return;
 
     element.style.height = "0px";
-    const nextHeight = Math.min(element.scrollHeight, MAX_TEXTAREA_HEIGHT);
+    const nextHeight = Math.max(MIN_TEXTAREA_HEIGHT, Math.min(element.scrollHeight, MAX_TEXTAREA_HEIGHT));
     element.style.height = `${nextHeight}px`;
     element.style.overflowY = element.scrollHeight > MAX_TEXTAREA_HEIGHT ? "auto" : "hidden";
+  };
+
+  useLayoutEffect(() => {
+    resizeTextarea(textareaRef.current);
   }, [value]);
+
+  useEffect(() => {
+    const handleViewportChange = () => {
+      resizeTextarea(textareaRef.current);
+    };
+
+    window.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("resize", handleViewportChange);
+
+    let cancelled = false;
+    void document.fonts.ready.then(() => {
+      if (!cancelled) {
+        handleViewportChange();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
+    };
+  }, []);
 
   const submitValue = useCallback(
     async (nextValue: string) => {
@@ -141,11 +167,11 @@ export default function ChatComposer({
           onFocus={stabilizeZoomedFocus}
           placeholder="Напишите Mugallim AI..."
           rows={1}
-          className="chat-input-scroll min-h-[24px] max-h-[220px] flex-1 resize-none bg-transparent px-1 py-[5px] text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[26px] md:py-[7px]"
+          className="webchat-composer-input chat-input-scroll min-h-[34px] max-h-[220px] flex-1 resize-none bg-transparent px-1 py-1.5 text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[38px] md:py-[7px]"
         />
         <button
           type="submit"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-300 text-[#0a1e18] transition-all duration-200 hover:bg-[#b7fbf3] disabled:cursor-not-allowed disabled:opacity-40 md:h-10 md:w-10"
+          className="webchat-send-button inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-300 text-[#0a1e18] transition-all duration-200 hover:bg-[#b7fbf3] disabled:cursor-not-allowed disabled:opacity-40 md:h-10 md:w-10"
           disabled={disabled || !value.trim()}
           aria-label="Отправить сообщение"
         >

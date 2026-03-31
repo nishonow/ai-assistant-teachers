@@ -34,6 +34,12 @@ import {
   upsertConversationSummary,
   WebLogoutConfirmModal,
 } from "../chat";
+import {
+  loadWebchatThemePreference,
+  resolveWebchatTheme,
+  saveWebchatThemePreference,
+  type WebchatThemePreference,
+} from "../chat/theme";
 import type { ChatMessage, ChatSource, Conversation, ConversationSummary } from "../chat";
 
 export default function ChatPage() {
@@ -74,6 +80,10 @@ export default function ChatPage() {
   const [rateLimitUntil, setRateLimitUntil] = useState<number | null>(null);
   const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState(0);
   const [notice, setNotice] = useState<NoticeState | null>(null);
+  const [themePreference, setThemePreference] = useState<WebchatThemePreference>(() => loadWebchatThemePreference());
+  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: dark)").matches : true,
+  );
 
   const noticeTimerRef = useRef<number | null>(null);
 
@@ -252,6 +262,42 @@ export default function ChatPage() {
 
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleThemeChange = (event: MediaQueryListEvent) => {
+      setSystemPrefersDark(event.matches);
+    };
+
+    setSystemPrefersDark(mediaQuery.matches);
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleThemeChange);
+      return () => {
+        mediaQuery.removeEventListener("change", handleThemeChange);
+      };
+    }
+
+    mediaQuery.addListener(handleThemeChange);
+    return () => {
+      mediaQuery.removeListener(handleThemeChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    saveWebchatThemePreference(themePreference);
+  }, [themePreference]);
+
+  const resolvedTheme = resolveWebchatTheme(themePreference, systemPrefersDark);
+
+  useEffect(() => {
+    const previousColorScheme = document.documentElement.style.colorScheme;
+    document.documentElement.style.colorScheme = resolvedTheme;
+
+    return () => {
+      document.documentElement.style.colorScheme = previousColorScheme;
+    };
+  }, [resolvedTheme]);
 
   useEffect(() => {
     if (!rateLimitUntil) {
@@ -622,7 +668,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="relative flex w-full h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] text-slate-100">
+    <div className={`webchat-shell webchat-theme-${resolvedTheme} relative flex w-full h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] text-slate-100`}>
       <ChatSidebar
         activeConversationId={activeConversationId}
         conversations={conversations}
@@ -644,11 +690,13 @@ export default function ChatPage() {
         onLogout={() => setLogoutConfirmOpen(true)}
         onRenameConversation={handleOpenRenameConversation}
         onSelectConversation={handleSelectConversation}
+        onThemeChange={setThemePreference}
+        resolvedTheme={resolvedTheme}
       />
 
-      <div className="flex min-w-0 flex-1 bg-[#07101a]">
-        <main className="flex min-w-0 flex-1 flex-col bg-[#07101a]">
-          <header className="relative z-20 flex flex-col justify-center border-b border-[#1e3448]/60 bg-[#08121c]/85 shrink-0 md:bg-[#08111c] md:backdrop-blur-none backdrop-blur-xl md:border-[#21384b] md:h-[62px]">
+      <div className="webchat-main-surface flex min-w-0 flex-1 bg-[#07101a]">
+        <main className="webchat-main-panel flex min-w-0 flex-1 flex-col bg-[#07101a]">
+          <header className="webchat-header relative z-20 flex flex-col justify-center border-b border-[#1e3448]/60 bg-[#08121c]/85 shrink-0 md:bg-[#08111c] md:backdrop-blur-none backdrop-blur-xl md:border-[#21384b] md:h-[62px]">
             <div className="flex h-[48px] md:hidden items-center justify-between gap-2 px-3">
               <div className="flex w-10 items-center justify-start">
                 <button type="button" className="btn-muted px-2.5 py-2" onClick={() => setMobileSidebarOpen(true)} aria-label="Открыть меню">
@@ -731,7 +779,7 @@ export default function ChatPage() {
             suggestionsDisabled={pending || isLoadingList || isLoadingConversation || isMessagingBlocked || rateLimitSecondsLeft > 0}
           />
           {isMessagingBlocked ? (
-            <div className="mx-3 mb-2 rounded-xl border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-200 md:mx-6">
+            <div className="webchat-warning-banner mx-3 mb-2 rounded-xl border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-200 md:mx-6">
               Вы заблокированы. Отправка новых сообщений временно недоступна.
             </div>
           ) : null}

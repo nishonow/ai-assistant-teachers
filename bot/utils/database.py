@@ -39,3 +39,10 @@ class Database:
             await conn.execute(
                 "UPDATE bot_users SET lang = $1 WHERE telegram_id = $2", lang, telegram_id
             )
+
+    async def get_all_users(self) -> list[int]:
+        if not self.pool:
+            return []
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("SELECT telegram_id FROM bot_users")
+        return [row["telegram_id"] for row in rows]
