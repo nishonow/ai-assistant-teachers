@@ -1,6 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap");
 
 @tailwind base;
+* {
+  -webkit-tap-highlight-color: transparent;
+}
 @tailwind components;
 @tailwind utilities;
 
@@ -78,6 +81,9 @@
   body {
     min-height: 100dvh;
     background-image: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
   }
 
   input,
@@ -704,3 +710,4 @@
     height: 0;
   }
 }
+
