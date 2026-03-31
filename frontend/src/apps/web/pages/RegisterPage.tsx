@@ -1,153 +1,163 @@
-import { ArrowRight, BadgeCheck, Mail, ShieldCheck, UserRound } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../../core/auth";
+import AuthShell from "./AuthShell";
 
-const REGISTER_NOTES = [
-  "Создайте отдельный веб-аккаунт",
-  "Храните свои диалоги в одном месте",
-  "Пользуйтесь Telegram отдельно в любое время",
-];
+interface RegisterErrors {
+  name?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+}
+
+const inputBaseClass =
+  "mt-2 h-11 w-full rounded-[8px] border bg-[#f2f0eb] px-3 text-sm text-[#1c1b18] transition-[border-color,box-shadow] duration-150 ease-in-out placeholder:text-[#9b988e] focus:border-[#c4922a] focus:outline-none focus:ring-2 focus:ring-[#c4922a]/20";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
 
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState<RegisterErrors>({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
 
-    const name = `${form.get("name") || ""}`.trim();
-    const email = `${form.get("email") || ""}`.trim();
-    const password = `${form.get("password") || ""}`.trim();
+    const nextErrors: RegisterErrors = {};
+    const normalizedName = name.trim();
+    const normalizedEmail = email.trim();
+    const normalizedPassword = password.trim();
+    const normalizedConfirmPassword = confirmPassword.trim();
+
+    if (!normalizedName) {
+      nextErrors.name = "Укажите имя.";
+    }
+
+    if (!normalizedEmail) {
+      nextErrors.email = "Укажите email.";
+    }
+
+    if (!normalizedPassword) {
+      nextErrors.password = "Укажите пароль.";
+    }
+
+    if (!normalizedConfirmPassword) {
+      nextErrors.confirmPassword = "Повторите пароль.";
+    } else if (normalizedPassword && normalizedPassword !== normalizedConfirmPassword) {
+      nextErrors.confirmPassword = "Пароли не совпадают.";
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      return;
+    }
 
     setLoading(true);
-    setError("");
+    setErrors({});
 
     try {
-      const session = await register({ name, email, password });
+      const session = await register({ name: normalizedName, email: normalizedEmail, password: normalizedPassword });
       navigate(session.user.role === "admin" ? "/admin" : "/app", { replace: true });
     } catch (registerError) {
-      setError(registerError instanceof Error ? registerError.message : "Не удалось зарегистрироваться.");
+      setErrors({
+        email: registerError instanceof Error ? registerError.message : "Не удалось зарегистрироваться.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-[100svh] bg-[#04070d] px-4 py-6 text-slate-100 md:min-h-screen md:px-6">
-      <div className="mx-auto grid min-h-[calc(100svh-3rem)] w-full max-w-6xl gap-4 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] lg:grid-cols-[0.95fr_1.05fr] md:min-h-[calc(100vh-3rem)]">
-        <section className="rounded-[32px] border border-[#1f3245] bg-[radial-gradient(circle_at_top_left,_rgba(84,214,198,0.14),_transparent_30%),linear-gradient(180deg,_rgba(8,15,25,0.98)_0%,_rgba(6,11,18,0.98)_100%)] p-6 md:p-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#2b5066] bg-[#0f1f31] px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-[#98f7ea]">
-            <ShieldCheck size={12} />
-            {"Веб-аккаунт"}
-          </div>
+    <AuthShell
+      eyebrow="Создайте аккаунт"
+      title="Регистрация"
+      subtitle="Это займёт меньше минуты"
+      footerText="Уже есть аккаунт?"
+      footerLinkLabel="Войти"
+      footerLinkTo="/login"
+    >
+      <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+        <label className="block">
+          <span className="text-[13px] font-medium text-[#6b6960]">Имя</span>
+          <input
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className={`${inputBaseClass} ${errors.name ? "border-[#cc5f4a] focus:border-[#cc5f4a] focus:ring-[#cc5f4a]/15" : "border-[rgba(0,0,0,0.07)]"}`}
+            placeholder="Ваше имя"
+            autoComplete="name"
+          />
+          {errors.name ? <p className="mt-2 text-xs text-[#cc5f4a]">{errors.name}</p> : null}
+        </label>
 
-          <h1 className="mt-6 max-w-md font-heading text-4xl leading-[0.94] text-[#f7fffd] md:text-5xl">
-            {"Создайте своё пространство для юридической поддержки."}
-          </h1>
+        <label className="block">
+          <span className="text-[13px] font-medium text-[#6b6960]">Email</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className={`${inputBaseClass} ${errors.email ? "border-[#cc5f4a] focus:border-[#cc5f4a] focus:ring-[#cc5f4a]/15" : "border-[rgba(0,0,0,0.07)]"}`}
+            placeholder="name@example.com"
+            autoComplete="email"
+          />
+          {errors.email ? <p className="mt-2 text-xs text-[#cc5f4a]">{errors.email}</p> : null}
+        </label>
 
-          <p className="mt-5 max-w-md text-sm leading-7 text-slate-300">
-            {"Зарегистрируйтесь один раз и пользуйтесь веб-ассистентом с сохранёнными диалогами и более удобным рабочим пространством."}
-          </p>
+        <label className="block">
+          <span className="text-[13px] font-medium text-[#6b6960]">Пароль</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className={`${inputBaseClass} ${errors.password ? "border-[#cc5f4a] focus:border-[#cc5f4a] focus:ring-[#cc5f4a]/15" : "border-[rgba(0,0,0,0.07)]"}`}
+            placeholder="Создайте пароль"
+            autoComplete="new-password"
+          />
+          {errors.password ? <p className="mt-2 text-xs text-[#cc5f4a]">{errors.password}</p> : null}
+        </label>
 
-          <div className="mt-8 space-y-3">
-            {REGISTER_NOTES.map((note) => (
-              <div key={note} className="flex items-center gap-3 rounded-2xl border border-[#233a4e] bg-[#0d1827] px-4 py-3 text-sm text-slate-200">
-                <div className="grid h-9 w-9 place-items-center rounded-xl border border-[#305169] bg-[#122235] text-[#9af5ea]">
-                  <BadgeCheck size={14} />
-                </div>
-                <span>{note}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+        <label className="block">
+          <span className="text-[13px] font-medium text-[#6b6960]">Повторите пароль</span>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            className={`${inputBaseClass} ${errors.confirmPassword ? "border-[#cc5f4a] focus:border-[#cc5f4a] focus:ring-[#cc5f4a]/15" : "border-[rgba(0,0,0,0.07)]"}`}
+            placeholder="Повторите пароль"
+            autoComplete="new-password"
+          />
+          {errors.confirmPassword ? <p className="mt-2 text-xs text-[#cc5f4a]">{errors.confirmPassword}</p> : null}
+        </label>
 
-        <section className="rounded-[32px] border border-[#1f3245] bg-[#08111c]/96 p-6 md:p-8 lg:p-10">
-          <div className="max-w-md">
-            <p className="font-heading text-xs uppercase tracking-[0.22em] text-[#8fcbbf]">Mugallim AI</p>
-            <h2 className="mt-2 font-heading text-3xl text-[#f7fffd]">{"Регистрация"}</h2>
-            <p className="mt-2 text-sm text-slate-400">{"Создайте веб-аккаунт по email и начинайте диалог."}</p>
-          </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="inline-flex h-11 w-full items-center justify-center rounded-[8px] border border-[#c4922a] bg-[#c4922a] px-4 text-sm font-medium text-[#ffffff] transition-colors duration-150 ease-in-out hover:bg-[#b78623] disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {loading ? "Создание аккаунта..." : "Создать аккаунт"}
+        </button>
 
-          <form onSubmit={handleSubmit} className="mt-8 max-w-md space-y-5">
-            <label className="block text-sm text-slate-300">
-              {"Полное имя"}
-              <div className="relative mt-2">
-                <UserRound size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  name="name"
-                  type="text"
-                  className="input rounded-2xl border-[#294258] bg-[#0d1827] py-3 pl-11"
-                  placeholder={"Иван Иванов"}
-                  required
-                />
-              </div>
-            </label>
+        <div className="relative">
+          <div className="border-t border-[rgba(0,0,0,0.07)]" />
+          <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 bg-[#ffffff] px-3 text-sm text-[#6b6960]">или</span>
+        </div>
 
-            <label className="block text-sm text-slate-300">
-              Email
-              <div className="relative mt-2">
-                <Mail size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  name="email"
-                  type="email"
-                  className="input rounded-2xl border-[#294258] bg-[#0d1827] py-3 pl-11"
-                  placeholder="name@example.com"
-                  required
-                />
-              </div>
-            </label>
-
-            <label className="block text-sm text-slate-300">
-              {"Пароль"}
-              <div className="relative mt-2">
-                <ShieldCheck size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  name="password"
-                  type="password"
-                  className="input rounded-2xl border-[#294258] bg-[#0d1827] py-3 pl-11"
-                  placeholder="********"
-                  required
-                />
-              </div>
-            </label>
-
-            {error ? <p className="rounded-2xl border border-rose-400/35 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</p> : null}
-
-            <button type="submit" className="btn-primary w-full rounded-full py-3" disabled={loading}>
-              {loading ? "Создание аккаунта..." : "Создать аккаунт"}
-            </button>
-          </form>
-
-          <p className="mt-6 text-sm text-slate-400">
-            {"Уже есть аккаунт? "}
-            <Link to="/login" className="text-[#9af5ea] hover:text-[#c8fff8]">
-              {"Войти"}
-            </Link>
-          </p>
-
-          <div className="mt-8 rounded-2xl border border-[#233a4e] bg-[#0c1726] px-4 py-4">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-[#8ebfd1]">{"Быстрый путь"}</p>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              {"Нужен более быстрый доступ на телефоне? После этого вы в любой момент сможете пользоваться Telegram."}
-            </p>
-            <a
-              href="https://t.me/mugallim_bot"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#9af5ea] transition hover:text-[#c8fff8]"
-            >
-              {"Открыть Telegram-бота"}
-              <ArrowRight size={14} />
-            </a>
-          </div>
-        </section>
-      </div>
-    </main>
+        <a
+          href="https://t.me/mugallim_bot"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff] px-4 text-sm font-medium text-[#1c1b18] transition-colors duration-150 ease-in-out hover:bg-[#f2f0eb]"
+        >
+          <MessageCircle size={16} />
+          Открыть Telegram-бота
+        </a>
+      </form>
+    </AuthShell>
   );
 }

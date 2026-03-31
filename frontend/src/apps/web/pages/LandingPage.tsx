@@ -1,149 +1,365 @@
-import { ArrowRight, BriefcaseBusiness, FileSearch, MessageCircle, ShieldCheck, Sparkles, TimerReset } from "lucide-react";
+import {
+  ArrowRight,
+  FileSearch,
+  History,
+  Menu,
+  MessageCircle,
+  Scale,
+  SendHorizontal,
+  ShieldCheck,
+  X,
+} from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import logo from "../../../../logo.png";
 
 import { useAuth } from "../../../core/auth";
 
-const ISSUE_LABELS = [
+const STATS = ["24/7 доступ", "2 канала", "1 место для вопроса"];
+
+const STEPS = [
+  {
+    number: "01",
+    title: "Опишите ситуацию",
+    description: "Расскажите о вопросе простыми словами, без сложной юридической формулировки.",
+  },
+  {
+    number: "02",
+    title: "Получите понятный ответ",
+    description: "Сервис помогает отделить факты от советов и показывает, на что обратить внимание.",
+  },
+  {
+    number: "03",
+    title: "Сохраните и вернитесь позже",
+    description: "История диалогов остаётся в веб-чате, чтобы к вопросу можно было спокойно вернуться.",
+  },
+];
+
+const FEATURES = [
+  {
+    title: "Пишите простыми словами",
+    description: "Опишите ситуацию так, как рассказали бы её коллеге.",
+    icon: MessageCircle,
+  },
+  {
+    title: "Ответы с опорой на документы",
+    description: "Факт отделён от совета, а ориентиры по источникам остаются рядом.",
+    icon: FileSearch,
+  },
+  {
+    title: "История сохраняется",
+    description: "Возвращайтесь к диалогам позже и продолжайте без потери контекста.",
+    icon: History,
+  },
+  {
+    title: "Telegram для быстрых вопросов",
+    description: "Если нужен ответ на ходу, можно сразу открыть Telegram-бота.",
+    icon: ShieldCheck,
+  },
+];
+
+const USE_CASES = [
   "Давление при увольнении",
   "Задержка зарплаты",
   "Перегрузка на работе",
   "Споры по договору",
   "Трудовые гарантии",
-  "Вопросы по школьным правилам",
+  "Школьные правила",
 ];
 
-const VALUE_PILLS = [
-  { label: "Быстрые ответы", icon: TimerReset },
-  { label: "Для учителей", icon: BriefcaseBusiness },
-  { label: "С опорой на документы", icon: FileSearch },
-];
+const landingBodyFont = { fontFamily: '"DM Sans", sans-serif' } as const;
+const landingSerifFont = { fontFamily: '"Instrument Serif", serif' } as const;
 
 export default function LandingPage() {
   const { session } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const primaryHref = session ? (session.user.role === "admin" ? "/admin" : "/app") : "/login";
-  const secondaryHref = session ? "/app" : "/register";
+  const appHref = session ? (session.user.role === "admin" ? "/admin" : "/app") : "/login";
+  const loginLabel = "Войти";
+  const heroLabel = "Войти в веб-чат";
 
   return (
-    <main className="min-h-[100svh] bg-[#04070d] text-slate-100 md:min-h-screen">
-      <div className="mx-auto flex min-h-[100svh] w-full max-w-6xl flex-col px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:min-h-screen md:px-6 md:py-6">
-        <header className="rounded-[28px] border border-[#1f3245] bg-[#09111d]/90 px-4 py-4 md:px-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-2xl border border-[#284863] bg-[#0f1d30]">
-                <img src={logo} alt="Mugallim AI" className="h-full w-full object-cover" />
-              </div>
-              <div>
-                <p className="font-heading text-lg tracking-[0.08em] text-[#f5fffd]">Mugallim AI</p>
-                <p className="text-xs uppercase tracking-[0.18em] text-[#88b8c7]">{"Учителя / Права / Ясность"}</p>
-              </div>
-            </div>
+    <main className="min-h-[100svh] bg-[#fafaf8] text-[#1c1b18]" style={landingBodyFont}>
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-[rgba(0,0,0,0.07)] bg-[#fafaf8cc] backdrop-blur-[12px]">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 md:px-6">
+          <Link to="/" className="flex items-center gap-3 text-[#1c1b18]">
+            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[12px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff]">
+              <img src={logo} alt="Mugallim AI" className="h-full w-full object-cover" />
+            </span>
+            <span className="text-[1.55rem] leading-none" style={landingSerifFont}>
+              Mugallim AI
+            </span>
+          </Link>
 
+          <div className="hidden items-center gap-3 md:flex">
+            <Link
+              to={appHref}
+              className="inline-flex h-10 items-center justify-center rounded-[8px] border border-transparent px-4 text-sm font-medium text-[#1c1b18] transition-colors duration-150 ease-in-out hover:bg-[#f2f0eb]"
+            >
+              {loginLabel}
+            </Link>
             <a
               href="https://t.me/mugallim_bot"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#2f5a72] bg-[#112235] px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#d9fffa] transition hover:border-[#58dacc] hover:bg-[#16304b]"
+              className="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#c4922a] bg-[#c4922a] px-4 text-sm font-medium text-[#ffffff] transition-colors duration-150 ease-in-out hover:bg-[#b78623]"
             >
-              <MessageCircle size={14} />
-              {"Открыть Telegram-бота"}
+              Открыть Telegram
             </a>
           </div>
-        </header>
 
-        <div className="mt-4 overflow-hidden rounded-[24px] border border-[#1d3042] bg-[#08111b] py-3 text-[#d8fcf6]">
-          <div className="landing-marquee-track flex w-max items-center gap-8 px-4 text-[11px] uppercase tracking-[0.18em] md:px-6">
-            {ISSUE_LABELS.concat(ISSUE_LABELS).map((label, index) => (
-              <span key={`${label}-${index}`} className="whitespace-nowrap">
-                {label}
-              </span>
-            ))}
-          </div>
+          <button
+            type="button"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff] text-[#1c1b18] transition-colors duration-150 ease-in-out hover:bg-[#f2f0eb] md:hidden"
+            onClick={() => setMobileMenuOpen((current) => !current)}
+            aria-label={mobileMenuOpen ? "Закрыть меню" : "Открыть меню"}
+          >
+            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </div>
 
-        <section className="mt-4 grid flex-1 gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(0,0.82fr)]">
-          <div className="min-w-0 rounded-[32px] border border-[#1f3245] bg-[radial-gradient(circle_at_top_left,_rgba(80,214,197,0.18),_transparent_32%),linear-gradient(180deg,_rgba(8,15,25,0.96)_0%,_rgba(6,10,16,0.98)_100%)] p-6 md:p-8 lg:p-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#30556a] bg-[#102133] px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-[#a2f3e7]">
-              <Sparkles size={12} />
-              {"Юридическая помощь учителям"}
-            </div>
-
-            <h1 className="mt-6 max-w-2xl break-words font-heading text-[3rem] leading-[0.92] text-[#f7fffd] md:text-[4.4rem]">
-              {"Понятная правовая помощь для работников школы."}
-            </h1>
-
-            <p className="mt-6 max-w-xl text-sm leading-7 text-slate-300 md:text-base">
-              {"Задавайте сложные трудовые и рабочие вопросы простым языком. Используйте веб-приложение для спокойных диалогов или открывайте Telegram-бота, когда нужен быстрый ответ."}
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
+        {mobileMenuOpen ? (
+          <div className="border-t border-[rgba(0,0,0,0.07)] bg-[#fafaf8] md:hidden">
+            <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-3">
               <Link
-                to={primaryHref}
-                className="inline-flex min-w-44 items-center justify-center gap-2 rounded-full bg-[#9af5ea] px-5 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#051411] transition hover:bg-[#b8fff6]"
+                to={appHref}
+                className="inline-flex h-11 items-center justify-center rounded-[8px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff] px-4 text-sm font-medium text-[#1c1b18]"
+                onClick={() => setMobileMenuOpen(false)}
               >
-                {session ? "Продолжить" : "Войти"}
-                <ArrowRight size={14} />
+                {loginLabel}
               </Link>
-              <Link
-                to={secondaryHref}
-                className="inline-flex min-w-44 items-center justify-center rounded-full border border-[#35556e] bg-[#0c1827] px-5 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#e7fbf8] transition hover:border-[#72dccc] hover:bg-[#12253b]"
+              <a
+                href="https://t.me/mugallim_bot"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-11 items-center justify-center rounded-[8px] border border-[#c4922a] bg-[#c4922a] px-4 text-sm font-medium text-[#ffffff]"
+                onClick={() => setMobileMenuOpen(false)}
               >
-                {session ? "Открыть веб-чат" : "Создать аккаунт"}
-              </Link>
+                Открыть Telegram
+              </a>
             </div>
+          </div>
+        ) : null}
+      </header>
 
-            <div className="mt-8 grid gap-3 md:grid-cols-3">
-              {VALUE_PILLS.map(({ label, icon: Icon }) => (
-                <div key={label} className="rounded-2xl border border-[#243a4f] bg-[#0d1827]/90 px-4 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#2f5065] bg-[#122235] text-[#9af5ea]">
-                      <Icon size={16} />
-                    </div>
-                    <p className="text-sm font-semibold text-[#effffc]">{label}</p>
-                  </div>
+      <section className="px-4 pb-24 pt-[148px] md:px-6 md:pb-28 md:pt-[184px]">
+        <div className="mx-auto max-w-5xl text-center">
+          <div className="inline-flex items-center rounded-full border border-[#c4922a] bg-[#f8f1df] px-3 py-1 text-xs font-medium text-[#8d6718]">
+            Для учителей Кыргызстана
+          </div>
+
+          <h1
+            className="mt-8 text-[3.4rem] italic leading-[0.92] tracking-[-0.03em] text-[#1c1b18] sm:text-[4.5rem] lg:text-[72px]"
+            style={landingSerifFont}
+          >
+            <span className="block">Юридическая помощь</span>
+            <span className="block">учителям</span>
+          </h1>
+
+          <p className="mx-auto mt-6 max-w-3xl text-[17px] font-light leading-8 text-[#6b6960] md:text-[18px]">
+            Спокойный сервис для рабочих и правовых вопросов в школе.
+          </p>
+
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              to={appHref}
+              className="inline-flex h-12 min-w-[220px] items-center justify-center gap-2 rounded-[8px] border border-[#c4922a] bg-[#c4922a] px-5 text-sm font-medium text-[#ffffff] transition-colors duration-150 ease-in-out hover:bg-[#b78623]"
+            >
+              {heroLabel}
+              <ArrowRight size={16} />
+            </Link>
+            <a
+              href="https://t.me/mugallim_bot"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-12 min-w-[220px] items-center justify-center rounded-[8px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff] px-5 text-sm font-medium text-[#1c1b18] transition-colors duration-150 ease-in-out hover:bg-[#f2f0eb]"
+            >
+              Открыть Telegram
+            </a>
+          </div>
+
+          <div className="mx-auto mt-10 max-w-3xl border-t border-[rgba(0,0,0,0.07)] pt-5">
+            <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-[#6b6960]">
+              {STATS.map((item, index) => (
+                <div key={item} className="flex items-center gap-3">
+                  {index > 0 ? <span className="text-[#9a988f]">•</span> : null}
+                  <span>{item}</span>
                 </div>
               ))}
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="min-w-0 grid gap-4">
-            <aside className="min-w-0 rounded-[30px] border border-[#1f3245] bg-[#08111c] p-5 md:p-6">
-              <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[#8fcbbf]">
-                <ShieldCheck size={13} />
-                {"Частые ситуации"}
-              </div>
-
-              <div className="mt-4 grid gap-2">
-                {ISSUE_LABELS.map((label, index) => (
-                  <div
-                    key={label}
-                    className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-2xl border border-[#21384b] bg-[#0d1827] px-4 py-3 text-sm text-slate-200"
-                  >
-                    <span className="min-w-0 leading-5 text-slate-200">{label}</span>
-                    <span className="pt-0.5 font-mono text-[11px] leading-none text-[#6fa6b7]">{String(index + 1).padStart(2, "0")}</span>
+      <section className="bg-[#f2f0eb] px-4 py-24 md:px-6 md:py-28">
+        <div className="mx-auto max-w-5xl">
+          <div className="mx-auto max-w-[640px] rounded-[16px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] md:p-5">
+            <div className="flex items-center justify-between border-b border-[rgba(0,0,0,0.07)] pb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[rgba(0,0,0,0.07)] bg-[#f2f0eb]">
+                  <Scale size={16} className="text-[#c4922a]" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[#1c1b18]">Mugallim AI</p>
+                  <div className="mt-1 flex items-center gap-2 text-xs text-[#6b6960]">
+                    <span className="h-2 w-2 rounded-full bg-[#c4922a]" />
+                    Онлайн
                   </div>
-                ))}
+                </div>
               </div>
-            </aside>
+            </div>
 
-            <aside className="min-w-0 rounded-[30px] border border-[#36576a] bg-[linear-gradient(180deg,_rgba(15,30,47,0.95)_0%,_rgba(7,15,25,0.98)_100%)] p-5 md:p-6">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[#8dc6d8]">{"Два способа войти"}</p>
-              <div className="mt-4 space-y-3">
-                <div className="rounded-2xl border border-[#284863] bg-[#0d1928] p-4">
-                  <p className="text-sm font-semibold text-[#f3fffd]">{"Веб-чат"}</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-400">{"Подходит для длинных сессий, сохранённых диалогов и спокойного рабочего пространства."}</p>
-                </div>
-                <div className="rounded-2xl border border-[#284863] bg-[#0d1928] p-4">
-                  <p className="text-sm font-semibold text-[#f3fffd]">{"Telegram-бот"}</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-400">{"Подходит, когда нужен быстрый ответ на ходу."}</p>
+            <div className="space-y-4 py-5">
+              <div className="flex justify-end">
+                <div className="max-w-[82%] rounded-[12px] border border-[rgba(0,0,0,0.07)] bg-[#f2f0eb] px-4 py-3 text-sm leading-7 text-[#1c1b18]">
+                  Директор просит взять дополнительные часы без понятного оформления. Что лучше уточнить сначала?
                 </div>
               </div>
-            </aside>
+
+              <div className="flex justify-start">
+                <div className="max-w-[86%] rounded-[12px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff] px-4 py-3 text-sm leading-7 text-[#1c1b18]">
+                  <div className="border-l-2 border-[#c4922a] pl-3">
+                    Сначала уточните основание нагрузки, сроки и оплату. Затем попросите письменное подтверждение.
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="inline-flex items-center rounded-[8px] border border-[#e6d6b2] bg-[#fbf6ea] px-3 py-1 text-xs text-[#8d6718]">
+                      Трудовой кодекс
+                    </span>
+                    <span className="inline-flex items-center rounded-[8px] border border-[#e6d6b2] bg-[#fbf6ea] px-3 py-1 text-xs text-[#8d6718]">
+                      Внутренние правила
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 rounded-[12px] border border-[rgba(0,0,0,0.07)] bg-[#fafaf8] px-4 py-3 text-[#6b6960]">
+              <span className="flex-1 text-sm">Опишите вашу ситуацию…</span>
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff] text-[#9b988e]">
+                <SendHorizontal size={15} />
+              </span>
+            </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-24 md:px-6 md:py-28">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid gap-10 md:grid-cols-3 md:gap-8">
+            {STEPS.map((step) => (
+              <div key={step.number}>
+                <div className="text-[72px] leading-none text-[#c7c3b8] md:text-[88px]" style={landingSerifFont}>
+                  <span className="italic">{step.number}</span>
+                </div>
+                <h2 className="mt-5 text-xl font-medium text-[#1c1b18]">{step.title}</h2>
+                <p className="mt-3 text-base leading-8 text-[#6b6960]">{step.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-24 md:px-6 md:py-28">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10 max-w-2xl">
+            <h2 className="text-[2.4rem] leading-tight text-[#1c1b18] md:text-[3rem]" style={landingSerifFont}>
+              <span className="italic">Что умеет сервис</span>
+            </h2>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {FEATURES.map(({ title, description, icon: Icon }) => (
+              <article
+                key={title}
+                className="rounded-[12px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff] p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-[rgba(0,0,0,0.07)] bg-[#f2f0eb] text-[#c4922a]">
+                  <Icon size={18} />
+                </div>
+                <h3 className="mt-5 text-lg font-medium text-[#1c1b18]">{title}</h3>
+                <p className="mt-3 text-base leading-8 text-[#6b6960]">{description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-24 text-center md:px-6 md:py-28">
+        <div className="mx-auto max-w-4xl">
+          <h2 className="text-[2.6rem] leading-tight text-[#1c1b18] md:text-[3.4rem]" style={landingSerifFont}>
+            Частые ситуации
+          </h2>
+
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
+            {USE_CASES.map((item) => (
+              <button
+                key={item}
+                type="button"
+                className="rounded-[8px] border border-[rgba(0,0,0,0.07)] bg-[#f2f0eb] px-4 py-2.5 text-sm text-[#1c1b18] transition-all duration-150 ease-in-out hover:border-[#c4922a] hover:bg-[#ffffff]"
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#f2f0eb] px-4 py-24 md:px-6 md:py-28">
+        <div className="mx-auto max-w-4xl text-center">
+          <h2 className="text-[2.8rem] leading-tight text-[#1c1b18] md:text-[3.6rem]" style={landingSerifFont}>
+            <span className="italic">Готово к старту</span>
+          </h2>
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-[#6b6960]">
+            Спокойный инструмент для ежедневных рабочих и правовых вопросов в школе.
+          </p>
+
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              to={appHref}
+              className="inline-flex h-12 min-w-[220px] items-center justify-center gap-2 rounded-[8px] border border-[#c4922a] bg-[#c4922a] px-5 text-sm font-medium text-[#ffffff] transition-colors duration-150 ease-in-out hover:bg-[#b78623]"
+            >
+              {heroLabel}
+              <ArrowRight size={16} />
+            </Link>
+            <a
+              href="https://t.me/mugallim_bot"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-12 min-w-[220px] items-center justify-center rounded-[8px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff] px-5 text-sm font-medium text-[#1c1b18] transition-colors duration-150 ease-in-out hover:bg-[#fafaf8]"
+            >
+              Открыть Telegram
+            </a>
+          </div>
+
+          <p className="mt-5 text-sm text-[#6b6960]">Без регистрации через Telegram · Веб-чат с историей диалогов</p>
+        </div>
+      </section>
+
+      <footer className="border-t border-[rgba(0,0,0,0.07)] px-4 py-6 md:px-6">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-[1.4rem] leading-none text-[#1c1b18]" style={landingSerifFont}>
+              Mugallim AI
+            </span>
+            <span className="text-sm text-[#6b6960]">© 2025 Mugallim AI</span>
+          </div>
+
+          <div className="flex items-center gap-5 text-sm text-[#6b6960]">
+            <Link to={appHref} className="transition-colors duration-150 ease-in-out hover:text-[#1c1b18]">
+              {loginLabel}
+            </Link>
+            <a
+              href="https://t.me/mugallim_bot"
+              target="_blank"
+              rel="noreferrer"
+              className="transition-colors duration-150 ease-in-out hover:text-[#1c1b18]"
+            >
+              Telegram
+            </a>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
