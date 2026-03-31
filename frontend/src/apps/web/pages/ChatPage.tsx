@@ -668,7 +668,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className={`webchat-shell webchat-theme-${resolvedTheme} relative flex w-full h-[100dvh] overflow-hidden bg-[#fffaf4] text-[#1c1b18] dark:bg-[#0b1520] dark:text-slate-100`}>
+    <div className={`webchat-shell webchat-theme-${resolvedTheme} relative flex w-full h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,_#f8f2e9_0%,_#efe4d6_100%)] text-[#1c1b18] dark:bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] dark:text-slate-100`}>
       <ChatSidebar
         activeConversationId={activeConversationId}
         conversations={conversations}
