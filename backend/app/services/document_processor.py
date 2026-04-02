@@ -34,20 +34,21 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
-def extract_text(file_path: str, file_type: str) -> str:
+def extract_segments(file_path: str, file_type: str) -> list[tuple[str, int | None]]:
     if file_type == "txt":
         with open(file_path, "r", encoding="utf-8") as f:
-            return clean_text(f.read())
+            cleaned = clean_text(f.read())
+        return [(cleaned, None)] if cleaned else []
 
     elif file_type == "pdf":
         import pdfplumber
-        pages = []
+        segments: list[tuple[str, int | None]] = []
         with pdfplumber.open(file_path) as pdf:
-            for page in pdf.pages:
-                page_text = page.extract_text() or ""
-                if page_text.strip():
-                    pages.append(page_text.strip())
-        return clean_text("\n\n".join(pages))
+            for page_number, page in enumerate(pdf.pages, start=1):
+                page_text = clean_text(page.extract_text() or "")
+                if page_text:
+                    segments.append((page_text, page_number))
+        return segments
 
     elif file_type == "docx":
         import docx
@@ -68,7 +69,8 @@ def extract_text(file_path: str, file_type: str) -> str:
                 if row_text:
                     parts.append(row_text)
 
-        return clean_text("\n\n".join(parts))
+        cleaned = clean_text("\n\n".join(parts))
+        return [(cleaned, None)] if cleaned else []
 
     else:
         raise ValueError(f"Unsupported file type: {file_type}")
@@ -86,15 +88,28 @@ async def process_document(document_id: int):
             document.status = "processing"
             await session.commit()
 
-            text = await asyncio.to_thread(extract_text, document.file_path, document.file_type)
-            chunks = split_text(text)
-            embeddings = await embed_chunks(chunks)
+            segments = await asyncio.to_thread(extract_segments, document.file_path, document.file_type)
 
-            for i, (chunk_text, embedding) in enumerate(zip(chunks, embeddings)):
+            chunk_items: list[tuple[str, int | None]] = []
+            for segment_text, page_number in segments:
+                for chunk_text in split_text(segment_text):
+                    normalized_chunk = chunk_text.strip()
+                    if normalized_chunk:
+                        chunk_items.append((normalized_chunk, page_number))
+
+            if not chunk_items:
+                raise ValueError("No extractable text found in document")
+
+            embeddings = await embed_chunks([chunk_text for chunk_text, _ in chunk_items])
+            if len(embeddings) != len(chunk_items):
+                raise RuntimeError("Embedding count does not match extracted chunk count")
+
+            for i, ((chunk_text, page_number), embedding) in enumerate(zip(chunk_items, embeddings)):
                 session.add(
                     Chunk(
                         document_id=document.id,
                         chunk_index=i,
+                        page_number=page_number,
                         chunk_text=chunk_text,
                         embedding=embedding,
                     )

@@ -536,24 +536,48 @@ def _append_rag_log(record: dict) -> None:
         logger.exception("failed to write rag log")
 
 
-async def _build_sources(selected_chunks: list[Chunk], db: AsyncSession) -> list[dict]:
+async def _build_sources(
+    selected_chunks: list[Chunk],
+    db: AsyncSession,
+    score_by_chunk_id: dict[int, float] | None = None,
+) -> list[dict]:
     if not selected_chunks:
         return []
 
     documents = await _load_documents_for_chunks(selected_chunks, db)
-    sources: list[dict] = []
-    seen_doc_ids: set[int] = set()
+    score_lookup = score_by_chunk_id or {}
+    best_chunk_by_doc: dict[int, Chunk] = {}
 
     for chunk in selected_chunks:
-        if chunk.document_id in seen_doc_ids:
+        current = best_chunk_by_doc.get(chunk.document_id)
+        if current is None:
+            best_chunk_by_doc[chunk.document_id] = chunk
             continue
-        seen_doc_ids.add(chunk.document_id)
+
+        current_score = score_lookup.get(current.id, 0.0)
+        next_score = score_lookup.get(chunk.id, 0.0)
+        if next_score > current_score or (next_score == current_score and chunk.chunk_index < current.chunk_index):
+            best_chunk_by_doc[chunk.document_id] = chunk
+
+    ordered_docs = sorted(
+        best_chunk_by_doc.items(),
+        key=lambda item: (
+            -score_lookup.get(item[1].id, 0.0),
+            item[0],
+        ),
+    )
+
+    sources: list[dict] = []
+    for document_id, chunk in ordered_docs:
         document = documents.get(chunk.document_id)
         collapsed = " ".join(chunk.chunk_text.split())
+        page_number = chunk.page_number
+        source_id = f"doc-{document_id}-p-{page_number}" if page_number is not None else f"doc-{document_id}"
         sources.append(
             {
-                "id": f"doc-{chunk.document_id}",
+                "id": source_id,
                 "documentId": chunk.document_id,
+                "pageNumber": page_number,
                 "title": document.file_name if document else f"Document {chunk.document_id}",
                 "snippet": collapsed[:220] + ("..." if len(collapsed) > 220 else ""),
             }
@@ -726,7 +750,8 @@ async def ask(question: str, user_id: int, platform: str, history: list[dict], d
         selected_chunks = await _select_context_chunks(ranked_candidates, db, selected_document_ids)
         context = await _build_context(selected_chunks, db)
         answer = await _answer(question, prepared_history, target_language, context=context)
-        sources = await _build_sources(selected_chunks, db)
+        ranked_score_by_chunk_id = {item["chunk"].id: item["score"] for item in ranked_candidates}
+        sources = await _build_sources(selected_chunks, db, ranked_score_by_chunk_id)
 
     score_by_chunk_id = {item["chunk"].id: item["score"] for item in ranked_candidates}
     selected_documents = await _load_documents_for_chunks(selected_chunks, db) if selected_chunks else {}
@@ -749,6 +774,7 @@ async def ask(question: str, user_id: int, platform: str, history: list[dict], d
                 "chunk_id": item["chunk"].id,
                 "document_id": item["chunk"].document_id,
                 "chunk_index": item["chunk"].chunk_index,
+                "page_number": item["chunk"].page_number,
                 "document_title": next(
                     (
                         document_item["document"].file_name
@@ -781,6 +807,7 @@ async def ask(question: str, user_id: int, platform: str, history: list[dict], d
                 "chunk_id": chunk.id,
                 "document_id": chunk.document_id,
                 "chunk_index": chunk.chunk_index,
+                "page_number": chunk.page_number,
                 "document_title": selected_documents[chunk.document_id].file_name if chunk.document_id in selected_documents else f"Document {chunk.document_id}",
                 "score": round(float(score_by_chunk_id.get(chunk.id, 0.0)), 6),
                 "text": chunk.chunk_text,
@@ -813,7 +840,7 @@ async def ask(question: str, user_id: int, platform: str, history: list[dict], d
                 }
                 for document in ranked_documents[:TOP_K_DOCS]
             ],
-            "chunks": [{"id": chunk.id, "doc_id": chunk.document_id} for chunk in selected_chunks],
+            "chunks": [{"id": chunk.id, "doc_id": chunk.document_id, "page_number": chunk.page_number} for chunk in selected_chunks],
         },
     )
 

@@ -2,7 +2,7 @@ import os
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import delete, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -16,8 +16,17 @@ router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 class ConversationSourceRequest(BaseModel):
     documentId: int | None = None
+    pageNumber: int | None = Field(default=None, ge=1)
     title: str
     snippet: str
+
+    @field_validator("title", "snippet")
+    @classmethod
+    def _normalize_non_empty_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Source fields cannot be empty")
+        return normalized
 
 
 class ConversationCreateRequest(BaseModel):
@@ -61,6 +70,7 @@ def _serialize_detail(conversation: ChatConversation) -> dict:
                     {
                         "id": str(source.id),
                         "documentId": source.document_id,
+                        "pageNumber": source.page_number,
                         "title": source.title,
                         "snippet": source.snippet,
                     }
@@ -221,13 +231,25 @@ async def save_exchange(
     db.add(assistant_message)
     await db.flush()
 
+    seen_sources: set[tuple[int | None, int | None, str, str]] = set()
     for source in request.sources:
+        normalized_key = (
+            source.documentId,
+            source.pageNumber,
+            source.title,
+            source.snippet,
+        )
+        if normalized_key in seen_sources:
+            continue
+        seen_sources.add(normalized_key)
+
         db.add(
             ChatConversationMessageSource(
                 message_id=assistant_message.id,
                 document_id=source.documentId,
-                title=source.title.strip(),
-                snippet=source.snippet.strip(),
+                page_number=source.pageNumber,
+                title=source.title,
+                snippet=source.snippet,
             )
         )
 
