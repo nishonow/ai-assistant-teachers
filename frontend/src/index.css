@@ -21,49 +21,49 @@
 
 @keyframes drawerSlideLeft {
   from {
-    opacity: 0;
-    transform: translateX(-24px) scaleX(0.985);
+    opacity: 1;
+    transform: translate3d(-100%, 0, 0);
   }
 
   to {
     opacity: 1;
-    transform: translateX(0) scaleX(1);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes drawerSlideRight {
   from {
-    opacity: 0;
-    transform: translateX(24px) scaleX(0.985);
+    opacity: 1;
+    transform: translate3d(100%, 0, 0);
   }
 
   to {
     opacity: 1;
-    transform: translateX(0) scaleX(1);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes drawerSlideLeftOut {
   from {
     opacity: 1;
-    transform: translateX(0) scaleX(1);
+    transform: translate3d(0, 0, 0);
   }
 
   to {
-    opacity: 0;
-    transform: translateX(-24px) scaleX(0.985);
+    opacity: 1;
+    transform: translate3d(-100%, 0, 0);
   }
 }
 
 @keyframes drawerSlideRightOut {
   from {
     opacity: 1;
-    transform: translateX(0) scaleX(1);
+    transform: translate3d(0, 0, 0);
   }
 
   to {
-    opacity: 0;
-    transform: translateX(24px) scaleX(0.985);
+    opacity: 1;
+    transform: translate3d(100%, 0, 0);
   }
 }
 
@@ -310,31 +310,36 @@
 
 
   .drawer-overlay-enter {
-    animation: drawerFade 220ms ease-out both;
+    animation: drawerFade 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .drawer-overlay-exit {
-    animation: drawerFadeOut 200ms ease-in both;
+    animation: drawerFadeOut 220ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+
+  .drawer-sheet-left,
+  .drawer-sheet-left-exit,
+  .drawer-sheet-right,
+  .drawer-sheet-right-exit {
+    will-change: transform;
+    backface-visibility: hidden;
+    transform: translateZ(0);
   }
 
   .drawer-sheet-left {
-    transform-origin: left center;
-    animation: drawerSlideLeft 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: drawerSlideLeft 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .drawer-sheet-left-exit {
-    transform-origin: left center;
-    animation: drawerSlideLeftOut 210ms cubic-bezier(0.4, 0, 0.2, 1) both;
+    animation: drawerSlideLeftOut 260ms cubic-bezier(0.4, 0, 0.2, 1) both;
   }
 
   .drawer-sheet-right {
-    transform-origin: right center;
-    animation: drawerSlideRight 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: drawerSlideRight 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .drawer-sheet-right-exit {
-    transform-origin: right center;
-    animation: drawerSlideRightOut 210ms cubic-bezier(0.4, 0, 0.2, 1) both;
+    animation: drawerSlideRightOut 260ms cubic-bezier(0.4, 0, 0.2, 1) both;
   }
 
   .webchat-new-chat-button {

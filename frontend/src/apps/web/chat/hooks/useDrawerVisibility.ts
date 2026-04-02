@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const DEFAULT_DRAWER_EXIT_MS = 210;
+const DEFAULT_DRAWER_EXIT_MS = 260;
 
 export default function useDrawerVisibility(open: boolean, exitMs = DEFAULT_DRAWER_EXIT_MS) {
   const [isVisible, setIsVisible] = useState(open);
