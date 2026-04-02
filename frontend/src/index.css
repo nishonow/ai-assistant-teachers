@@ -392,8 +392,7 @@
     color: #223042;
   }
 
-  .webchat-shell.webchat-theme-light .webchat-suggestion-card:hover,
-  .webchat-shell.webchat-theme-light .webchat-source-card:hover {
+  .webchat-shell.webchat-theme-light .webchat-suggestion-card:hover {
     background: #fff;
   }
 
@@ -421,12 +420,6 @@
     color: #18212b;
   }
 
-  .webchat-shell.webchat-theme-light .webchat-source-card,
-  .webchat-shell.webchat-theme-light .webchat-source-card .group,
-  .webchat-shell.webchat-theme-light .webchat-source-download {
-    transition: none !important;
-  }
-
   .webchat-shell.webchat-theme-light .webchat-account-panel button:hover,
   .webchat-shell.webchat-theme-light .webchat-floating-menu button:hover {
     background: #f2e5d5 !important;
@@ -434,18 +427,9 @@
   }
 
   .webchat-shell.webchat-theme-light .webchat-source-card:hover {
-    background: rgba(255, 250, 244, 0.96) !important;
-    border-color: rgba(189, 162, 130, 0.55) !important;
-    transform: none !important;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-source-card .group:hover {
-    background: transparent !important;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-source-download:hover {
-    background: rgba(255, 250, 244, 0.94) !important;
-    color: #36485c !important;
+    border-color: rgba(189, 162, 130, 0.65);
+    background: #f1e5d7;
+    color: #18212b;
   }
   .webchat-shell.webchat-theme-light .webchat-composer-input {
     color: #18212b;
