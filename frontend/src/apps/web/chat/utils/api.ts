@@ -1,5 +1,5 @@
-import { apiRequest } from "../../../core/api";
-import type { AuthSession } from "../../../core/auth";
+import { apiRequest } from "../../../../core/api";
+import type { AuthSession } from "../../../../core/auth";
 import type { AskApiResponse, ChatMessage, ChatSource, Conversation, ConversationSummary } from "./types";
 
 interface AskPayload {

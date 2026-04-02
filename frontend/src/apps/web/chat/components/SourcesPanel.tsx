@@ -1,7 +1,8 @@
 import { BookOpenText, Download, X } from "lucide-react";
 import { useEffect } from "react";
 
-import type { ChatSource } from "./types";
+import type { ChatSource } from "../utils/types";
+import useDrawerVisibility from "../hooks/useDrawerVisibility";
 
 interface SourcesPanelProps {
   activeConversationId: string | null;
@@ -120,6 +121,8 @@ export default function SourcesPanel({
   onDownloadSource,
   onCloseMobile,
 }: SourcesPanelProps) {
+  const { isVisible: mobileVisible, isClosing: mobileClosing } = useDrawerVisibility(mobileOpen);
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -157,11 +160,16 @@ export default function SourcesPanel({
         ) : null}
       </aside>
 
-      {mobileOpen ? (
+      {mobileVisible ? (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <button type="button" className="drawer-overlay-enter absolute inset-0 bg-black/20 dark:bg-[#020508]/70" onClick={onCloseMobile} aria-label={"Закрыть источники"} />
+          <button
+            type="button"
+            className={[mobileClosing ? "drawer-overlay-exit" : "drawer-overlay-enter", "absolute inset-0 bg-black/20 dark:bg-[#020508]/70"].join(" ")}
+            onClick={onCloseMobile}
+            aria-label={"Закрыть источники"}
+          />
 
-          <aside className="webchat-sources-shell drawer-sheet-right absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden rounded-l-[32px] border-l border-slate-200 bg-white/90 backdrop-blur-2xl dark:border-[#1e3448]/60 dark:bg-[#08121c]/85">
+          <aside className={["webchat-sources-shell absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden border-l border-slate-200 bg-white/90 backdrop-blur-2xl dark:border-[#1e3448]/60 dark:bg-[#08121c]/85", mobileClosing ? "drawer-sheet-right-exit" : "drawer-sheet-right"].join(" ")}>
             <div className="webchat-sources-mobile-header flex h-[62px] shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50/80 px-4 pt-[env(safe-area-inset-top)] dark:border-[#1e3448]/50 dark:bg-[#0b1623]/60">
               <div className="webchat-sources-mobile-title flex items-center gap-2 text-slate-800 dark:text-slate-200">
                 <BookOpenText size={16} />

@@ -1,4 +1,4 @@
-﻿import { BookOpenText, ChevronRight, MessageSquarePlus, PanelLeft } from "lucide-react";
+﻿import { BookOpenText, ChevronRight, PanelLeft, PanelLeftClose } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -19,28 +19,27 @@ import {
   deleteConversation,
   downloadConversationSource,
   EditProfileModal,
-  getConversation,
-  getConversationPreview,
   isBlockedMessagingError,
   isRateLimitError,
-  listConversations,
   localizeUserErrorMessage,
   RenameConversationModal,
   resolveSelectedSources,
+  resolveWebchatTheme,
   renameConversation,
+  saveWebchatThemePreference,
   saveConversationExchange,
-  sortConversationsByRecent,
   SourcesPanel,
+  loadWebchatThemePreference,
   upsertConversationSummary,
   WebLogoutConfirmModal,
-} from "../chat";
-import {
-  loadWebchatThemePreference,
-  resolveWebchatTheme,
-  saveWebchatThemePreference,
   type WebchatThemePreference,
-} from "../chat/theme";
+} from "../chat";
 import type { ChatMessage, ChatSource, Conversation, ConversationSummary } from "../chat";
+import useMobileBodyScrollLock from "../chat/hooks/useMobileBodyScrollLock";
+import useRateLimitCountdown from "../chat/hooks/useRateLimitCountdown";
+import useSystemPrefersDark from "../chat/hooks/useSystemPrefersDark";
+import useWebchatDocumentMeta from "../chat/hooks/useWebchatDocumentMeta";
+import useChatConversationsData from "../chat/hooks/useChatConversationsData";
 
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -61,6 +60,7 @@ export default function ChatPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileSourcesOpen, setMobileSourcesOpen] = useState(false);
   const [desktopSourcesOpen, setDesktopSourcesOpen] = useState(false);
+  const [composerFocusKey, setComposerFocusKey] = useState(0);
   const [suggestedQuestion, setSuggestedQuestion] = useState<string | null>(null);
   const [deleteTargetConversation, setDeleteTargetConversation] = useState<ConversationSummary | null>(null);
   const [deletePending, setDeletePending] = useState(false);
@@ -78,12 +78,9 @@ export default function ChatPage() {
   const [downloadPendingId, setDownloadPendingId] = useState<string | null>(null);
   const [isMessagingBlocked, setIsMessagingBlocked] = useState(false);
   const [rateLimitUntil, setRateLimitUntil] = useState<number | null>(null);
-  const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState(0);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [themePreference, setThemePreference] = useState<WebchatThemePreference>(() => loadWebchatThemePreference());
-  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() =>
-    typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: dark)").matches : true,
-  );
+  const systemPrefersDark = useSystemPrefersDark();
 
   const noticeTimerRef = useRef<number | null>(null);
 
@@ -105,6 +102,10 @@ export default function ChatPage() {
     };
   }, []);
 
+  const requestComposerFocus = useCallback(() => {
+    setComposerFocusKey((current) => current + 1);
+  }, []);
+
   const syncActiveConversation = useCallback(
     (
       conversation: Conversation,
@@ -124,134 +125,26 @@ export default function ChatPage() {
     [],
   );
 
-  useEffect(() => {
-    if (!session) return;
-
-    const currentSession = session;
-    let cancelled = false;
-    setIsLoadingList(true);
-
-    async function loadConversations() {
-      try {
-        const items = await listConversations(currentSession);
-        if (cancelled) return;
-        setConversations(sortConversationsByRecent(items));
-
-        void (async () => {
-          const hydratedItems = await Promise.allSettled(
-            items.map(async (item) => ({
-              id: item.id,
-              updatedAt: item.updatedAt,
-              preview: getConversationPreview(await getConversation(currentSession, item.id)),
-            })),
-          );
-          if (cancelled) return;
-
-          const previewById = new Map(
-            hydratedItems.flatMap((result) =>
-              result.status === "fulfilled" ? [[result.value.id, result.value] as const] : [],
-            ),
-          );
-
-          setConversations((prev) =>
-            sortConversationsByRecent(
-              prev.map((item) => {
-                const hydratedItem = previewById.get(item.id);
-                if (!hydratedItem || hydratedItem.updatedAt !== item.updatedAt) {
-                  return item;
-                }
-
-                return {
-                  ...item,
-                  lastMessagePreview: hydratedItem.preview,
-                };
-              }),
-            ),
-          );
-        })();
-      } catch (requestError) {
-        if (cancelled) return;
-        showNotice("error", localizeUserErrorMessage(requestError, "Не удалось загрузить диалоги."));
-      } finally {
-        if (!cancelled) {
-          setIsLoadingList(false);
-        }
-      }
-    }
-
-    void loadConversations();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [session, showNotice]);
-
-  useEffect(() => {
-    if (!session) return;
-
-    const currentSession = session;
-    if (!routeConversationId) {
-      conversationRequestIdRef.current += 1;
-      setIsLoadingConversation(false);
-      setActiveConversationId(null);
-      setActiveConversation(null);
-      setActiveSources([]);
-      selectedSourcesMessageIdRef.current = null;
-      setSelectedSourcesMessageId(null);
-      setRenameTargetConversation(null);
-      setRenameValue("");
-      setDeleteTargetConversation(null);
-      return;
-    }
-
-    const currentConversationId = routeConversationId;
-    if (activeConversation?.id === currentConversationId && activeConversation.messages.length > 0) {
-      setActiveConversationId(currentConversationId);
-      setIsLoadingConversation(false);
-      return;
-    }
-
-    let cancelled = false;
-    const requestId = ++conversationRequestIdRef.current;
-
-    setIsLoadingConversation(true);
-    setActiveConversationId(routeConversationId);
-    setActiveConversation(null);
-    setActiveSources([]);
-    selectedSourcesMessageIdRef.current = null;
-    setSelectedSourcesMessageId(null);
-    setRenameTargetConversation(null);
-    setRenameValue("");
-    setDeleteTargetConversation(null);
-
-    async function loadConversation() {
-      try {
-        const conversation = await getConversation(currentSession, currentConversationId);
-        if (cancelled || conversationRequestIdRef.current !== requestId) return;
-
-        syncActiveConversation(conversation, "preserve");
-      } catch (requestError) {
-        if (cancelled || conversationRequestIdRef.current !== requestId) return;
-
-        showNotice("error", localizeUserErrorMessage(requestError, "Не удалось открыть диалог."));
-        navigate("/app", { replace: true });
-        setActiveConversationId(null);
-        setActiveConversation(null);
-        setActiveSources([]);
-        setSelectedSourcesMessageId(null);
-      } finally {
-        if (!cancelled && conversationRequestIdRef.current === requestId) {
-          setIsLoadingConversation(false);
-        }
-      }
-    }
-
-    void loadConversation();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeConversation, navigate, routeConversationId, session, showNotice, syncActiveConversation]);
+  useChatConversationsData({
+    session,
+    routeConversationId,
+    activeConversation,
+    navigate,
+    showNotice,
+    syncActiveConversation,
+    conversationRequestIdRef,
+    selectedSourcesMessageIdRef,
+    setConversations,
+    setIsLoadingList,
+    setIsLoadingConversation,
+    setActiveConversationId,
+    setActiveConversation,
+    setActiveSources,
+    setSelectedSourcesMessageId,
+    setRenameTargetConversation,
+    setRenameValue,
+    setDeleteTargetConversation,
+  });
 
   useEffect(() => {
     if (!notice) return;
@@ -264,94 +157,32 @@ export default function ChatPage() {
   }, [notice]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleThemeChange = (event: MediaQueryListEvent) => {
-      setSystemPrefersDark(event.matches);
-    };
-
-    setSystemPrefersDark(mediaQuery.matches);
-
-    if (typeof mediaQuery.addEventListener === "function") {
-      mediaQuery.addEventListener("change", handleThemeChange);
-      return () => {
-        mediaQuery.removeEventListener("change", handleThemeChange);
-      };
-    }
-
-    mediaQuery.addListener(handleThemeChange);
-    return () => {
-      mediaQuery.removeListener(handleThemeChange);
-    };
-  }, []);
-
-  useEffect(() => {
     saveWebchatThemePreference(themePreference);
   }, [themePreference]);
 
   const resolvedTheme = resolveWebchatTheme(themePreference, systemPrefersDark);
 
-  useEffect(() => {
-    const previousColorScheme = document.documentElement.style.colorScheme;
-    document.documentElement.style.colorScheme = resolvedTheme;
-
-    return () => {
-      document.documentElement.style.colorScheme = previousColorScheme;
-    };
-  }, [resolvedTheme]);
-
-  useEffect(() => {
-    if (!rateLimitUntil) {
-      setRateLimitSecondsLeft(0);
-      return;
-    }
-
-    const tick = () => {
-      const secondsLeft = Math.max(0, Math.ceil((rateLimitUntil - Date.now()) / 1000));
-      setRateLimitSecondsLeft(secondsLeft);
-      if (secondsLeft === 0) {
-        setRateLimitUntil(null);
-      }
-    };
-
-    tick();
-    const timer = window.setInterval(tick, 1000);
-    return () => window.clearInterval(timer);
-  }, [rateLimitUntil]);
-
-  useEffect(() => {
-    const title = activeConversation?.title?.trim();
-    document.title = title ? `${title} — Mugalim AI` : "Mugalim AI";
-  }, [activeConversation?.title]);
-
-  useEffect(() => {
-    return () => {
-      document.title = "Mugalim AI";
-    };
+  const handleRateLimitExpire = useCallback(() => {
+    setRateLimitUntil(null);
   }, []);
-
-  useEffect(() => {
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-    const previousOverscroll = document.documentElement.style.overscrollBehavior;
-
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-    document.documentElement.style.overscrollBehavior = "none";
-
-    return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-      document.documentElement.style.overscrollBehavior = previousOverscroll;
-    };
-  }, []);
+  const rateLimitSecondsLeft = useRateLimitCountdown(rateLimitUntil, handleRateLimitExpire);
+  useWebchatDocumentMeta({
+    conversationTitle: activeConversation?.title,
+    resolvedTheme,
+  });
+  useMobileBodyScrollLock();
 
   const handleSelectConversation = useCallback(
     (conversationId: string) => {
-      if (!session || conversationId === routeConversationId) return;
+      if (!session) return;
+
+      requestComposerFocus();
+
+      if (conversationId === routeConversationId) return;
 
       navigate(`/app/chat/${conversationId}`);
     },
-    [navigate, routeConversationId, session],
+    [navigate, requestComposerFocus, routeConversationId, session],
   );
 
   const handleStartDraftConversation = useCallback(() => {
@@ -366,8 +197,9 @@ export default function ChatPage() {
     setDeleteTargetConversation(null);
     setMobileSidebarOpen(false);
     setMobileSourcesOpen(false);
+    requestComposerFocus();
     navigate("/app");
-  }, [navigate]);
+  }, [navigate, requestComposerFocus]);
 
   const handleSend = useCallback(
     async (prompt: string) => {
@@ -679,7 +511,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className={`webchat-shell webchat-theme-${resolvedTheme} relative flex w-full h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,_#f8f2e9_0%,_#efe4d6_100%)] text-[#1c1b18] dark:bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] dark:text-slate-100`}>
+    <div className={`webchat-shell webchat-theme-${resolvedTheme} relative flex w-full h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,_#ffffff_0%,_#f5f7fb_100%)] text-[#1c1b18] dark:bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] dark:text-slate-100`}>
       <ChatSidebar
         activeConversationId={activeConversationId}
         conversations={conversations}
@@ -693,6 +525,7 @@ export default function ChatPage() {
         onDeleteAllHistory={() => setDeleteAllConfirmOpen(true)}
         onDeleteConversation={handleOpenDeleteConversation}
         onEditProfile={handleOpenProfile}
+        onStartNewChat={handleStartDraftConversation}
         onOpenAdmin={() => {
           setMobileSidebarOpen(false);
           const adminUrl = new URL("/admin", window.location.origin);
@@ -710,8 +543,13 @@ export default function ChatPage() {
           <header className="webchat-header relative z-20 flex flex-col justify-center border-b border-[#1e3448]/60 bg-[#08121c]/85 shrink-0 md:bg-[#08111c] md:backdrop-blur-none backdrop-blur-xl md:border-[#21384b] md:h-[62px]">
             <div className="flex h-[48px] md:hidden items-center justify-between gap-2 px-3">
               <div className="flex w-10 items-center justify-start">
-                <button type="button" className="btn-muted px-2.5 py-2" onClick={() => setMobileSidebarOpen(true)} aria-label="Открыть меню">
-                  <PanelLeft size={16} />
+                <button
+                  type="button"
+                  className="btn-muted px-2.5 py-2"
+                  onClick={() => setMobileSidebarOpen((current) => !current)}
+                  aria-label={mobileSidebarOpen ? "Закрыть меню" : "Открыть меню"}
+                >
+                  {mobileSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
                 </button>
               </div>
 
@@ -725,11 +563,13 @@ export default function ChatPage() {
                 <button
                   type="button"
                   className="btn-muted px-2.5 py-2"
-                  onClick={handleStartDraftConversation}
-                  disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
-                  aria-label="Новый чат"
+                  onClick={() => {
+                    setMobileSidebarOpen(false);
+                    setMobileSourcesOpen((current) => !current);
+                  }}
+                  aria-label={mobileSourcesOpen ? "Закрыть источники" : "Открыть источники"}
                 >
-                  <MessageSquarePlus size={16} />
+                  <BookOpenText size={16} />
                 </button>
               </div>
             </div>
@@ -744,23 +584,6 @@ export default function ChatPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="btn-muted hidden sm:inline-flex"
-                  onClick={handleStartDraftConversation}
-                  disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
-                >
-                  <MessageSquarePlus size={16} />
-                  Новый чат
-                </button>
-                <button
-                  type="button"
-                  className="btn-muted sm:hidden"
-                  onClick={handleStartDraftConversation}
-                  disabled={pending || isLoadingConversation || deletePending || renamePending || deleteAllPending}
-                >
-                  <MessageSquarePlus size={16} />
-                </button>
                 <button
                   type="button"
                   className="btn-muted hidden lg:inline-flex"
@@ -787,7 +610,7 @@ export default function ChatPage() {
             selectedSourcesMessageId={selectedSourcesMessageId}
             onSelectSources={handleSelectMessageSources}
             onSelectSuggestion={handleSelectSuggestion}
-            suggestionsDisabled={pending || isLoadingList || isLoadingConversation || isMessagingBlocked || rateLimitSecondsLeft > 0}
+            suggestionsDisabled={pending || isLoadingList || isLoadingConversation || isMessagingBlocked}
           />
           {isMessagingBlocked ? (
             <div className="webchat-warning-banner mx-3 mb-2 rounded-xl border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-200 md:mx-6">
@@ -799,6 +622,7 @@ export default function ChatPage() {
             onSubmit={handleSend}
             suggestedValue={suggestedQuestion}
             onSuggestedValueConsumed={() => setSuggestedQuestion(null)}
+            focusRequestKey={composerFocusKey}
           />
         </main>
 

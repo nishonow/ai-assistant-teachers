@@ -6,6 +6,7 @@ interface ChatComposerProps {
   onSubmit: (value: string) => Promise<void>;
   suggestedValue: string | null;
   onSuggestedValueConsumed: () => void;
+  focusRequestKey?: number;
 }
 
 const MAX_TEXTAREA_HEIGHT = 220;
@@ -17,10 +18,23 @@ export default function ChatComposer({
   onSubmit,
   suggestedValue,
   onSuggestedValueConsumed,
+  focusRequestKey = 0,
 }: ChatComposerProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const zoomedViewportRef = useRef<{ scrollX: number; scrollY: number } | null>(null);
+  const lastFocusRequestRef = useRef(focusRequestKey);
+  const deferredFocusRef = useRef(false);
+
+  const focusComposer = useCallback(() => {
+    const element = textareaRef.current;
+    if (!element) return;
+
+    element.focus();
+    const cursorPosition = element.value.length;
+    element.selectionStart = cursorPosition;
+    element.selectionEnd = cursorPosition;
+  }, []);
 
   const resizeTextarea = (element: HTMLTextAreaElement | null) => {
     if (!element) return;
@@ -56,6 +70,31 @@ export default function ChatComposer({
       window.visualViewport?.removeEventListener("resize", handleViewportChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (focusRequestKey === lastFocusRequestRef.current) return;
+
+    lastFocusRequestRef.current = focusRequestKey;
+
+    if (disabled) {
+      deferredFocusRef.current = true;
+      return;
+    }
+
+    deferredFocusRef.current = false;
+    requestAnimationFrame(() => {
+      focusComposer();
+    });
+  }, [disabled, focusComposer, focusRequestKey]);
+
+  useEffect(() => {
+    if (disabled || !deferredFocusRef.current) return;
+
+    deferredFocusRef.current = false;
+    requestAnimationFrame(() => {
+      focusComposer();
+    });
+  }, [disabled, focusComposer]);
 
   const submitValue = useCallback(
     async (nextValue: string) => {
@@ -157,7 +196,7 @@ export default function ChatComposer({
       onSubmit={handleSubmit}
       className="relative -mt-7 bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:-mt-8 md:px-6 md:pb-4 md:pt-0"
     >
-      <div className="chat-composer-shell relative mx-auto flex w-full max-w-4xl items-end gap-2 overflow-hidden rounded-[24px] border border-[#1e3448]/70 bg-[#0b1520] px-3 py-2 transition-all duration-250 focus-within:border-brand-400/25 md:gap-2.5 md:px-4 md:py-2.5">
+      <div className="chat-composer-shell relative mx-auto flex w-full max-w-4xl items-end gap-2 overflow-hidden rounded-[24px] border border-[#1e3448]/70 bg-[#0b1520] px-3 py-2 transition-all duration-250 md:gap-2.5 md:px-4 md:py-2.5">
         <textarea
           ref={textareaRef}
           value={value}

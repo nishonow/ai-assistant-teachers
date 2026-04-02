@@ -1,6 +1,6 @@
 import { LogOut, X } from "lucide-react";
 
-import useDismissibleLayer from "./useDismissibleLayer";
+import useDismissibleLayer from "../hooks/useDismissibleLayer";
 
 interface WebLogoutConfirmModalProps {
   open: boolean;

@@ -1,4 +1,4 @@
-import useDismissibleLayer from "./useDismissibleLayer";
+import useDismissibleLayer from "../hooks/useDismissibleLayer";
 
 interface EditProfileModalProps {
   open: boolean;

@@ -1,22 +1,20 @@
 import { Trash2, X } from "lucide-react";
 
-import useDismissibleLayer from "./useDismissibleLayer";
+import useDismissibleLayer from "../hooks/useDismissibleLayer";
 
-interface DeleteConversationModalProps {
+interface DeleteAllHistoryModalProps {
   open: boolean;
-  title: string;
   pending: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
-export default function DeleteConversationModal({
+export default function DeleteAllHistoryModal({
   open,
-  title,
   pending,
   onCancel,
   onConfirm,
-}: DeleteConversationModalProps) {
+}: DeleteAllHistoryModalProps) {
   const modalRef = useDismissibleLayer<HTMLDivElement>({
     open,
     onDismiss: onCancel,
@@ -37,10 +35,9 @@ export default function DeleteConversationModal({
         >
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <p className="font-heading text-xl font-bold">Удалить диалог</p>
+              <p className="font-heading text-xl font-bold">Удалить всю историю</p>
               <p className="mt-1 text-sm text-slate-300">
-                Диалог <span className="font-semibold text-slate-100">{title}</span> и его сохранённые сообщения будут удалены без
-                возможности восстановления.
+                Все сохранённые диалоги и сообщения из вашего веб-аккаунта будут удалены без возможности восстановления.
               </p>
             </div>
             <button type="button" className="btn-muted p-2" onClick={onCancel} aria-label="Закрыть" disabled={pending}>
@@ -54,7 +51,7 @@ export default function DeleteConversationModal({
             </button>
             <button type="submit" className="btn-danger" disabled={pending}>
               <Trash2 size={14} />
-              {pending ? "Удаление..." : "Удалить"}
+              {pending ? "Удаление..." : "Удалить всё"}
             </button>
           </div>
         </form>

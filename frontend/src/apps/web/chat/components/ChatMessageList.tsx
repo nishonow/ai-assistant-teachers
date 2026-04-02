@@ -2,7 +2,7 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import AssistantMessageContent, { getAssistantMessagePlainText } from "./AssistantMessageContent";
-import type { ChatMessage } from "./types";
+import type { ChatMessage } from "../utils/types";
 
 interface ChatMessageListProps {
   messages: ChatMessage[];
@@ -292,16 +292,17 @@ export default function ChatMessageList({
           <h2 className="font-heading text-[2rem] leading-tight text-slate-100 sm:text-3xl">Что вы хотите узнать?</h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-400">Задайте вопрос или выберите один из примеров ниже</p>
           <div className="mx-auto mt-6 grid w-full max-w-[760px] gap-2.5 text-left sm:mt-8 sm:gap-3 sm:grid-cols-3">
-            {SUGGESTED_QUESTIONS.map((question) => (
+            {SUGGESTED_QUESTIONS.map((question, index) => (
               <button
                 key={question}
                 type="button"
                 className={[
-                  "webchat-suggestion-card group rounded-2xl border border-[#1e3448] bg-[#0b1520] px-4 py-4 text-sm leading-6 text-slate-300 transition-all duration-250 sm:px-5 sm:py-5",
+                  "webchat-suggestion-card chat-card-enter group rounded-2xl border border-[#1e3448] bg-[#0b1520] px-4 py-4 text-sm leading-6 text-slate-300 transition-all duration-250 sm:px-5 sm:py-5",
                   "min-h-[84px] sm:min-h-[96px]",
                   "hover:border-brand-400/30 hover:bg-[#0e1c2b] hover:text-slate-100 hover:-translate-y-0.5",
                   "disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0",
                 ].join(" ")}
+                style={{ animationDelay: `${index * 70}ms` }}
                 disabled={suggestionsDisabled}
                 onClick={() => onSelectSuggestion(question)}
               >

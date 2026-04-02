@@ -1,13 +1,13 @@
-export { default as ChatComposer } from "./ChatComposer";
-export { default as ChatMessageList } from "./ChatMessageList";
-export { default as ChatSidebar } from "./ChatSidebar";
-export { default as DeleteConversationModal } from "./DeleteConversationModal";
-export { default as DeleteAllHistoryModal } from "./DeleteAllHistoryModal";
-export { default as EditProfileModal } from "./EditProfileModal";
-export { default as RenameConversationModal } from "./RenameConversationModal";
-export { default as AssistantMessageContent } from "./AssistantMessageContent";
-export { default as SourcesPanel } from "./SourcesPanel";
-export { default as WebLogoutConfirmModal } from "./WebLogoutConfirmModal";
+export { default as ChatComposer } from "./components/ChatComposer";
+export { default as ChatMessageList } from "./components/ChatMessageList";
+export { default as ChatSidebar } from "./components/ChatSidebar";
+export { default as DeleteConversationModal } from "./components/DeleteConversationModal";
+export { default as DeleteAllHistoryModal } from "./components/DeleteAllHistoryModal";
+export { default as EditProfileModal } from "./components/EditProfileModal";
+export { default as RenameConversationModal } from "./components/RenameConversationModal";
+export { default as AssistantMessageContent } from "./components/AssistantMessageContent";
+export { default as SourcesPanel } from "./components/SourcesPanel";
+export { default as WebLogoutConfirmModal } from "./components/WebLogoutConfirmModal";
 
 export {
   askAssistant,
@@ -19,7 +19,7 @@ export {
   listConversations,
   renameConversation,
   saveConversationExchange,
-} from "./api";
+} from "./utils/api";
 export {
   createTransientMessage,
   getConversationPreview,
@@ -30,5 +30,18 @@ export {
   resolveSelectedSources,
   sortConversationsByRecent,
   upsertConversationSummary,
-} from "./chatPageUtils";
-export type { AskApiResponse, ChatMessage, ChatMessageRole, ChatSource, Conversation, ConversationSummary } from "./types";
+} from "./utils/chatPageUtils";
+export {
+  loadWebchatThemePreference,
+  resolveWebchatTheme,
+  saveWebchatThemePreference,
+} from "./utils/theme";
+export type {
+  AskApiResponse,
+  ChatMessage,
+  ChatMessageRole,
+  ChatSource,
+  Conversation,
+  ConversationSummary,
+} from "./utils/types";
+export type { WebchatResolvedTheme, WebchatThemePreference } from "./utils/theme";
