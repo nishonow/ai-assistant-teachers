@@ -7,6 +7,7 @@ export { default as EditProfileModal } from "./components/EditProfileModal";
 export { default as RenameConversationModal } from "./components/RenameConversationModal";
 export { default as AssistantMessageContent } from "./components/AssistantMessageContent";
 export { default as SourcesPanel } from "./components/SourcesPanel";
+export { default as SourceViewerModal } from "./components/SourceViewerModal";
 export { default as WebLogoutConfirmModal } from "./components/WebLogoutConfirmModal";
 
 export {

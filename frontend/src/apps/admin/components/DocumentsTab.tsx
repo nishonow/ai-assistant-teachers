@@ -13,10 +13,7 @@ function formatDocumentName(fileName: string): string {
 function DocumentStatus({ value, processing }: { value: string; processing: boolean }) {
   if (processing) {
     return (
-      <span className="tag border-amber-400/40 bg-amber-500/10 text-amber-200">
-        <RotateCw size={12} className="animate-spin" />
-        Reindexing...
-      </span>
+      <span className="tag border-amber-400/40 bg-amber-500/10 text-amber-200">Reindexing...</span>
     );
   }
 

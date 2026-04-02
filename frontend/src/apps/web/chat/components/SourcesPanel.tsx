@@ -1,4 +1,4 @@
-import { BookOpenText, Download, X } from "lucide-react";
+import { BookOpenText, Download, Eye, X } from "lucide-react";
 import { useEffect } from "react";
 
 import type { ChatSource } from "../utils/types";
@@ -8,11 +8,13 @@ interface SourcesPanelProps {
   activeConversationId: string | null;
   activeConversationTitle: string;
   downloadPendingId: string | null;
+  viewPendingId: string | null;
   loading: boolean;
   desktopOpen: boolean;
   mobileOpen: boolean;
   sources: ChatSource[];
   onDownloadSource: (source: ChatSource) => void;
+  onViewSource: (source: ChatSource) => void;
   onCloseMobile: () => void;
 }
 
@@ -20,8 +22,10 @@ interface SourcesContentProps {
   activeConversationId: string | null;
   activeConversationTitle: string;
   downloadPendingId: string | null;
+  viewPendingId: string | null;
   sources: ChatSource[];
   onDownloadSource: (source: ChatSource) => void;
+  onViewSource: (source: ChatSource) => void;
   showHeader: boolean;
 }
 
@@ -34,8 +38,10 @@ function SourcesContent({
   activeConversationId,
   activeConversationTitle,
   downloadPendingId,
+  viewPendingId,
   sources,
   onDownloadSource,
+  onViewSource,
   showHeader,
 }: SourcesContentProps) {
   return (
@@ -84,19 +90,27 @@ function SourcesContent({
                   {getSourceExtension(source.title)}
                 </span>
               </div>
-              <div className="flex items-center justify-between mt-1">
-                <span className="webchat-source-meta text-xs text-slate-500 dark:text-slate-500">
-                  {source.documentId ? `Документ #${source.documentId}` : "Файл"}
-                </span>
-                <button
-                  type="button"
-                  className="webchat-source-download flex items-center gap-1.5 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#294459] dark:bg-[#102033] dark:text-[#9af5ea] dark:hover:border-[#3d6888] dark:hover:bg-[#1a344d] dark:hover:text-white"
-                  disabled={!activeConversationId || !source.documentId || downloadPendingId === source.id}
-                  onClick={() => onDownloadSource(source)}
-                >
-                  <Download size={12} />
-                  {downloadPendingId === source.id ? "Скачивание..." : "Скачать"}
-                </button>
+              <div className="mt-1 flex items-center justify-end">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    className="webchat-source-download flex items-center gap-1.5 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#294459] dark:bg-[#102033] dark:text-[#9af5ea] dark:hover:border-[#3d6888] dark:hover:bg-[#1a344d] dark:hover:text-white"
+                    disabled={!activeConversationId || !source.documentId || viewPendingId === source.id}
+                    onClick={() => onViewSource(source)}
+                  >
+                    <Eye size={12} />
+                    {viewPendingId === source.id ? "Открытие..." : "Смотреть"}
+                  </button>
+                  <button
+                    type="button"
+                    className="webchat-source-download flex items-center gap-1.5 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#294459] dark:bg-[#102033] dark:text-[#9af5ea] dark:hover:border-[#3d6888] dark:hover:bg-[#1a344d] dark:hover:text-white"
+                    disabled={!activeConversationId || !source.documentId || downloadPendingId === source.id}
+                    onClick={() => onDownloadSource(source)}
+                  >
+                    <Download size={12} />
+                    {downloadPendingId === source.id ? "Скачивание..." : "Скачать"}
+                  </button>
+                </div>
               </div>
             </article>
           ))
@@ -114,11 +128,13 @@ export default function SourcesPanel({
   activeConversationId,
   activeConversationTitle,
   downloadPendingId,
+  viewPendingId,
   loading: _loading,
   desktopOpen,
   mobileOpen,
   sources,
   onDownloadSource,
+  onViewSource,
   onCloseMobile,
 }: SourcesPanelProps) {
   const { isVisible: mobileVisible, isClosing: mobileClosing } = useDrawerVisibility(mobileOpen);
@@ -153,8 +169,10 @@ export default function SourcesPanel({
             activeConversationId={activeConversationId}
             activeConversationTitle={activeConversationTitle}
             downloadPendingId={downloadPendingId}
+            viewPendingId={viewPendingId}
             sources={sources}
             onDownloadSource={onDownloadSource}
+            onViewSource={onViewSource}
             showHeader
           />
         ) : null}
@@ -183,8 +201,10 @@ export default function SourcesPanel({
               activeConversationId={activeConversationId}
               activeConversationTitle={activeConversationTitle}
               downloadPendingId={downloadPendingId}
+              viewPendingId={viewPendingId}
               sources={sources}
               onDownloadSource={onDownloadSource}
+              onViewSource={onViewSource}
               showHeader={false}
             />
           </aside>

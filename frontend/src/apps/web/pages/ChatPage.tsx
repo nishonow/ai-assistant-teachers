@@ -28,6 +28,7 @@ import {
   renameConversation,
   saveWebchatThemePreference,
   saveConversationExchange,
+  SourceViewerModal,
   SourcesPanel,
   loadWebchatThemePreference,
   upsertConversationSummary,
@@ -76,6 +77,12 @@ export default function ChatPage() {
   const [profilePassword, setProfilePassword] = useState("");
   const [profilePending, setProfilePending] = useState(false);
   const [downloadPendingId, setDownloadPendingId] = useState<string | null>(null);
+  const [viewPendingId, setViewPendingId] = useState<string | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerSource, setViewerSource] = useState<ChatSource | null>(null);
+  const [viewerSourceUrl, setViewerSourceUrl] = useState<string | null>(null);
+  const [viewerLoading, setViewerLoading] = useState(false);
+  const [viewerError, setViewerError] = useState<string | null>(null);
   const [isMessagingBlocked, setIsMessagingBlocked] = useState(false);
   const [rateLimitUntil, setRateLimitUntil] = useState<number | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
@@ -101,6 +108,31 @@ export default function ChatPage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (viewerSourceUrl) {
+        URL.revokeObjectURL(viewerSourceUrl);
+      }
+    };
+  }, [viewerSourceUrl]);
+
+  const replaceViewerSourceUrl = useCallback((nextUrl: string | null) => {
+    setViewerSourceUrl((current) => {
+      if (current && current !== nextUrl) {
+        URL.revokeObjectURL(current);
+      }
+      return nextUrl;
+    });
+  }, []);
+
+  const handleCloseSourceViewer = useCallback(() => {
+    setViewerOpen(false);
+    setViewerSource(null);
+    setViewerLoading(false);
+    setViewerError(null);
+    replaceViewerSourceUrl(null);
+  }, [replaceViewerSourceUrl]);
 
   const requestComposerFocus = useCallback(() => {
     setComposerFocusKey((current) => current + 1);
@@ -476,6 +508,47 @@ export default function ChatPage() {
     [activeConversationId, session, showNotice],
   );
 
+  const handleViewSource = useCallback(
+    async (source: ChatSource) => {
+      if (!session || !activeConversationId || !source.documentId) return;
+
+      setViewerOpen(true);
+      setViewerSource(source);
+      setViewerLoading(true);
+      setViewerError(null);
+      setViewPendingId(source.id);
+      replaceViewerSourceUrl(null);
+
+      try {
+        const blob = await downloadConversationSource({
+          session,
+          conversationId: activeConversationId,
+          documentId: source.documentId,
+        });
+
+        const sourceLooksPdf = source.title.toLowerCase().endsWith(".pdf");
+        const blobIsPdf = blob.type.toLowerCase().includes("application/pdf");
+        const headerSignature = await blob.slice(0, 5).text();
+        const headerLooksPdf = headerSignature === "%PDF-";
+
+        if (!sourceLooksPdf && !blobIsPdf && !headerLooksPdf) {
+          setViewerError("Предпросмотр доступен только для PDF-источников.");
+          return;
+        }
+
+        const previewBlob = blobIsPdf ? blob : new Blob([blob], { type: "application/pdf" });
+        const objectUrl = URL.createObjectURL(previewBlob);
+        replaceViewerSourceUrl(objectUrl);
+      } catch (requestError) {
+        setViewerError(localizeUserErrorMessage(requestError, "Не удалось открыть источник."));
+      } finally {
+        setViewerLoading(false);
+        setViewPendingId(null);
+      }
+    },
+    [activeConversationId, replaceViewerSourceUrl, session],
+  );
+
   const handleSelectMessageSources = useCallback(
     (message: ChatMessage) => {
       if (message.role !== "assistant" || !message.sources?.length) return;
@@ -630,16 +703,32 @@ export default function ChatPage() {
           activeConversationId={activeConversationId}
           activeConversationTitle={activeConversation?.title ?? "Новый чат"}
           downloadPendingId={downloadPendingId}
+          viewPendingId={viewPendingId}
           loading={isLoadingConversation}
           desktopOpen={desktopSourcesOpen}
           mobileOpen={mobileSourcesOpen}
           sources={activeSources}          
           onCloseMobile={() => setMobileSourcesOpen(false)}
+          onViewSource={(source) => {
+            void handleViewSource(source);
+          }}
           onDownloadSource={(source) => {
             void handleDownloadSource(source);
           }}
         />
       </div>
+
+      <SourceViewerModal
+        open={viewerOpen}
+        source={viewerSource}
+        sourceUrl={viewerSourceUrl}
+        loading={viewerLoading}
+        error={viewerError}
+        onClose={handleCloseSourceViewer}
+        onDownload={(source) => {
+          void handleDownloadSource(source);
+        }}
+      />
 
       <DeleteConversationModal
         open={Boolean(deleteTargetConversation)}
