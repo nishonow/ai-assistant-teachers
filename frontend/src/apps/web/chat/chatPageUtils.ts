@@ -44,14 +44,26 @@ export function resolveSelectedSources(
     }
   }
 
-  const latestAssistantMessage = getLatestAssistantMessage(conversation);
-  if (!latestAssistantMessage?.sources?.length) {
-    return { messageId: null, sources: [] };
+  const allSources: ChatSource[] = [];
+  const seenSnippets = new Set<string>();
+  const seenDocumentIds = new Set<string>();
+
+  for (const message of conversation.messages) {
+    if (message.role === "assistant" && message.sources) {
+      for (const source of message.sources) {
+        const identifier = String(source.documentId || source.snippet);
+        if (!seenSnippets.has(source.snippet) && !seenDocumentIds.has(identifier)) {
+          seenSnippets.add(source.snippet);
+          seenDocumentIds.add(identifier);
+          allSources.push(source);
+        }
+      }
+    }
   }
 
   return {
-    messageId: latestAssistantMessage.id,
-    sources: latestAssistantMessage.sources,
+    messageId: null,
+    sources: allSources,
   };
 }
 

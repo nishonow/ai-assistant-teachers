@@ -644,20 +644,31 @@ export default function ChatPage() {
     [activeConversationId, session, showNotice],
   );
 
-  const handleSelectMessageSources = useCallback((message: ChatMessage) => {
-    if (message.role !== "assistant" || !message.sources?.length) return;
+  const handleSelectMessageSources = useCallback(
+    (message: ChatMessage) => {
+      if (message.role !== "assistant" || !message.sources?.length) return;
 
-    selectedSourcesMessageIdRef.current = message.id;
-    setSelectedSourcesMessageId(message.id);
-    setActiveSources(message.sources);
+      if (selectedSourcesMessageIdRef.current === message.id) {
+        const selection = resolveSelectedSources(activeConversation, null);
+        selectedSourcesMessageIdRef.current = selection.messageId;
+        setSelectedSourcesMessageId(selection.messageId);
+        setActiveSources(selection.sources);
+        return;
+      }
 
-    if (window.matchMedia("(min-width: 1024px)").matches) {
-      setDesktopSourcesOpen(true);
-      return;
-    }
+      selectedSourcesMessageIdRef.current = message.id;
+      setSelectedSourcesMessageId(message.id);
+      setActiveSources(message.sources);
 
-    setMobileSourcesOpen(true);
-  }, []);
+      if (window.matchMedia("(min-width: 1024px)").matches) {
+        setDesktopSourcesOpen(true);
+        return;
+      }
+
+      setMobileSourcesOpen(true);
+    },
+    [activeConversation],
+  );
 
   const handleSelectSuggestion = useCallback((question: string) => {
     setSuggestedQuestion(question);
@@ -798,7 +809,7 @@ export default function ChatPage() {
           loading={isLoadingConversation}
           desktopOpen={desktopSourcesOpen}
           mobileOpen={mobileSourcesOpen}
-          sources={activeSources}
+          sources={activeSources}          
           onCloseMobile={() => setMobileSourcesOpen(false)}
           onDownloadSource={(source) => {
             void handleDownloadSource(source);

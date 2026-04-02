@@ -1,4 +1,4 @@
-﻿import { BookOpenText, Download, FileText, X } from "lucide-react";
+﻿import { BookOpenText, Download, X } from "lucide-react";
 import { useEffect } from "react";
 
 import type { ChatSource } from "./types";
@@ -34,7 +34,6 @@ function SourcesContent({
   activeConversationId,
   activeConversationTitle,
   downloadPendingId,
-  loading,
   sources,
   onDownloadSource,
   showHeader,
@@ -43,14 +42,14 @@ function SourcesContent({
     <>
       {showHeader ? (
         <header className="webchat-sources-header flex h-[62px] shrink-0 flex-col justify-center border-b border-[#21384b] px-4 md:px-5">
-          <h2 className="webchat-sources-title font-heading text-sm uppercase tracking-[0.15em] text-slate-300">{"Источники"}</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="webchat-sources-title font-heading text-sm uppercase tracking-[0.15em] text-slate-300">
+              {"Источники"}
+            </h2>
+          </div>
           <div className="mt-1 flex items-center justify-between gap-3">
             <p className="truncate text-xs text-slate-500">{activeConversationTitle}</p>
-            {loading ? (
-              <span className="inline-flex shrink-0 animate-pulse items-center justify-center rounded-full border border-[#305169] bg-[#102033] px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-brand-200">
-                Подбираем
-              </span>
-            ) : sources.length ? (
+            {sources.length ? (
               <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-slate-500">
                 {sources.length} {sources.length === 1 ? "файл" : "файла"}
               </span>
@@ -61,104 +60,48 @@ function SourcesContent({
         </header>
       ) : null}
 
-      <div className="scroll-area min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4">
-        {loading ? (
-          <div className="space-y-3" role="status" aria-live="polite">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <article
-                key={index}
-                className="webchat-loading-card chat-card-enter animate-pulse rounded-[26px] border border-[#284863] bg-[#0f1c2c] p-4"
-                style={{ animationDelay: `${index * 70}ms` }}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="webchat-loading-line mt-0.5 h-11 w-11 rounded-2xl bg-slate-700/70" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1 space-y-2">
-                        <div className="webchat-loading-line h-4 w-[86%] rounded-full bg-slate-700/70" />
-                        <div className="webchat-loading-line h-4 w-[64%] rounded-full bg-slate-700/60" />
-                      </div>
-                      <div className="webchat-loading-chip h-7 w-14 rounded-full bg-slate-700/60" />
-                    </div>
-                    <div className="mt-4 space-y-2">
-                      <div className="webchat-loading-line h-3 w-[48%] rounded-full bg-slate-800/70" />
-                      <div className="webchat-loading-line h-3 w-[36%] rounded-full bg-slate-800/60" />
-                    </div>
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <div className="webchat-loading-line h-3 w-[34%] rounded-full bg-slate-800/60" />
-                      <div className="webchat-loading-chip h-9 w-24 rounded-full bg-slate-700/60" />
-                    </div>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : sources.length ? (
-          <div className="space-y-3">
-            {sources.map((source, index) => (
-              <article
-                key={source.id}
-                className="webchat-source-card chat-card-enter rounded-[26px] border border-[#284863] bg-[#0d1827] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#3a6988]"
-                style={{ animationDelay: `${index * 45}ms` }}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="webchat-source-icon mt-0.5 grid h-11 w-11 place-items-center rounded-2xl border border-[#305169] bg-[#102033] text-[#9af5ea]">
-                    <FileText size={15} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="webchat-source-title-shell group relative min-w-0 flex-1 rounded-lg transition-colors hover:bg-[#102033]">
-                        <p
-                          className="webchat-source-title min-w-0 overflow-hidden rounded-lg px-2 py-1 text-sm font-semibold leading-6 text-slate-100"
-                          style={{
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                          }}
-                        >
-                          {source.title}
-                        </p>
-                        <div className="webchat-source-title-popup pointer-events-none absolute left-0 right-0 top-full z-20 mt-2 hidden rounded-xl border border-[#325774] bg-[#102033] px-3 py-2 group-hover:block">
-                          <p
-                            className="webchat-source-title-popup-text text-xs leading-5 text-slate-200"
-                            style={{
-                              display: "-webkit-box",
-                              WebkitLineClamp: 3,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
-                              overflowWrap: "anywhere",
-                            }}
-                          >
-                            {source.title}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="webchat-source-extension shrink-0 rounded-full border border-[#305169] bg-[#102033] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9af5ea]">
-                        {getSourceExtension(source.title)}
-                      </span>
-                    </div>
-                    <p className="webchat-source-meta mt-2 text-xs uppercase tracking-[0.14em] text-slate-500">{"Указанный документ"}</p>
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <div className="webchat-source-meta text-xs leading-5 text-slate-500">
-                        {source.documentId ? `Документ #${source.documentId}` : "Прикреплённый источник"}
-                      </div>
-                      <button
-                        type="button"
-                        className="webchat-source-download inline-flex items-center gap-2 rounded-full border border-[#305169] bg-[#102033] px-3 py-2 text-xs font-semibold text-slate-200 transition-colors hover:bg-[#15304a] disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={!activeConversationId || !source.documentId || downloadPendingId === source.id}
-                        onClick={() => onDownloadSource(source)}
-                      >
-                        <Download size={14} />
-                        {downloadPendingId === source.id ? "Скачивание..." : "Скачать"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+      <div className="scroll-area min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 space-y-3">
+        {sources.length ? (
+          sources.map((source) => (
+            <article
+              key={source.id}
+              className="group flex flex-col gap-2 rounded-[16px] border border-[#1e3448] bg-[#0b1623]/50 p-3 transition-colors hover:bg-[#102033]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p
+                  className="text-sm text-slate-200 leading-tight"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                  title={source.title}
+                >
+                  {source.title}
+                </p>
+                <span className="shrink-0 rounded bg-[#1e3448]/80 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-400">
+                  {getSourceExtension(source.title)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-xs text-slate-500">
+                  {source.documentId ? `Документ #${source.documentId}` : "Файл"}
+                </span>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 rounded bg-[#102033] px-2 py-1 text-[11px] font-medium uppercase tracking-[0.05em] text-[#9af5ea] transition-colors hover:bg-[#1a344d] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!activeConversationId || !source.documentId || downloadPendingId === source.id}
+                  onClick={() => onDownloadSource(source)}
+                >
+                  <Download size={12} />
+                  {downloadPendingId === source.id ? "Скачивание..." : "Скачать"}
+                </button>
+              </div>
+            </article>
+          ))
         ) : (
-          <div className="webchat-empty-state rounded-[24px] border border-dashed border-[#2c4e67] bg-[#0c1726] px-4 py-5 text-sm leading-6 text-slate-400">
+          <div className="webchat-empty-state rounded-[16px] border border-dashed border-[#2c4e67] bg-[#0c1726]/50 px-4 py-5 text-sm leading-6 text-slate-400">
             Источники появятся после ответа ассистента, если в нём есть ссылки на документы.
           </div>
         )}
