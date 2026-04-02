@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+﻿import { CheckCircle2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
@@ -35,10 +35,10 @@ export default function AuthShell({
           <div className="flex min-h-screen w-full flex-col px-10 py-10 xl:px-14 xl:py-12">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[12px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff]">
-                <img src={logo} alt="Mugallim AI" className="h-full w-full object-cover" />
+                <img src={logo} alt="Mugalim AI" className="h-full w-full object-cover" />
               </div>
               <Link to="/" className="text-[1.6rem] leading-none text-[#1c1b18]" style={serifFont}>
-                Mugallim AI
+                Mugalim AI
               </Link>
             </div>
 
@@ -61,7 +61,7 @@ export default function AuthShell({
               </div>
             </div>
 
-            <p className="text-sm text-[#6b6960]">© 2025 Mugallim AI</p>
+            <p className="text-sm text-[#6b6960]">© 2025 Mugalim AI</p>
           </div>
         </section>
 
@@ -69,10 +69,10 @@ export default function AuthShell({
           <div className="w-full max-w-[360px]">
             <Link to="/" className="mb-8 inline-flex items-center gap-3 text-[#1c1b18] sm:mb-10 lg:hidden">
               <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[12px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff]">
-                <img src={logo} alt="Mugallim AI" className="h-full w-full object-cover" />
+                <img src={logo} alt="Mugalim AI" className="h-full w-full object-cover" />
               </span>
               <span className="text-[1.55rem] leading-none" style={serifFont}>
-                Mugallim AI
+                Mugalim AI
               </span>
             </Link>
 

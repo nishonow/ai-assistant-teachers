@@ -1,4 +1,4 @@
-import { ArrowDown, BookOpenText, Check, Copy, MessageSquare } from "lucide-react";
+﻿import { ArrowDown, BookOpenText, Check, Copy, MessageSquare } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import AssistantMessageContent, { getAssistantMessagePlainText } from "./AssistantMessageContent";
@@ -383,7 +383,7 @@ export default function ChatMessageList({
                 <span className="thinking-core shrink-0" aria-hidden="true" />
                 <div className="flex items-center gap-2.5">
                   <span className="webchat-thinking-label text-sm text-slate-100" aria-live="polite">
-                    Mugallim AI думает...
+                    Mugalim AI думает...
                   </span>
                   <span className="thinking-inline-dots" aria-hidden="true">
                     <span />

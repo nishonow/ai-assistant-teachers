@@ -1,4 +1,4 @@
-import { LogOut, Moon, MoreHorizontal, Palette, PanelLeftClose, Pencil, Shield, Sun, Trash2, UserRound } from "lucide-react";
+﻿import { LogOut, Moon, MoreHorizontal, Palette, PanelLeftClose, Pencil, Shield, Sun, Trash2, UserRound } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from "react";
 
 import logo from "../../../../logo.png";
@@ -60,11 +60,11 @@ function SidebarBrand() {
         <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[16px] bg-white/5 md:h-11 md:w-11">
           <img
             src={logo}
-            alt="Mugallim AI"
+            alt="Mugalim AI"
             className="h-[112%] w-[112%] rounded-[14px] object-contain"
           />
         </span>
-        <p className="truncate font-heading text-lg tracking-[0.08em] text-[#f5fffd]">Mugallim AI</p>
+        <p className="truncate font-heading text-lg tracking-[0.08em] text-[#f5fffd]">Mugalim AI</p>
       </div>
     </div>
   );

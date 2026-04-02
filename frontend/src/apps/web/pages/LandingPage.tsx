@@ -1,4 +1,4 @@
-import {
+﻿import {
   ArrowRight,
   FileSearch,
   History,
@@ -85,10 +85,10 @@ export default function LandingPage() {
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 md:px-6">
           <Link to="/" className="flex items-center gap-3 text-[#1c1b18]">
             <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[12px] border border-[rgba(0,0,0,0.07)] bg-[#ffffff]">
-              <img src={logo} alt="Mugallim AI" className="h-full w-full object-cover" />
+              <img src={logo} alt="Mugalim AI" className="h-full w-full object-cover" />
             </span>
             <span className="text-[1.55rem] leading-none" style={landingSerifFont}>
-              Mugallim AI
+              Mugalim AI
             </span>
           </Link>
 
@@ -201,7 +201,7 @@ export default function LandingPage() {
                   <Scale size={16} className="text-[#c4922a]" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-[#1c1b18]">Mugallim AI</p>
+                  <p className="text-sm font-medium text-[#1c1b18]">Mugalim AI</p>
                   <div className="mt-1 flex items-center gap-2 text-xs text-[#6b6960]">
                     <span className="h-2 w-2 rounded-full bg-[#c4922a]" />
                     Онлайн
@@ -340,9 +340,9 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <span className="text-[1.4rem] leading-none text-[#1c1b18]" style={landingSerifFont}>
-              Mugallim AI
+              Mugalim AI
             </span>
-            <span className="text-sm text-[#6b6960]">© 2025 Mugallim AI</span>
+            <span className="text-sm text-[#6b6960]">© 2025 Mugalim AI</span>
           </div>
 
           <div className="flex items-center gap-5 text-sm text-[#6b6960]">

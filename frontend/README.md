@@ -1,6 +1,6 @@
 ﻿# Frontend
 
-React + Vite + TypeScript frontend for Mugallim AI.
+React + Vite + TypeScript frontend for Mugalim AI.
 
 It includes two main UI areas:
 - public web app for users

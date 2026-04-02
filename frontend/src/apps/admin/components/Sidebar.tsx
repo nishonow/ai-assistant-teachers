@@ -1,4 +1,4 @@
-import { FileStack, LayoutDashboard, MessageSquare, Upload, Users, X } from "lucide-react";
+﻿import { FileStack, LayoutDashboard, MessageSquare, Upload, Users, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { TabId, TabItem } from "../../../core/types";
@@ -28,7 +28,7 @@ export default function Sidebar({ items, activeTab, onSelect, open, onClose }: S
       >
         <div className="flex items-start justify-between gap-2 border-b border-ink-600/60 pb-4">
           <div>
-            <p className="font-heading text-xs uppercase tracking-[0.2em] text-brand-300">Mugallim AI</p>
+            <p className="font-heading text-xs uppercase tracking-[0.2em] text-brand-300">Mugalim AI</p>
             <h2 className="mt-2 font-heading text-2xl font-bold">Admin Panel</h2>
           </div>
           <button className="btn-muted p-2 md:hidden" onClick={onClose} type="button" aria-label="Close menu">

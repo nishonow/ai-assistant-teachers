@@ -1,4 +1,4 @@
-import { SendHorizontal } from "lucide-react";
+﻿import { SendHorizontal } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 interface ChatComposerProps {
@@ -165,7 +165,7 @@ export default function ChatComposer({
           onKeyDown={handleKeyDown}
           onPointerDownCapture={captureZoomedViewport}
           onFocus={stabilizeZoomedFocus}
-          placeholder="Напишите Mugallim AI..."
+          placeholder="Напишите Mugalim AI..."
           rows={1}
           className="webchat-composer-input chat-input-scroll min-h-[34px] max-h-[220px] flex-1 resize-none bg-transparent px-1 py-1.5 text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[38px] md:py-[7px]"
         />

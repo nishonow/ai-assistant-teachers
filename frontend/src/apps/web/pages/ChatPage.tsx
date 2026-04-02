@@ -1,4 +1,4 @@
-import { BookOpenText, ChevronRight, MessageSquarePlus, PanelLeft } from "lucide-react";
+﻿import { BookOpenText, ChevronRight, MessageSquarePlus, PanelLeft } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -320,12 +320,12 @@ export default function ChatPage() {
 
   useEffect(() => {
     const title = activeConversation?.title?.trim();
-    document.title = title ? `${title} — Mugallim AI` : "Mugallim AI";
+    document.title = title ? `${title} — Mugalim AI` : "Mugalim AI";
   }, [activeConversation?.title]);
 
   useEffect(() => {
     return () => {
-      document.title = "Mugallim AI";
+      document.title = "Mugalim AI";
     };
   }, []);
 
@@ -706,7 +706,7 @@ export default function ChatPage() {
 
               <div className="min-w-0 flex-1 px-2 text-center">
                 <h1 className="truncate font-heading text-[13px] text-slate-100">
-                  {activeConversation?.title ?? "Mugallim AI"}
+                  {activeConversation?.title ?? "Mugalim AI"}
                 </h1>
               </div>
 
