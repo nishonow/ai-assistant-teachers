@@ -35,7 +35,7 @@ export default function LoginPage() {
     const normalizedPassword = password.trim();
 
     if (!normalizedUsername) {
-      nextErrors.username = "Укажите email.";
+      nextErrors.username = "Укажите email или логин.";
     }
 
     if (!normalizedPassword) {
@@ -85,14 +85,14 @@ export default function LoginPage() {
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <label className="block">
-          <span className="text-[13px] font-medium text-[#6b6960]">Email</span>
+          <span className="text-[13px] font-medium text-[#6b6960]">Email или логин</span>
           <input
-            type="email"
+            type="text"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
-            className={`${inputBaseClass} ${errors.username ? "border-[#cc5f4a] focus:border-[#cc5f4a] focus:ring-[#cc5f4a]/15" : "border-[rgba(0,0,0,0.07)]"}`}
-            placeholder="name@example.com"
-            autoComplete="email"
+            className={`auth-input ${inputBaseClass} ${errors.username ? "border-[#cc5f4a] focus:border-[#cc5f4a] focus:ring-[#cc5f4a]/15" : "border-[rgba(0,0,0,0.07)]"}`}
+            placeholder="name@example.com или login"
+            autoComplete="username"
           />
           {errors.username ? <p className="mt-2 text-xs text-[#cc5f4a]">{errors.username}</p> : null}
         </label>
@@ -103,7 +103,7 @@ export default function LoginPage() {
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className={`${inputBaseClass} ${errors.password ? "border-[#cc5f4a] focus:border-[#cc5f4a] focus:ring-[#cc5f4a]/15" : "border-[rgba(0,0,0,0.07)]"}`}
+            className={`auth-input ${inputBaseClass} ${errors.password ? "border-[#cc5f4a] focus:border-[#cc5f4a] focus:ring-[#cc5f4a]/15" : "border-[rgba(0,0,0,0.07)]"}`}
             placeholder="Введите пароль"
             autoComplete="current-password"
           />

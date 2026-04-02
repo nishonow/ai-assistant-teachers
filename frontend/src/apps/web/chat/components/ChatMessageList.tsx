@@ -299,7 +299,7 @@ export default function ChatMessageList({
                 className={[
                   "webchat-suggestion-card chat-card-enter group rounded-2xl border border-[#1e3448] bg-[#0b1520] px-4 py-4 text-sm leading-6 text-slate-300 transition-all duration-250 sm:px-5 sm:py-5",
                   "min-h-[84px] sm:min-h-[96px]",
-                  "hover:border-brand-400/30 hover:bg-[#0e1c2b] hover:text-slate-100 hover:-translate-y-0.5",
+                  "hover:border-[#2d4a62] hover:bg-[#0e1c2b] hover:text-slate-100 hover:-translate-y-1",
                   "disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0",
                 ].join(" ")}
                 style={{ animationDelay: `${index * 70}ms` }}

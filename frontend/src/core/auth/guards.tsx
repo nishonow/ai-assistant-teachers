@@ -7,7 +7,12 @@ function FullScreenLoader() {
   const isAdminRoute = location.pathname.startsWith("/admin");
 
   return (
-    <div className="grid min-h-screen place-items-center px-6">
+    <div
+      className={[
+        "grid min-h-screen place-items-center px-6",
+        isAdminRoute ? "bg-[rgb(9,23,40)]" : "bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)]",
+      ].join(" ")}
+    >
       <div className="panel max-w-sm p-6 text-center">
         <p className="text-sm text-slate-300">{isAdminRoute ? "Loading session..." : "Загрузка сессии..."}</p>
       </div>
@@ -48,7 +53,7 @@ export function RequireAuth() {
 export function RequireAdmin() {
   const { isHydrating, session } = useAuth();
 
-  if (isHydrating) {
+  if (isHydrating && !session) {
     return <FullScreenLoader />;
   }
 

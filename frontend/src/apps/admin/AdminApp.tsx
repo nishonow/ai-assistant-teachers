@@ -461,7 +461,7 @@ export default function AdminApp() {
   }
 
   return (
-    <div className="min-h-[100svh] overflow-x-hidden md:min-h-screen">
+    <div className="min-h-[100svh] overflow-x-hidden bg-[rgb(9,23,40)] md:min-h-screen">
       <Sidebar
         items={TABS}
         activeTab={activeTab}
