@@ -512,6 +512,11 @@ export default function ChatPage() {
     async (source: ChatSource) => {
       if (!session || !activeConversationId || !source.documentId) return;
 
+      if (window.matchMedia("(max-width: 1023px)").matches) {
+        showNotice("warning", "Онлайн-просмотр пока доступен только на ноутбуке или большом экране.");
+        return;
+      }
+
       setViewerOpen(true);
       setViewerSource(source);
       setViewerLoading(true);
@@ -546,7 +551,7 @@ export default function ChatPage() {
         setViewPendingId(null);
       }
     },
-    [activeConversationId, replaceViewerSourceUrl, session],
+    [activeConversationId, replaceViewerSourceUrl, session, showNotice],
   );
 
   const handleSelectMessageSources = useCallback(

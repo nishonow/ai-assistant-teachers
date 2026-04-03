@@ -99,7 +99,14 @@ function SourcesContent({
                     onClick={() => onViewSource(source)}
                   >
                     <Eye size={12} />
-                    {viewPendingId === source.id ? "Открытие..." : "Смотреть"}
+                    {viewPendingId === source.id ? (
+                      "Открытие..."
+                    ) : (
+                      <>
+                        <span className="hidden lg:inline">Смотреть</span>
+                        <span className="lg:hidden">Смотреть (ПК)</span>
+                      </>
+                    )}
                   </button>
                   <button
                     type="button"
