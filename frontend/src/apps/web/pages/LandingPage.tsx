@@ -1,5 +1,6 @@
 ﻿import {
   ArrowRight,
+  Download,
   FileSearch,
   History,
   Menu,
@@ -15,6 +16,7 @@ import { Link } from "react-router-dom";
 import logo from "../../../../logo.png";
 
 import { useAuth } from "../../../core/auth";
+import usePwaInstallPrompt from "../hooks/usePwaInstallPrompt";
 
 const STATS = ["24/7 доступ", "2 канала", "1 место для вопроса"];
 
@@ -74,10 +76,37 @@ const landingSerifFont = { fontFamily: '"Instrument Serif", serif' } as const;
 export default function LandingPage() {
   const { session } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [installMessage, setInstallMessage] = useState<string | null>(null);
+  const { canPromptInstall, canShowManualInstall, shouldShowInstallAction, promptInstall } = usePwaInstallPrompt();
 
   const appHref = session ? (session.user.role === "admin" ? "/admin" : "/app") : "/login";
   const loginLabel = "Войти";
   const heroLabel = "Войти в веб-чат";
+
+  async function handleInstallClick() {
+    if (canPromptInstall) {
+      const outcome = await promptInstall();
+      if (outcome === "accepted") {
+        setInstallMessage("Приложение добавлено на главный экран.");
+        return;
+      }
+
+      if (outcome === "dismissed") {
+        setInstallMessage("Установка отменена. Можно попробовать снова позже.");
+        return;
+      }
+
+      setInstallMessage("Установка пока недоступна. Обновите страницу или откройте меню браузера и выберите «Установить приложение».");
+      return;
+    }
+
+    if (canShowManualInstall) {
+      setInstallMessage("На iPhone откройте «Поделиться» и выберите «На экран Домой».");
+      return;
+    }
+
+    setInstallMessage("Откройте меню браузера и выберите «Установить приложение». Если пункта нет, устройство не поддерживает установку.");
+  }
 
   return (
     <main className="min-h-[100svh] bg-[#fafaf8] text-[#1c1b18]" style={landingBodyFont}>
@@ -177,7 +206,21 @@ export default function LandingPage() {
             >
               Открыть Telegram
             </a>
+            {shouldShowInstallAction ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void handleInstallClick();
+                }}
+                className="inline-flex h-12 min-w-[220px] items-center justify-center gap-2 rounded-[8px] border border-[rgba(0,0,0,0.12)] bg-[#ffffff] px-5 text-sm font-medium text-[#1c1b18] transition-colors duration-150 ease-in-out hover:bg-[#f2f0eb]"
+              >
+                <Download size={15} />
+                Добавить на экран
+              </button>
+            ) : null}
           </div>
+
+          {installMessage ? <p className="mt-4 text-sm text-[#6b6960]">{installMessage}</p> : null}
 
           <div className="mx-auto mt-10 max-w-3xl border-t border-[rgba(0,0,0,0.07)] pt-5">
             <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-[#6b6960]">
@@ -330,6 +373,18 @@ export default function LandingPage() {
             >
               Открыть Telegram
             </a>
+            {shouldShowInstallAction ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void handleInstallClick();
+                }}
+                className="inline-flex h-12 min-w-[220px] items-center justify-center gap-2 rounded-[8px] border border-[rgba(0,0,0,0.12)] bg-[#ffffff] px-5 text-sm font-medium text-[#1c1b18] transition-colors duration-150 ease-in-out hover:bg-[#fafaf8]"
+              >
+                <Download size={15} />
+                Добавить на экран
+              </button>
+            ) : null}
           </div>
 
           <p className="mt-5 text-sm text-[#6b6960]">Без регистрации через Telegram · Веб-чат с историей диалогов</p>

@@ -1,4 +1,4 @@
-﻿import { LogOut, MessageSquarePlus, Moon, MoreHorizontal, Palette, PanelLeftClose, Pencil, Shield, Sun, Trash2, UserRound } from "lucide-react";
+﻿import { Download, LogOut, MessageSquarePlus, Moon, MoreHorizontal, Palette, PanelLeftClose, Pencil, Shield, Sun, Trash2, UserRound } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from "react";
 
 import logo from "../../../../../logo.png";
@@ -25,6 +25,8 @@ interface ChatSidebarProps {
   onStartNewChat: () => void;
   onOpenAdmin: () => void;
   onLogout: () => void;
+  showInstallAppAction?: boolean;
+  onInstallApp?: () => void;
   onThemeChange: (themePreference: WebchatThemePreference) => void;
   resolvedTheme: WebchatResolvedTheme;
 }
@@ -51,6 +53,8 @@ interface SidebarAccountMenuProps {
   onEditProfile: () => void;
   onOpenAdmin: () => void;
   onLogout: () => void;
+  showInstallAppAction: boolean;
+  onInstallApp: () => void;
   onThemeChange: (themePreference: WebchatThemePreference) => void;
   resolvedTheme: WebchatResolvedTheme;
 }
@@ -232,6 +236,8 @@ function SidebarAccountMenu({
   onEditProfile,
   onOpenAdmin,
   onLogout,
+  showInstallAppAction,
+  onInstallApp,
   onThemeChange,
   resolvedTheme,
 }: SidebarAccountMenuProps) {
@@ -296,6 +302,19 @@ function SidebarAccountMenu({
             >
               <Shield size={15} />
               Админ панель
+            </button>
+          ) : null}
+          {showInstallAppAction ? (
+            <button
+              type="button"
+              className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-slate-100 transition-colors hover:bg-[#1c3045]"
+              onClick={() => {
+                setMenuOpen(false);
+                onInstallApp();
+              }}
+            >
+              <Download size={15} />
+              Добавить на экран
             </button>
           ) : null}
           <button
@@ -364,6 +383,8 @@ export default function ChatSidebar({
   onStartNewChat,
   onOpenAdmin,
   onLogout,
+  showInstallAppAction = false,
+  onInstallApp = () => undefined,
   onThemeChange,
   resolvedTheme,
 }: ChatSidebarProps) {
@@ -462,6 +483,8 @@ export default function ChatSidebar({
               onEditProfile={onEditProfile}
               onOpenAdmin={onOpenAdmin}
               onLogout={onLogout}
+              showInstallAppAction={showInstallAppAction}
+              onInstallApp={onInstallApp}
               onThemeChange={onThemeChange}
               resolvedTheme={resolvedTheme}
             />
@@ -522,6 +545,8 @@ export default function ChatSidebar({
                   onEditProfile={onEditProfile}
                   onOpenAdmin={onOpenAdmin}
                   onLogout={onLogout}
+                  showInstallAppAction={showInstallAppAction}
+                  onInstallApp={onInstallApp}
                   onThemeChange={onThemeChange}
                   resolvedTheme={resolvedTheme}
                 />

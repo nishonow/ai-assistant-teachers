@@ -41,6 +41,7 @@ import useRateLimitCountdown from "../chat/hooks/useRateLimitCountdown";
 import useSystemPrefersDark from "../chat/hooks/useSystemPrefersDark";
 import useWebchatDocumentMeta from "../chat/hooks/useWebchatDocumentMeta";
 import useChatConversationsData from "../chat/hooks/useChatConversationsData";
+import usePwaInstallPrompt from "../hooks/usePwaInstallPrompt";
 
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -88,6 +89,7 @@ export default function ChatPage() {
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [themePreference, setThemePreference] = useState<WebchatThemePreference>(() => loadWebchatThemePreference());
   const systemPrefersDark = useSystemPrefersDark();
+  const { canPromptInstall, canShowManualInstall, shouldShowInstallAction, promptInstall } = usePwaInstallPrompt();
 
   const noticeTimerRef = useRef<number | null>(null);
 
@@ -133,6 +135,32 @@ export default function ChatPage() {
     setViewerError(null);
     replaceViewerSourceUrl(null);
   }, [replaceViewerSourceUrl]);
+
+  const handleInstallApp = useCallback(async () => {
+    if (canPromptInstall) {
+      const outcome = await promptInstall();
+
+      if (outcome === "accepted") {
+        showNotice("success", "Приложение добавлено на главный экран.");
+        return;
+      }
+
+      if (outcome === "dismissed") {
+        showNotice("warning", "Установка отменена. Можно попробовать снова позже.");
+        return;
+      }
+
+      showNotice("warning", "Установка пока недоступна. Обновите страницу или откройте меню браузера и выберите «Установить приложение».");
+      return;
+    }
+
+    if (canShowManualInstall) {
+      showNotice("warning", "На iPhone откройте меню «Поделиться» и выберите «На экран Домой».");
+      return;
+    }
+
+    showNotice("warning", "Откройте меню браузера и выберите «Установить приложение». Если пункта нет, устройство не поддерживает установку.");
+  }, [canPromptInstall, canShowManualInstall, promptInstall, showNotice]);
 
   const requestComposerFocus = useCallback(() => {
     setComposerFocusKey((current) => current + 1);
@@ -610,6 +638,10 @@ export default function ChatPage() {
           window.open(adminUrl.toString(), "_blank", "noopener,noreferrer");
         }}
         onLogout={() => setLogoutConfirmOpen(true)}
+        showInstallAppAction={shouldShowInstallAction}
+        onInstallApp={() => {
+          void handleInstallApp();
+        }}
         onRenameConversation={handleOpenRenameConversation}
         onSelectConversation={handleSelectConversation}
         onThemeChange={setThemePreference}
@@ -729,6 +761,7 @@ export default function ChatPage() {
         sourceUrl={viewerSourceUrl}
         loading={viewerLoading}
         error={viewerError}
+        resolvedTheme={resolvedTheme}
         onClose={handleCloseSourceViewer}
         onDownload={(source) => {
           void handleDownloadSource(source);
