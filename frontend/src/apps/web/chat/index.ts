@@ -20,6 +20,7 @@ export {
   listConversations,
   renameConversation,
   saveConversationExchange,
+  transcribeVoiceMessage,
 } from "./utils/api";
 export {
   createTransientMessage,

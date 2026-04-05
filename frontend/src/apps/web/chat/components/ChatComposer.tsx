@@ -1,5 +1,7 @@
-﻿import { Mic, SendHorizontal } from "lucide-react";
+﻿import { CircleStop, Loader2, Mic, SendHorizontal } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useAuth } from "../../../../core/auth";
+import { transcribeVoiceMessage } from "../utils/api";
 
 interface ChatComposerProps {
   disabled: boolean;
@@ -13,6 +15,32 @@ const MAX_TEXTAREA_HEIGHT = 220;
 const MIN_TEXTAREA_HEIGHT = 34;
 const MOBILE_ENTER_QUERY = "(pointer: coarse), (max-width: 767px)";
 
+function localizeVoiceErrorMessage(error: unknown): string {
+  const raw = error instanceof Error ? error.message : `${error || ""}`;
+  const normalized = raw.toLowerCase();
+
+  if (normalized.includes("could not transcribe")) {
+    return "Не удалось распознать речь. Попробуйте говорить четче.";
+  }
+  if (normalized.includes("unsupported audio format")) {
+    return "Формат аудио не поддерживается. Попробуйте другой браузер.";
+  }
+  if (normalized.includes("audio is empty")) {
+    return "Запись пустая. Попробуйте записать снова.";
+  }
+  if (normalized.includes("audio is too large")) {
+    return "Запись слишком длинная. Сделайте более короткий голосовой ввод.";
+  }
+  if (normalized.includes("transcription service unavailable")) {
+    return "Сервис распознавания временно недоступен. Повторите позже.";
+  }
+  if (normalized.includes("rate limit")) {
+    return "Слишком много запросов. Подождите немного и попробуйте снова.";
+  }
+
+  return "Не удалось распознать аудио. Попробуйте еще раз.";
+}
+
 export default function ChatComposer({
   disabled,
   onSubmit,
@@ -20,11 +48,18 @@ export default function ChatComposer({
   onSuggestedValueConsumed,
   focusRequestKey = 0,
 }: ChatComposerProps) {
+  const { session } = useAuth();
   const [value, setValue] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const zoomedViewportRef = useRef<{ scrollX: number; scrollY: number } | null>(null);
   const lastFocusRequestRef = useRef(focusRequestKey);
   const deferredFocusRef = useRef(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const focusComposer = useCallback(() => {
     const element = textareaRef.current;
@@ -191,6 +226,143 @@ export default function ChatComposer({
     });
   };
 
+  const clearMediaResources = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
+
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearMediaResources();
+    };
+  }, [clearMediaResources]);
+
+  const handleVoiceStart = useCallback(async () => {
+    if (isRecording || isTranscribing || disabled) return;
+
+    if (!session) {
+      setVoiceError("Требуется авторизация для голосового ввода.");
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setVoiceError("Голосовой ввод не поддерживается в этом браузере.");
+      return;
+    }
+
+    setVoiceError(null);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      const preferredMimeTypes = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
+      const selectedMimeType = preferredMimeTypes.find((mime) => MediaRecorder.isTypeSupported(mime));
+      const recorder = selectedMimeType ? new MediaRecorder(stream, { mimeType: selectedMimeType }) : new MediaRecorder(stream);
+
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (event: BlobEvent) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onerror = () => {
+        setVoiceError("Ошибка записи аудио.");
+        clearMediaResources();
+        setIsRecording(false);
+      };
+
+      recorder.onstop = async () => {
+        setIsRecording(false);
+
+        const chunks = audioChunksRef.current;
+        audioChunksRef.current = [];
+
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+          mediaStreamRef.current = null;
+        }
+
+        if (!chunks.length) {
+          setVoiceError("Запись пустая. Попробуйте еще раз.");
+          return;
+        }
+
+        if (!session) {
+          setVoiceError("Сессия истекла. Войдите снова.");
+          return;
+        }
+
+        setIsTranscribing(true);
+        try {
+          const audio = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+          const transcript = await transcribeVoiceMessage({
+            session,
+            audio,
+            fileName: recorder.mimeType.includes("mp4") ? "voice.mp4" : "voice.webm",
+          });
+
+          if (!transcript) {
+            setVoiceError("Не удалось распознать речь.");
+            return;
+          }
+
+          setValue((current) => {
+            const prefix = current.trim();
+            return prefix ? `${prefix} ${transcript}` : transcript;
+          });
+
+          requestAnimationFrame(() => {
+            focusComposer();
+          });
+        } catch (error) {
+          const message = localizeVoiceErrorMessage(error);
+          setVoiceError(message);
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start(250);
+      setIsRecording(true);
+    } catch {
+      clearMediaResources();
+      setVoiceError("Нет доступа к микрофону. Разрешите доступ в браузере.");
+      setIsRecording(false);
+    }
+  }, [clearMediaResources, disabled, focusComposer, isRecording, isTranscribing, session]);
+
+  const handleVoiceStop = useCallback(() => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") return;
+    recorder.stop();
+  }, []);
+
+  const handleVoiceToggle = useCallback(() => {
+    if (isRecording) {
+      handleVoiceStop();
+      return;
+    }
+    void handleVoiceStart();
+  }, [handleVoiceStart, handleVoiceStop, isRecording]);
+
+  const voiceButtonDisabled = isTranscribing || (!isRecording && disabled);
+  const voiceButtonLabel = isRecording ? "Остановить запись" : "Голосовой ввод";
+  const voiceTooltip = isTranscribing
+    ? "Распознаем голос..."
+    : isRecording
+      ? "Нажмите, чтобы остановить запись"
+      : "Нажмите, чтобы начать запись";
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -211,14 +383,22 @@ export default function ChatComposer({
         <div className="relative">
           <button
             type="button"
-            className="webchat-source-download inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#1e3448]/70 bg-[#102033] text-slate-300 transition-colors hover:bg-[#1a344d] hover:text-slate-100 md:h-10 md:w-10"
-            disabled
-            title="Голосовой ввод пока в разработке"
-            aria-label="Голосовой ввод пока в разработке"
+            className={`webchat-source-download inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#1e3448]/70 bg-[#102033] text-slate-300 transition-colors hover:bg-[#1a344d] hover:text-slate-100 md:h-10 md:w-10 ${
+              isRecording ? "border-rose-400/60 bg-rose-500/20 text-rose-100 hover:bg-rose-500/25" : ""
+            }`}
+            onClick={handleVoiceToggle}
+            disabled={voiceButtonDisabled}
+            aria-label={voiceButtonLabel}
           >
-            <Mic size={16} />
+            {isTranscribing ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : isRecording ? (
+              <CircleStop size={15} />
+            ) : (
+              <Mic size={16} />
+            )}
           </button>
-          <span className="ui-tooltip">Голосовой ввод пока в разработке</span>
+          <span className="ui-tooltip">{voiceTooltip}</span>
         </div>
 
         <button
@@ -232,7 +412,7 @@ export default function ChatComposer({
       </div>
       <div className="mx-auto mt-1 flex w-full max-w-4xl items-center justify-between px-2 md:mt-1.5">
         <p className="text-[10px] leading-4 text-slate-500 md:text-[11px]">
-          Проверяйте источники. История сохраняется.
+          {voiceError ? `Голос: ${voiceError}` : "Проверяйте источники. История сохраняется."}
         </p>
         <p className="hidden text-[10px] leading-4 text-slate-600 md:block">
           Enter — отправить · Shift+Enter — новая строка

@@ -34,6 +34,12 @@ interface DownloadConversationSourcePayload {
   documentId: number;
 }
 
+interface TranscribeVoicePayload {
+  session: AuthSession;
+  audio: Blob;
+  fileName?: string;
+}
+
 export async function askAssistant({ question, session, history }: AskPayload): Promise<AskApiResponse> {
   return await apiRequest<AskApiResponse>({
     path: "/api/v1/ask/",
@@ -131,4 +137,19 @@ export async function downloadConversationSource({
     token: session.token,
     responseType: "blob",
   });
+}
+
+export async function transcribeVoiceMessage({ session, audio, fileName = "voice.webm" }: TranscribeVoicePayload): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", audio, fileName);
+
+  const data = await apiRequest<{ text: string }>({
+    path: "/api/v1/ask/transcribe",
+    method: "POST",
+    token: session.token,
+    body: formData,
+    isForm: true,
+  });
+
+  return (data.text || "").trim();
 }
