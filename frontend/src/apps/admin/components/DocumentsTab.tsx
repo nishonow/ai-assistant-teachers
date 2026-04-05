@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { DocumentRecord } from "../../../core/types";
 import Pagination from "./Pagination";
+import ReloadButton from "./ReloadButton";
 
 const PAGE_SIZE = 20;
 
@@ -81,9 +82,7 @@ export default function DocumentsTab({
           </p>
         </div>
 
-        <button className="btn-muted shrink-0" type="button" onClick={onRefresh} disabled={loading}>
-          {loading ? "Reloading..." : "Reload"}
-        </button>
+        <ReloadButton className="shrink-0" loading={loading} onReload={onRefresh} />
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-ink-600/50 bg-ink-900/35">

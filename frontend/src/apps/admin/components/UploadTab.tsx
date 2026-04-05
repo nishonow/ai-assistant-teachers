@@ -101,7 +101,7 @@ export default function UploadTab({ loading, onUpload }: UploadTabProps) {
               className={`w-full rounded-2xl border border-dashed px-5 py-8 text-left transition-colors ${
                 dragActive
                   ? "border-brand-400 bg-brand-500/10"
-                  : "border-ink-500 bg-ink-900/40 hover:border-ink-400 hover:bg-ink-800/60"
+                  : "border-ink-500 bg-ink-900/40 hover:border-brand-400/45 hover:bg-ink-800/60"
               }`}
               type="button"
               onClick={() => inputRef.current?.click()}

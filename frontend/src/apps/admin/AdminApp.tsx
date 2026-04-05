@@ -478,53 +478,55 @@ export default function AdminApp() {
         <ToastNotice notice={notice} />
 
         <section className="panel p-4 md:p-5">
-          <Routes>
-            <Route index element={<Navigate to="overview" replace />} />
-            <Route
-              path="overview"
-              element={
-                <OverviewTab
-                  stats={stats}
-                  users={users}
-                  documents={documents}
-                  loading={loading.stats || loading.users || loading.documents}
-                  onRefresh={refreshOverview}
-                />
-              }
-            />
-            <Route
-              path="users"
-              element={
-                <UsersTab
-                  users={users}
-                  loading={loading.users}
-                  actionLoading={actionLoading}
-                  onRefresh={loadUsers}
-                  onToggleBlock={handleToggleBlock}
-                  onMakeAdmin={requestMakeAdmin}
-                  onRevokeAdmin={handleRevokeAdmin}
-                  isCurrentAdminUser={isCurrentAdminUser}
-                />
-              }
-            />
-            <Route
-              path="documents"
-              element={
-                <DocumentsTab
-                  documents={documents}
-                  loading={loading.documents}
-                  actionLoading={actionLoading}
-                  reindexingDocumentId={reindexingDocumentId}
-                  onRefresh={handleRefreshDocuments}
-                  onDownload={handleDownloadDocument}
-                  onReindex={handleReindexDocument}
-                  onDelete={handleDeleteDocument}
-                />
-              }
-            />
-            <Route path="upload" element={<UploadTab loading={loading.upload} onUpload={handleUploadDocument} />} />
-            <Route path="*" element={<Navigate to="overview" replace />} />
-          </Routes>
+          <div key={location.pathname} className="admin-tab-transition">
+            <Routes>
+              <Route index element={<Navigate to="overview" replace />} />
+              <Route
+                path="overview"
+                element={
+                  <OverviewTab
+                    stats={stats}
+                    users={users}
+                    documents={documents}
+                    loading={loading.stats || loading.users || loading.documents}
+                    onRefresh={refreshOverview}
+                  />
+                }
+              />
+              <Route
+                path="users"
+                element={
+                  <UsersTab
+                    users={users}
+                    loading={loading.users}
+                    actionLoading={actionLoading}
+                    onRefresh={loadUsers}
+                    onToggleBlock={handleToggleBlock}
+                    onMakeAdmin={requestMakeAdmin}
+                    onRevokeAdmin={handleRevokeAdmin}
+                    isCurrentAdminUser={isCurrentAdminUser}
+                  />
+                }
+              />
+              <Route
+                path="documents"
+                element={
+                  <DocumentsTab
+                    documents={documents}
+                    loading={loading.documents}
+                    actionLoading={actionLoading}
+                    reindexingDocumentId={reindexingDocumentId}
+                    onRefresh={handleRefreshDocuments}
+                    onDownload={handleDownloadDocument}
+                    onReindex={handleReindexDocument}
+                    onDelete={handleDeleteDocument}
+                  />
+                }
+              />
+              <Route path="upload" element={<UploadTab loading={loading.upload} onUpload={handleUploadDocument} />} />
+              <Route path="*" element={<Navigate to="overview" replace />} />
+            </Routes>
+          </div>
         </section>
       </main>
 

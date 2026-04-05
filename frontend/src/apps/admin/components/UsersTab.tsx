@@ -1,12 +1,95 @@
-﻿import { Ban, Search, ShieldCheck, ShieldOff, SlidersHorizontal } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+﻿import { Ban, Check, ChevronDown, Search, ShieldCheck, ShieldOff, SlidersHorizontal } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Pagination from "./Pagination";
+import ReloadButton from "./ReloadButton";
 import { formatDate } from "../../../core/utils";
 import type { UserRecord } from "../../../core/types";
 
 const PAGE_SIZE = 20;
 
 type JoinSort = "newest" | "oldest";
+
+interface DropdownOption {
+  value: string;
+  label: string;
+}
+
+interface FilterDropdownProps {
+  label: string;
+  value: string;
+  options: DropdownOption[];
+  onChange: (next: string) => void;
+}
+
+function FilterDropdown({ label, value, options, onChange }: FilterDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onWindowClick = (event: MouseEvent) => {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    const onWindowKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("click", onWindowClick);
+    window.addEventListener("keydown", onWindowKeyDown);
+    return () => {
+      window.removeEventListener("click", onWindowClick);
+      window.removeEventListener("keydown", onWindowKeyDown);
+    };
+  }, []);
+
+  const selected = options.find((option) => option.value === value) || options[0];
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        className={`filter-select ${open ? "filter-select-open" : ""}`}
+        onClick={() => setOpen((prev) => !prev)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="text-sm font-medium text-slate-200">{selected?.label || "-"}</span>
+        <ChevronDown size={15} className={`text-slate-400 transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open ? (
+        <div className="filter-menu" role="listbox" aria-label={label}>
+          <p className="filter-menu-heading">{label}</p>
+          <div className="filter-menu-separator" />
+          {options.map((option) => {
+            const active = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={active}
+                className={`filter-menu-item ${active ? "filter-menu-item-active" : ""}`}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+              >
+                <span>{option.label}</span>
+                {active ? <Check size={14} className="text-brand-300" /> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function StatusTag({ blocked }: { blocked: boolean }) {
   return blocked ? (
@@ -103,6 +186,16 @@ export default function UsersTab({
     setPage(1);
   };
 
+  const platformOptions: DropdownOption[] = [
+    { value: "all", label: "All platforms" },
+    ...platforms.map((item) => ({ value: item, label: item })),
+  ];
+
+  const joinedOptions: DropdownOption[] = [
+    { value: "newest", label: "Newest first" },
+    { value: "oldest", label: "Oldest first" },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -113,9 +206,7 @@ export default function UsersTab({
             <SlidersHorizontal size={14} />
             Filters
           </button>
-          <button className="btn-muted" type="button" onClick={onRefresh} disabled={loading}>
-            {loading ? "Loading..." : "Reload"}
-          </button>
+          <ReloadButton loading={loading} onReload={onRefresh} />
         </div>
       </div>
 
@@ -132,19 +223,14 @@ export default function UsersTab({
         </div>
 
         <div className={`${showFilters ? "mt-2 grid" : "hidden"} gap-2 sm:grid-cols-3 md:mt-3 md:grid`}>
-          <select className="input mt-0" value={platform} onChange={(event) => setPlatform(event.target.value)}>
-            <option value="all">Platform: All</option>
-            {platforms.map((item) => (
-              <option key={item} value={item}>
-                Platform: {item}
-              </option>
-            ))}
-          </select>
+          <FilterDropdown label="Platform" value={platform} options={platformOptions} onChange={setPlatform} />
 
-          <select className="input mt-0" value={joinSort} onChange={(event) => setJoinSort(event.target.value as JoinSort)}>
-            <option value="newest">Joined: Newest</option>
-            <option value="oldest">Joined: Oldest</option>
-          </select>
+          <FilterDropdown
+            label="Joined"
+            value={joinSort}
+            options={joinedOptions}
+            onChange={(next) => setJoinSort(next as JoinSort)}
+          />
 
           <button className="btn-muted" type="button" onClick={clearFilters}>
             Clear
@@ -184,7 +270,7 @@ export default function UsersTab({
                 const isSelf = user.is_admin && isCurrentAdminUser(user);
 
                 return (
-                  <tr key={user.id} className="border-t border-ink-600/40">
+                  <tr key={user.id} className="border-t border-ink-600/40 transition-colors hover:bg-ink-900/35">
                     <td className="px-3 py-3">{user.id}</td>
                     <td className="px-3 py-3">
                       <p className="font-medium">{user.name || "-"}</p>
