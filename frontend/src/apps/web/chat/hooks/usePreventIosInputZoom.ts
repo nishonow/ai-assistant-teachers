@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 
 /**
- * Temporarily pins maximum-scale=1 while an input/textarea is focused so iOS
- * Safari won't auto-zoom regardless of the current viewport zoom level.
- * The constraint is lifted 300 ms after blur so the user can still pinch-zoom
- * when they are not typing.
+ * Prevents iOS Safari from auto-zooming when the user taps an input, even when
+ * the page is already zoomed out below 100%.
+ *
+ * Strategy: pin maximum-scale=1 on touchstart (before iOS decides to zoom) and
+ * keep it while the input is focused. Remove it 300 ms after blur so the user
+ * can still pinch-zoom between typing sessions.
  */
 export function usePreventIosInputZoom() {
   useEffect(() => {
@@ -28,23 +30,30 @@ export function usePreventIosInputZoom() {
       }, 300);
     };
 
+    const isInputTarget = (target: EventTarget | null): boolean => {
+      const tag = (target as HTMLElement | null)?.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    };
+
+    // touchstart fires before iOS initiates zoom — lock here for best timing
+    const onTouchStart = (e: TouchEvent) => {
+      if (isInputTarget(e.target)) lock();
+    };
+
     const onFocusIn = (e: FocusEvent) => {
-      const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
-        lock();
-      }
+      if (isInputTarget(e.target)) lock();
     };
 
     const onFocusOut = (e: FocusEvent) => {
-      const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
-        unlock();
-      }
+      if (isInputTarget(e.target)) unlock();
     };
 
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
     document.addEventListener('focusin', onFocusIn);
     document.addEventListener('focusout', onFocusOut);
+
     return () => {
+      document.removeEventListener('touchstart', onTouchStart);
       document.removeEventListener('focusin', onFocusIn);
       document.removeEventListener('focusout', onFocusOut);
       if (blurTimer !== null) clearTimeout(blurTimer);

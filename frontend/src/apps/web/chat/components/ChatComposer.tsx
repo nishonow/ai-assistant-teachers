@@ -2,7 +2,7 @@ import { CircleStop, Loader2, Mic, SendHorizontal } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useAuth } from "../../../../core/auth";
 import { transcribeVoiceMessage } from "../utils/api";
-import { useVisualViewport } from "../../../../hooks/useVisualViewport";
+import { useVisualViewport } from "../hooks/useVisualViewport";
 
 interface ChatComposerProps {
   disabled: boolean;

@@ -41,7 +41,8 @@ import useSystemPrefersDark from "../chat/hooks/useSystemPrefersDark";
 import useWebchatDocumentMeta from "../chat/hooks/useWebchatDocumentMeta";
 import useChatConversationsData from "../chat/hooks/useChatConversationsData";
 import usePwaInstallPrompt from "../hooks/usePwaInstallPrompt";
-import { usePreventIosInputZoom } from "../../../hooks/usePreventIosInputZoom";
+import { usePreventIosInputZoom } from "../chat/hooks/usePreventIosInputZoom";
+import { useThemeColor } from "../chat/hooks/useThemeColor";
 
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -231,6 +232,7 @@ export default function ChatPage() {
     resolvedTheme,
   });
   usePreventIosInputZoom();
+  useThemeColor(resolvedTheme);
 
   const handleSelectConversation = useCallback(
     (conversationId: string) => {
