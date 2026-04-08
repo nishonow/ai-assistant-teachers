@@ -189,6 +189,7 @@
   body,
   #root {
     @apply h-full;
+    background-color: #07101a;
   }
 
   html {
@@ -929,7 +930,38 @@
     background: rgba(214, 87, 66, 0.22) !important;
     color: #7c261a !important;
   }
-    .message-rich {
+  /* ─── Dark theme: explicit overrides so the app theme toggle works
+         regardless of OS colour-scheme preference ─────────────────── */
+  .webchat-shell.webchat-theme-dark {
+    color-scheme: dark;
+    background: linear-gradient(180deg, #07101a 0%, #03070d 100%);
+    color: #e2e8f0;
+  }
+
+  .webchat-shell.webchat-theme-dark .webchat-main-surface,
+  .webchat-shell.webchat-theme-dark .webchat-main-panel {
+    background: #07101a;
+  }
+
+  .webchat-shell.webchat-theme-dark .webchat-sidebar-shell {
+    background: #09111d;
+  }
+
+  .webchat-shell.webchat-theme-dark .webchat-sources-shell {
+    background: #09111d;
+  }
+
+  .webchat-shell.webchat-theme-dark .webchat-header {
+    background: rgba(8, 17, 28, 0.85);
+    border-color: rgba(30, 52, 72, 0.6);
+  }
+
+  .webchat-shell.webchat-theme-dark .chat-composer-shell {
+    background: #0b1520;
+    border-color: rgba(30, 52, 72, 0.7);
+  }
+
+  .message-rich {
     font-family: "Inter", sans-serif;
     font-weight: 400;
     @apply text-[15px] leading-6 tracking-[0.002em] text-slate-200;

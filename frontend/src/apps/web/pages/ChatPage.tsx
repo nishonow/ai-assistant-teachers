@@ -36,12 +36,12 @@ import {
   type WebchatThemePreference,
 } from "../chat";
 import type { ChatMessage, ChatSource, Conversation, ConversationSummary } from "../chat";
-import useMobileBodyScrollLock from "../chat/hooks/useMobileBodyScrollLock";
 import useRateLimitCountdown from "../chat/hooks/useRateLimitCountdown";
 import useSystemPrefersDark from "../chat/hooks/useSystemPrefersDark";
 import useWebchatDocumentMeta from "../chat/hooks/useWebchatDocumentMeta";
 import useChatConversationsData from "../chat/hooks/useChatConversationsData";
 import usePwaInstallPrompt from "../hooks/usePwaInstallPrompt";
+import { usePreventIosInputZoom } from "../../../hooks/usePreventIosInputZoom";
 
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -230,7 +230,7 @@ export default function ChatPage() {
     conversationTitle: activeConversation?.title,
     resolvedTheme,
   });
-  useMobileBodyScrollLock(mobileSidebarOpen || mobileSourcesOpen);
+  usePreventIosInputZoom();
 
   const handleSelectConversation = useCallback(
     (conversationId: string) => {
