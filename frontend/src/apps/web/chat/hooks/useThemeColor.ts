@@ -1,35 +1,36 @@
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
-import type { WebchatResolvedTheme } from '../utils/theme';
+import type { WebchatResolvedTheme } from "../utils/theme";
 
 const THEME_COLORS: Record<WebchatResolvedTheme, string> = {
-  dark: '#07101a',
-  light: '#f7f9fc',
+  dark: "#07101a",
+  light: "#f7f9fc",
 };
 
+const THEME_COLOR_META_SELECTOR = 'meta[name="theme-color"]';
+const DYNAMIC_THEME_META_ATTR = "data-webchat-theme-color";
+const DYNAMIC_THEME_META_SELECTOR = `meta[name="theme-color"][${DYNAMIC_THEME_META_ATTR}="true"]`;
 
 export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
   useEffect(() => {
-    const lightMeta = document.querySelector<HTMLMetaElement>(
-      'meta[name="theme-color"][media="(prefers-color-scheme: light)"]',
-    );
-    const darkMeta = document.querySelector<HTMLMetaElement>(
-      'meta[name="theme-color"][media="(prefers-color-scheme: dark)"]',
-    );
-
     const color = THEME_COLORS[resolvedTheme];
 
-    // Override both tags to the chosen colour so the browser picks the right
-    // one regardless of which media query currently matches.
-    if (lightMeta) lightMeta.content = color;
-    if (darkMeta) darkMeta.content = color;
+    const themeColorMetas = Array.from(
+      document.querySelectorAll<HTMLMetaElement>(THEME_COLOR_META_SELECTOR),
+    );
 
-    // Fallback: if tags are missing (shouldn't happen), create a plain one.
-    if (!lightMeta && !darkMeta) {
-      const meta = document.createElement('meta');
-      meta.name = 'theme-color';
+    themeColorMetas.forEach((meta) => {
       meta.content = color;
-      document.head.appendChild(meta);
+    });
+
+    let dynamicThemeMeta = document.querySelector<HTMLMetaElement>(DYNAMIC_THEME_META_SELECTOR);
+    if (!dynamicThemeMeta) {
+      dynamicThemeMeta = document.createElement("meta");
+      dynamicThemeMeta.name = "theme-color";
+      dynamicThemeMeta.setAttribute(DYNAMIC_THEME_META_ATTR, "true");
+      document.head.appendChild(dynamicThemeMeta);
     }
+
+    dynamicThemeMeta.content = color;
   }, [resolvedTheme]);
 }

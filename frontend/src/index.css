@@ -183,13 +183,14 @@
 @layer base {
   :root {
     color-scheme: light dark;
+    --app-underlay-bg: #07101a;
   }
 
   html,
   body,
   #root {
     @apply h-full;
-    background-color: #07101a;
+    background-color: var(--app-underlay-bg);
   }
 
   html {
@@ -199,6 +200,7 @@
 
   body {
     height: 100%;
+    background-color: var(--app-underlay-bg);
     background-image: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -930,8 +932,7 @@
     background: rgba(214, 87, 66, 0.22) !important;
     color: #7c261a !important;
   }
-  /* ─── Dark theme: explicit overrides so the app theme toggle works
-         regardless of OS colour-scheme preference ─────────────────── */
+  /* Dark theme: explicit overrides so the app theme toggle works regardless of OS color-scheme preference */
   .webchat-shell.webchat-theme-dark {
     color-scheme: dark;
     background: linear-gradient(180deg, #07101a 0%, #03070d 100%);
@@ -1035,4 +1036,3 @@
 button, a, [role="button"] {
   touch-action: manipulation;
 }
-

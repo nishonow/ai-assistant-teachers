@@ -2,7 +2,6 @@ import { CircleStop, Loader2, Mic, SendHorizontal } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useAuth } from "../../../../core/auth";
 import { transcribeVoiceMessage } from "../utils/api";
-import { useVisualViewport } from "../hooks/useVisualViewport";
 
 interface ChatComposerProps {
   disabled: boolean;
@@ -55,15 +54,6 @@ export default function ChatComposer({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const composerWrapperRef = useRef<HTMLDivElement | null>(null);
-  const zoomedViewportRef = useRef<{ scrollX: number; scrollY: number } | null>(null);
-
-  useVisualViewport(useCallback((keyboardHeight) => {
-    if (composerWrapperRef.current) {
-      composerWrapperRef.current.style.transform =
-        keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : '';
-    }
-  }, []));
   const lastFocusRequestRef = useRef(focusRequestKey);
   const deferredFocusRef = useRef(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -212,29 +202,6 @@ export default function ChatComposer({
     event.currentTarget.form?.requestSubmit();
   };
 
-  const captureZoomedViewport = () => {
-    const scale = window.visualViewport?.scale ?? 1;
-    if (Math.abs(scale - 1) < 0.01) {
-      zoomedViewportRef.current = null;
-      return;
-    }
-
-    zoomedViewportRef.current = {
-      scrollX: window.scrollX,
-      scrollY: window.scrollY,
-    };
-  };
-
-  const stabilizeZoomedFocus = () => {
-    const snapshot = zoomedViewportRef.current;
-    if (!snapshot) return;
-
-    requestAnimationFrame(() => {
-      window.scrollTo(snapshot.scrollX, snapshot.scrollY);
-      textareaRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
-    });
-  };
-
   const clearMediaResources = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
@@ -373,10 +340,9 @@ export default function ChatComposer({
       : "Нажмите, чтобы начать запись";
 
   return (
-    <div ref={composerWrapperRef}>
     <form
       onSubmit={handleSubmit}
-      className="relative bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:px-6 md:pb-4 md:pt-0"
+      className="relative -mt-6 bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:-mt-7 md:px-6 md:pb-4 md:pt-0"
     >
       <div className="chat-composer-shell relative mx-auto flex w-full max-w-4xl items-end gap-2 overflow-visible rounded-[24px] border border-[#1e3448]/70 bg-[#0b1520] px-3 py-2 transition-all duration-250 md:gap-2.5 md:px-4 md:py-2.5">
         <textarea
@@ -384,8 +350,6 @@ export default function ChatComposer({
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
-          onPointerDownCapture={captureZoomedViewport}
-          onFocus={stabilizeZoomedFocus}
           placeholder="Напишите Mugallim AI..."
           rows={1}
           style={{ touchAction: 'manipulation' }}
@@ -432,6 +396,5 @@ export default function ChatComposer({
         </p>
       </div>
     </form>
-    </div>
   );
 }

@@ -118,7 +118,7 @@ function ChatScrollShell({
       </div>
       
       {showScrollButton && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 md:bottom-6 z-10">
+        <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 md:bottom-[-14px] z-20">
           <button
             type="button"
             onClick={onScrollToBottom}
