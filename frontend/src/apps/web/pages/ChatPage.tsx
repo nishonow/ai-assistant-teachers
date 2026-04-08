@@ -230,7 +230,7 @@ export default function ChatPage() {
     conversationTitle: activeConversation?.title,
     resolvedTheme,
   });
-  useMobileBodyScrollLock();
+  useMobileBodyScrollLock(mobileSidebarOpen || mobileSourcesOpen);
 
   const handleSelectConversation = useCallback(
     (conversationId: string) => {
@@ -617,7 +617,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className={`webchat-shell webchat-theme-${resolvedTheme} relative flex w-full h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,_#ffffff_0%,_#f5f7fb_100%)] text-[#1c1b18] dark:bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] dark:text-slate-100`}>
+    <div className={`webchat-shell webchat-theme-${resolvedTheme} fixed inset-0 flex overflow-hidden bg-[linear-gradient(180deg,_#ffffff_0%,_#f5f7fb_100%)] text-[#1c1b18] dark:bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] dark:text-slate-100 pt-[env(safe-area-inset-top)]`} style={{ height: '100dvh' }}>
       <ChatSidebar
         activeConversationId={activeConversationId}
         conversations={conversations}

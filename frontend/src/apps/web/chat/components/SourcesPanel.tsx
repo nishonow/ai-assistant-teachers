@@ -1,5 +1,5 @@
 import { BookOpenText, Download, Eye, X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import type { ChatSource } from "../utils/types";
 import useDrawerVisibility from "../hooks/useDrawerVisibility";
@@ -145,6 +145,7 @@ export default function SourcesPanel({
   onCloseMobile,
 }: SourcesPanelProps) {
   const { isVisible: mobileVisible, isClosing: mobileClosing } = useDrawerVisibility(mobileOpen);
+  const mobileDrawerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -160,6 +161,16 @@ export default function SourcesPanel({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [mobileOpen, onCloseMobile]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const drawer = mobileDrawerRef.current;
+    if (!drawer) return;
+    const focusable = drawer.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    focusable[0]?.focus();
+  }, [mobileOpen]);
 
   return (
     <>
@@ -189,18 +200,25 @@ export default function SourcesPanel({
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
+            style={{ touchAction: 'manipulation' }}
             className={[mobileClosing ? "drawer-overlay-exit" : "drawer-overlay-enter", "absolute inset-0 bg-black/20 dark:bg-[#020508]/70"].join(" ")}
             onClick={onCloseMobile}
             aria-label={"Закрыть источники"}
           />
 
-          <aside className={["webchat-sources-shell absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden border-l border-slate-200 bg-white/90 backdrop-blur-2xl dark:border-[#1e3448]/60 dark:bg-[#08121c]/85", mobileClosing ? "drawer-sheet-right-exit" : "drawer-sheet-right"].join(" ")}>
+          <aside
+            ref={mobileDrawerRef}
+            aria-modal="true"
+            role="dialog"
+            className={["webchat-sources-shell absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden border-l border-slate-200 bg-white/90 backdrop-blur-2xl dark:border-[#1e3448]/60 dark:bg-[#08121c]/85", mobileClosing ? "drawer-sheet-right-exit" : "drawer-sheet-right"].join(" ")}
+            style={{ willChange: 'transform', transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1)' }}
+          >
             <div className="webchat-sources-mobile-header flex h-[62px] shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50/80 px-4 pt-[env(safe-area-inset-top)] dark:border-[#1e3448]/50 dark:bg-[#0b1623]/60">
               <div className="webchat-sources-mobile-title flex items-center gap-2 text-slate-800 dark:text-slate-200">
                 <BookOpenText size={16} />
                 <span className="text-sm font-semibold">{"Источники"}</span>
               </div>
-              <button type="button" className="btn-muted p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200" onClick={onCloseMobile} aria-label={"Закрыть панель источников"}>
+              <button type="button" style={{ touchAction: 'manipulation' }} className="btn-muted p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200" onClick={onCloseMobile} aria-label={"Закрыть панель источников"}>
                 <X size={16} />
               </button>
             </div>

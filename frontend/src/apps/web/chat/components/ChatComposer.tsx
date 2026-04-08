@@ -2,6 +2,7 @@ import { CircleStop, Loader2, Mic, SendHorizontal } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useAuth } from "../../../../core/auth";
 import { transcribeVoiceMessage } from "../utils/api";
+import { useVisualViewport } from "../../../../hooks/useVisualViewport";
 
 interface ChatComposerProps {
   disabled: boolean;
@@ -54,7 +55,15 @@ export default function ChatComposer({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const composerWrapperRef = useRef<HTMLDivElement | null>(null);
   const zoomedViewportRef = useRef<{ scrollX: number; scrollY: number } | null>(null);
+
+  useVisualViewport(useCallback((keyboardHeight) => {
+    if (composerWrapperRef.current) {
+      composerWrapperRef.current.style.transform =
+        keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : '';
+    }
+  }, []));
   const lastFocusRequestRef = useRef(focusRequestKey);
   const deferredFocusRef = useRef(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -364,9 +373,10 @@ export default function ChatComposer({
       : "Нажмите, чтобы начать запись";
 
   return (
+    <div ref={composerWrapperRef}>
     <form
       onSubmit={handleSubmit}
-      className="relative -mt-7 bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:-mt-8 md:px-6 md:pb-4 md:pt-0"
+      className="relative bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:px-6 md:pb-4 md:pt-0"
     >
       <div className="chat-composer-shell relative mx-auto flex w-full max-w-4xl items-end gap-2 overflow-visible rounded-[24px] border border-[#1e3448]/70 bg-[#0b1520] px-3 py-2 transition-all duration-250 md:gap-2.5 md:px-4 md:py-2.5">
         <textarea
@@ -378,11 +388,13 @@ export default function ChatComposer({
           onFocus={stabilizeZoomedFocus}
           placeholder="Напишите Mugallim AI..."
           rows={1}
+          style={{ touchAction: 'manipulation' }}
           className="webchat-composer-input chat-input-scroll min-h-[34px] max-h-[220px] flex-1 resize-none bg-transparent px-1 py-1.5 text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[38px] md:py-[7px]"
         />
         <div className="relative">
           <button
             type="button"
+            style={{ touchAction: 'manipulation' }}
             className={`webchat-source-download inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#1e3448]/70 bg-[#102033] text-slate-300 transition-colors hover:bg-[#1a344d] hover:text-slate-100 md:h-10 md:w-10 ${
               isRecording ? "border-rose-400/60 bg-rose-500/20 text-rose-100 hover:bg-rose-500/25" : ""
             }`}
@@ -403,6 +415,7 @@ export default function ChatComposer({
 
         <button
           type="submit"
+          style={{ touchAction: 'manipulation' }}
           className="webchat-send-button inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-300 text-[#0a1e18] transition-all duration-200 hover:bg-[#b7fbf3] disabled:cursor-not-allowed disabled:opacity-40 md:h-10 md:w-10"
           disabled={disabled || !value.trim()}
           aria-label="Отправить сообщение"
@@ -419,5 +432,6 @@ export default function ChatComposer({
         </p>
       </div>
     </form>
+    </div>
   );
 }

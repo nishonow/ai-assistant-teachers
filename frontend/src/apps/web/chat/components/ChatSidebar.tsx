@@ -1,5 +1,5 @@
 import { Download, LogOut, MessageSquarePlus, Moon, MoreHorizontal, Palette, PanelLeftClose, Pencil, Shield, Sun, Trash2, UserRound } from "lucide-react";
-import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 
 import logo from "../../../../../logo.png";
 
@@ -391,6 +391,8 @@ export default function ChatSidebar({
   const [menuOpen, setMenuOpen] = useState(false);
   const { isVisible: mobileVisible, isClosing: mobileClosing } = useDrawerVisibility(isMobileOpen);
   const safeUsername = (username || "").trim() || "User";
+  const mobileDrawerRef = useRef<HTMLElement | null>(null);
+  const drawerTriggerRef = useRef<HTMLElement | null>(null);
   const avatarLetter = useMemo(() => safeUsername.charAt(0).toUpperCase() || "U", [safeUsername]);
 
   useEffect(() => {
@@ -445,6 +447,19 @@ export default function ChatSidebar({
     };
   }, [isMobileOpen, onCloseMobile]);
 
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    const drawer = mobileDrawerRef.current;
+    if (!drawer) return;
+    const focusable = drawer.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    focusable[0]?.focus();
+    return () => {
+      (drawerTriggerRef.current as HTMLElement | null)?.focus();
+    };
+  }, [isMobileOpen]);
+
   return (
     <>
       <aside className="webchat-sidebar-shell sidebar-shell hidden h-full w-[290px] flex-col bg-[#09111d] px-3 py-3 md:flex">
@@ -496,11 +511,18 @@ export default function ChatSidebar({
         <>
           <div
             className={[mobileClosing ? "drawer-overlay-exit" : "drawer-overlay-enter", "fixed inset-0 z-30 bg-[#020508]/70 md:hidden"].join(" ")}
+            style={{ touchAction: 'manipulation' }}
             onClick={onCloseMobile}
           />
-          <aside className={["webchat-sidebar-shell fixed inset-y-0 left-0 z-40 flex h-full w-[88vw] max-w-[22rem] flex-col overflow-hidden bg-[#08121c]/85 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-2xl md:hidden", mobileClosing ? "drawer-sheet-left-exit" : "drawer-sheet-left"].join(" ")}>
+          <aside
+            ref={mobileDrawerRef}
+            aria-modal="true"
+            role="dialog"
+            className={["webchat-sidebar-shell fixed inset-y-0 left-0 z-40 flex h-full w-[88vw] max-w-[22rem] flex-col overflow-hidden bg-[#08121c]/85 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-2xl md:hidden", mobileClosing ? "drawer-sheet-left-exit" : "drawer-sheet-left"].join(" ")}
+            style={{ willChange: 'transform', transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1)' }}
+          >
             <div className="mb-3 flex items-center">
-              <button type="button" className="btn-muted shrink-0" onClick={onCloseMobile} aria-label="Закрыть меню">
+              <button type="button" style={{ touchAction: 'manipulation' }} className="btn-muted shrink-0" onClick={onCloseMobile} aria-label="Закрыть меню">
                 <PanelLeftClose size={16} />
               </button>
             </div>

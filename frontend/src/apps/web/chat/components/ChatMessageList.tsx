@@ -1,5 +1,5 @@
 import { ArrowDown, BookOpenText, Check, Copy, MessageSquare } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import React, { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import AssistantMessageContent, { getAssistantMessagePlainText } from "./AssistantMessageContent";
 import type { ChatMessage } from "../utils/types";
@@ -20,7 +20,7 @@ const SUGGESTED_QUESTIONS = [
   "Какие практические задания можно дать по теме?",
 ] as const;
 
-const AUTO_SCROLL_THRESHOLD = 96;
+const AUTO_SCROLL_THRESHOLD = 100;
 const THINKING_ANIMATION_CSS = `
   @keyframes webchatThinkingCorePulse {
     0%, 100% {
@@ -108,10 +108,11 @@ function ChatScrollShell({
 }) {
   return (
     <div className="relative min-h-0 flex-1">
-      <div 
-        ref={scrollRef} 
+      <div
+        ref={scrollRef}
         onScroll={onScroll}
         className="scroll-area h-full overflow-y-auto px-3 py-4 pb-16 md:px-6 md:py-5 md:pb-20"
+        style={{ overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch', scrollBehavior: 'auto' } as React.CSSProperties & { WebkitOverflowScrolling: string }}
       >
         {children}
       </div>
@@ -150,10 +151,10 @@ export default function ChatMessageList({
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
 
-  const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
+  const scrollToBottom = useCallback(() => {
     const element = scrollRef.current;
     if (!element) return;
-    element.scrollTo({ top: element.scrollHeight, behavior });
+    element.scrollTop = element.scrollHeight;
   }, []);
 
   const handleScroll = useCallback(() => {
@@ -180,13 +181,11 @@ export default function ChatMessageList({
     }
 
     const isNewConversation = messages[0]?.id !== previousFirstMessageIdRef.current;
-    const shouldSmooth = !isNewConversation && (messages.length > previousLengthRef.current || (pending && !previousPendingRef.current));
-    const behavior: ScrollBehavior = shouldSmooth ? "smooth" : "auto";
 
     if (isNewConversation || shouldStickToBottomRef.current) {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          scrollToBottom(behavior);
+          scrollToBottom();
           if (isNewConversation) {
              shouldStickToBottomRef.current = true;
              setShowScrollButton(false);
@@ -206,7 +205,7 @@ export default function ChatMessageList({
 
     const observer = new ResizeObserver(() => {
       if (shouldStickToBottomRef.current) {
-        scrollToBottom("auto");
+        scrollToBottom();
       }
     });
 
@@ -241,7 +240,7 @@ export default function ChatMessageList({
         <style>{THINKING_ANIMATION_CSS}</style>
         <ChatScrollShell 
           scrollRef={scrollRef}
-          onScrollToBottom={() => scrollToBottom("smooth")}
+          onScrollToBottom={scrollToBottom}
           showScrollButton={showScrollButton}
           onScroll={handleScroll}
         >
@@ -289,8 +288,8 @@ export default function ChatMessageList({
         <div className="grid h-full place-items-center px-4 py-5 md:px-6 md:py-10">
         <div className="w-full max-w-[50rem] px-4 py-5 text-center sm:px-8 sm:py-10">
 
-          <h2 className="font-heading text-[2rem] leading-tight text-slate-100 sm:text-3xl">С чего начнем диалог</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-400">Выберите вопрос или напишите свой запрос ниже</p>
+          <h2 className="font-heading text-[2rem] leading-tight text-slate-100 sm:text-3xl">Что вы хотите узнать?</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-400">Задайте вопрос или выберите один из примеров ниже</p>
           <div className="mx-auto mt-6 grid w-full max-w-[760px] gap-2.5 text-left sm:mt-8 sm:gap-3 sm:grid-cols-3">
             {SUGGESTED_QUESTIONS.map((question, index) => (
               <button
@@ -321,7 +320,7 @@ export default function ChatMessageList({
       <style>{THINKING_ANIMATION_CSS}</style>
       <ChatScrollShell 
         scrollRef={scrollRef} 
-        onScrollToBottom={() => scrollToBottom("smooth")}
+        onScrollToBottom={scrollToBottom}
         showScrollButton={showScrollButton}
         onScroll={handleScroll}
       >
