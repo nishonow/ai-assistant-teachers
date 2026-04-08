@@ -7,19 +7,29 @@ const THEME_COLORS: Record<WebchatResolvedTheme, string> = {
   light: '#f7f9fc',
 };
 
-/**
- * Updates the <meta name="theme-color"> tag to match the app shell background
- * whenever the resolved theme changes. This keeps the browser chrome / status
- * bar colour in sync without requiring a page refresh.
- */
+
 export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
   useEffect(() => {
-    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-    if (!meta) {
-      meta = document.createElement('meta');
+    const lightMeta = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"][media="(prefers-color-scheme: light)"]',
+    );
+    const darkMeta = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"][media="(prefers-color-scheme: dark)"]',
+    );
+
+    const color = THEME_COLORS[resolvedTheme];
+
+    // Override both tags to the chosen colour so the browser picks the right
+    // one regardless of which media query currently matches.
+    if (lightMeta) lightMeta.content = color;
+    if (darkMeta) darkMeta.content = color;
+
+    // Fallback: if tags are missing (shouldn't happen), create a plain one.
+    if (!lightMeta && !darkMeta) {
+      const meta = document.createElement('meta');
       meta.name = 'theme-color';
+      meta.content = color;
       document.head.appendChild(meta);
     }
-    meta.content = THEME_COLORS[resolvedTheme];
   }, [resolvedTheme]);
 }
