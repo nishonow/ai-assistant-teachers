@@ -141,25 +141,25 @@ export default function ChatPage() {
       const outcome = await promptInstall();
 
       if (outcome === "accepted") {
-        showNotice("success", "?????????? ????????? ?? ??????? ?????.");
+        showNotice("success", "Приложение установлено на главный экран.");
         return;
       }
 
       if (outcome === "dismissed") {
-        showNotice("warning", "????????? ????????. ????? ??????????? ????? ?????.");
+        showNotice("warning", "Установка отменена. Можно попробовать позже снова.");
         return;
       }
 
-      showNotice("warning", "????????? ???? ??????????. ???????? ???????? ??? ???????? ???? ???????? ? ???????? �?????????? ??????????�.");
+      showNotice("warning", "Запрос на установку недоступен. Откройте меню браузера и выберите \"Установить приложение\".");
       return;
     }
 
     if (canShowManualInstall) {
-      showNotice("warning", "?? iPhone ???????? ???? �??????????� ? ???????? �?? ????? ?????�.");
+      showNotice("warning", "На iPhone откройте меню \"Поделиться\" и выберите \"На экран Домой\".");
       return;
     }
 
-    showNotice("warning", "???????? ???? ???????? ? ???????? �?????????? ??????????�. ???? ?????? ???, ?????????? ?? ???????????? ?????????.");
+    showNotice("warning", "Кнопка установки есть в меню \"Установить приложение\". Если кнопки нет, обновите страницу.");
   }, [canPromptInstall, canShowManualInstall, promptInstall, showNotice]);
 
   const requestComposerFocus = useCallback(() => {
@@ -276,7 +276,7 @@ export default function ChatPage() {
           conversation = await createConversation({ session });
           isFreshConversation = true;
         } catch (requestError) {
-          showNotice("error", localizeUserErrorMessage(requestError, "?? ??????? ?????? ????? ??????."));
+          showNotice("error", localizeUserErrorMessage(requestError, "Не удалось начать новый диалог."));
           setPending(false);
           sendLockRef.current = false;
           return;
@@ -307,7 +307,7 @@ export default function ChatPage() {
         });
         setIsMessagingBlocked(false);
         setRateLimitUntil(null);
-        const answer = response.answer || "????? ?? ??? ???????.";
+        const answer = response.answer || "Ответ не был получен.";
         const sources = response.sources || [];
         const answeredConversation: Conversation = {
           ...optimisticConversation,
@@ -332,25 +332,25 @@ export default function ChatPage() {
         } catch (saveError) {
           showNotice(
             "error",
-            saveError instanceof Error ? `${saveError.message} ?????? ?? ??? ????????.` : "?????? ?? ??? ????????.",
+            saveError instanceof Error ? `${saveError.message} Ответ не был сохранен.` : "Ответ не был сохранен.",
           );
         }
       } catch (requestError) {
         if (isBlockedMessagingError(requestError)) {
           setIsMessagingBlocked(true);
-          showNotice("error", "???????????? ????????????. ???????? ????????? ??????????.");
+          showNotice("error", "Пользователь заблокирован. Обратитесь к администратору.");
           syncActiveConversation(conversation, "preserve", "preserve");
           return;
         }
 
         if (isRateLimitError(requestError)) {
           setRateLimitUntil(Date.now() + RATE_LIMIT_WINDOW_SECONDS * 1000);
-          showNotice("warning", localizeUserErrorMessage(requestError, "??????? ????? ????????."));
+          showNotice("warning", localizeUserErrorMessage(requestError, "Слишком много запросов."));
           syncActiveConversation(conversation, "preserve", "preserve");
           return;
         }
 
-        showNotice("error", localizeUserErrorMessage(requestError, "?????? ?? ????????."));
+        showNotice("error", localizeUserErrorMessage(requestError, "Ответ не получен."));
         syncActiveConversation(conversation, "preserve", "preserve");
       } finally {
         setPending(false);
@@ -380,12 +380,12 @@ export default function ChatPage() {
     const email = profileEmail.trim();
 
     if (!name) {
-      showNotice("error", "??????? ???.");
+      showNotice("error", "Укажите имя.");
       return;
     }
 
     if (!email) {
-      showNotice("error", "??????? ????? ??????????? ?????.");
+      showNotice("error", "Укажите корректный email.");
       return;
     }
 
@@ -395,9 +395,9 @@ export default function ChatPage() {
       await updateProfile({ name, email, password: profilePassword });
       setProfileOpen(false);
       setProfilePassword("");
-      showNotice("success", "??????? ??????? ????????.");
+      showNotice("success", "Профиль успешно обновлен.");
     } catch (requestError) {
-      showNotice("error", localizeUserErrorMessage(requestError, "?? ??????? ???????? ???????."));
+      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось обновить профиль."));
     } finally {
       setProfilePending(false);
     }
@@ -414,7 +414,7 @@ export default function ChatPage() {
 
     const title = renameValue.trim();
     if (!title) {
-      showNotice("error", "???????? ??????? ?? ????? ???? ??????.");
+      showNotice("error", "Название диалога не может быть пустым.");
       return;
     }
 
@@ -433,11 +433,11 @@ export default function ChatPage() {
         setConversations((prev) => upsertConversationSummary(prev, renamedConversation, "preserve"));
       }
 
-      showNotice("success", "?????? ??????? ????????????.");
+      showNotice("success", "Диалог успешно переименован.");
       setRenameTargetConversation(null);
       setRenameValue("");
     } catch (requestError) {
-      showNotice("error", localizeUserErrorMessage(requestError, "?? ??????? ????????????? ??????."));
+      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось переименовать диалог."));
     } finally {
       setRenamePending(false);
     }
@@ -458,7 +458,7 @@ export default function ChatPage() {
       await deleteConversation(session, deleteTargetConversation.id);
 
       setConversations((prev) => prev.filter((item) => item.id !== deleteTargetConversation.id));
-      showNotice("success", "?????? ??????.");
+      showNotice("success", "Диалог удален.");
       setDeleteTargetConversation(null);
 
       if (deleteTargetConversation.id === activeConversationId) {
@@ -472,7 +472,7 @@ export default function ChatPage() {
         navigate("/app", { replace: true });
       }
     } catch (requestError) {
-      showNotice("error", localizeUserErrorMessage(requestError, "?? ??????? ??????? ??????."));
+      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось удалить диалог."));
     } finally {
       setDeletePending(false);
     }
@@ -500,7 +500,7 @@ export default function ChatPage() {
       setMobileSourcesOpen(false);
       navigate("/app", { replace: true });
     } catch (requestError) {
-      showNotice("error", localizeUserErrorMessage(requestError, "?? ??????? ??????? ??????? ?????."));
+      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось удалить историю чатов."));
     } finally {
       setDeleteAllPending(false);
     }
@@ -528,7 +528,7 @@ export default function ChatPage() {
         anchor.remove();
         URL.revokeObjectURL(objectUrl);
       } catch (requestError) {
-        showNotice("error", localizeUserErrorMessage(requestError, "?? ??????? ??????? ????????."));
+        showNotice("error", localizeUserErrorMessage(requestError, "Не удалось скачать источник."));
       } finally {
         setDownloadPendingId(null);
       }
@@ -541,7 +541,7 @@ export default function ChatPage() {
       if (!session || !activeConversationId || !source.documentId) return;
 
       if (window.matchMedia("(max-width: 1023px)").matches) {
-        showNotice("warning", "??????-???????? ???? ???????? ?????? ?? ???????? ??? ??????? ??????.");
+        showNotice("warning", "Просмотр PDF доступен только на десктопе для текущей версии.");
         return;
       }
 
@@ -565,7 +565,7 @@ export default function ChatPage() {
         const headerLooksPdf = headerSignature === "%PDF-";
 
         if (!sourceLooksPdf && !blobIsPdf && !headerLooksPdf) {
-          setViewerError("???????????? ???????? ?????? ??? PDF-??????????.");
+          setViewerError("Неподдерживаемый формат файла для PDF-просмотра.");
           return;
         }
 
@@ -573,7 +573,7 @@ export default function ChatPage() {
         const objectUrl = URL.createObjectURL(previewBlob);
         replaceViewerSourceUrl(objectUrl);
       } catch (requestError) {
-        setViewerError(localizeUserErrorMessage(requestError, "?? ??????? ??????? ????????."));
+        setViewerError(localizeUserErrorMessage(requestError, "Не удалось открыть источник."));
       } finally {
         setViewerLoading(false);
         setViewPendingId(null);
@@ -657,7 +657,7 @@ export default function ChatPage() {
                   type="button"
                   className="btn-muted px-2.5 py-2"
                   onClick={() => setMobileSidebarOpen((current) => !current)}
-                  aria-label={mobileSidebarOpen ? "??????? ????" : "??????? ????"}
+                  aria-label={mobileSidebarOpen ? "Скрыть меню" : "Открыть меню"}
                 >
                   {mobileSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
                 </button>
@@ -677,7 +677,7 @@ export default function ChatPage() {
                     setMobileSidebarOpen(false);
                     setMobileSourcesOpen((current) => !current);
                   }}
-                  aria-label={mobileSourcesOpen ? "??????? ?????????" : "??????? ?????????"}
+                  aria-label={mobileSourcesOpen ? "Скрыть источники" : "Показать источники"}
                 >
                   <BookOpenText size={16} />
                 </button>
@@ -688,7 +688,7 @@ export default function ChatPage() {
               <div className="flex min-w-0 items-center gap-3">
                 <div className="min-w-0">
                   <h1 className="truncate font-heading text-[16px] text-slate-100">
-                    {activeConversation?.title ?? "????? ???"}
+                    {activeConversation?.title ?? "Новый чат"}
                   </h1>
                 </div>
               </div>
@@ -700,7 +700,7 @@ export default function ChatPage() {
                   onClick={() => setDesktopSourcesOpen((current) => !current)}
                 >
                   <BookOpenText size={16} />
-                  ?????????
+                  Источники
                   <ChevronRight
                     size={14}
                     className={[
@@ -724,7 +724,7 @@ export default function ChatPage() {
           />
           {isMessagingBlocked ? (
             <div className="webchat-warning-banner mx-3 mb-2 rounded-xl border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-200 md:mx-6">
-              ?? ?????????????. ???????? ????? ????????? ???????? ??????????.
+              Пользователь заблокирован. Обратитесь к администратору.
             </div>
           ) : null}
           <ChatComposer
@@ -738,7 +738,7 @@ export default function ChatPage() {
 
         <SourcesPanel
           activeConversationId={activeConversationId}
-          activeConversationTitle={activeConversation?.title ?? "????? ???"}
+          activeConversationTitle={activeConversation?.title ?? "Новый чат"}
           downloadPendingId={downloadPendingId}
           viewPendingId={viewPendingId}
           loading={isLoadingConversation}
@@ -770,7 +770,7 @@ export default function ChatPage() {
 
       <DeleteConversationModal
         open={Boolean(deleteTargetConversation)}
-        title={deleteTargetConversation?.title ?? "???? ??????"}
+        title={deleteTargetConversation?.title ?? "Этот диалог"}
         pending={deletePending}
         onCancel={() => setDeleteTargetConversation(null)}
         onConfirm={() => {

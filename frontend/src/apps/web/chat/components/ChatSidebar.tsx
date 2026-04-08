@@ -179,7 +179,7 @@ function SidebarList({
                   event.stopPropagation();
                   setOpenMenuId((current) => (current === conversation.id ? null : conversation.id));
                 }}
-                aria-label="???????? ????"
+                aria-label="Действия чата"
               >
                 <MoreHorizontal size={15} />
               </button>
@@ -196,7 +196,7 @@ function SidebarList({
                     }}
                   >
                     <Pencil size={14} />
-                    ?????????????
+                    Переименовать
                   </button>
                   <button
                     type="button"
@@ -208,7 +208,7 @@ function SidebarList({
                     }}
                   >
                     <Trash2 size={14} />
-                    ???????
+                    Удалить
                   </button>
                 </div>
               ) : null}
@@ -217,7 +217,7 @@ function SidebarList({
         ))
       ) : (
         <div className="webchat-empty-state rounded-2xl border border-dashed border-[#284863] bg-[#0d1827]/70 px-4 py-5 text-sm leading-6 text-slate-400">
-          ??????????? ???? ???????? ????? ????? ??????? ?????????.
+          У вас пока нет диалогов. Начните новый чат, чтобы продолжить.
         </div>
       )}
     </div>
@@ -251,7 +251,7 @@ function SidebarAccountMenu({
           <div className="webchat-theme-row mt-1 flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm text-slate-100">
             <span className="inline-flex items-center gap-2">
               <Palette size={15} />
-              <span className="font-medium text-slate-100">????</span>
+              <span className="font-medium text-slate-100">Тема</span>
             </span>
             <div className="webchat-theme-toggle inline-flex items-center gap-0.5 rounded-full border border-[#33546f]/55 bg-[#122a3f] p-0.5">
               <button
@@ -261,7 +261,7 @@ function SidebarAccountMenu({
                   resolvedTheme === "light" ? "bg-white text-slate-900 shadow-sm" : "text-slate-300 hover:bg-white/10 hover:text-slate-100",
                 ].join(" ")}
                 onClick={() => onThemeChange("light")}
-                aria-label="??????? ????"
+                aria-label="Светлая тема"
                 aria-pressed={resolvedTheme === "light"}
               >
                 <Sun size={12} />
@@ -273,7 +273,7 @@ function SidebarAccountMenu({
                   resolvedTheme === "dark" ? "bg-white text-slate-900 shadow-sm" : "text-slate-300 hover:bg-white/10 hover:text-slate-100",
                 ].join(" ")}
                 onClick={() => onThemeChange("dark")}
-                aria-label="?????? ????"
+                aria-label="Темная тема"
                 aria-pressed={resolvedTheme === "dark"}
               >
                 <Moon size={12} />
@@ -289,7 +289,7 @@ function SidebarAccountMenu({
             }}
           >
             <UserRound size={15} />
-            ???????
+            Профиль
           </button>
           {isAdmin ? (
             <button
@@ -301,7 +301,7 @@ function SidebarAccountMenu({
               }}
             >
               <Shield size={15} />
-              ????? ??????
+              Админ-панель
             </button>
           ) : null}
           {showInstallAppAction ? (
@@ -314,7 +314,7 @@ function SidebarAccountMenu({
               }}
             >
               <Download size={15} />
-              ???????? ?? ?????
+              Установить на экран
             </button>
           ) : null}
           <button
@@ -330,7 +330,7 @@ function SidebarAccountMenu({
             disabled={historyPending || !hasHistory}
           >
             <Trash2 size={15} />
-            {historyPending ? "???????? ???????..." : "??????? ??? ???????"}
+            {historyPending ? "Очищаем историю..." : "Удалить всю историю"}
           </button>
           <button
             type="button"
@@ -341,7 +341,7 @@ function SidebarAccountMenu({
             }}
           >
             <LogOut size={15} />
-            ?????
+            Выйти
           </button>
         </div>
       ) : null}
@@ -452,11 +452,11 @@ export default function ChatSidebar({
 
         <button type="button" className="webchat-new-chat-button mb-3 flex w-full items-center justify-start gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors" onClick={onStartNewChat}>
           <MessageSquarePlus size={15} />
-          ????? ???
+          Новый чат
         </button>
 
         <div className="px-2 pb-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">??? ????</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Мои чаты</p>
         </div>
 
         <SidebarList
@@ -500,7 +500,7 @@ export default function ChatSidebar({
           />
           <aside className={["webchat-sidebar-shell fixed inset-y-0 left-0 z-40 flex h-full w-[88vw] max-w-[22rem] flex-col overflow-hidden bg-[#08121c]/85 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-2xl md:hidden", mobileClosing ? "drawer-sheet-left-exit" : "drawer-sheet-left"].join(" ")}>
             <div className="mb-3 flex items-center">
-              <button type="button" className="btn-muted shrink-0" onClick={onCloseMobile} aria-label="??????? ????">
+              <button type="button" className="btn-muted shrink-0" onClick={onCloseMobile} aria-label="Закрыть меню">
                 <PanelLeftClose size={16} />
               </button>
             </div>
@@ -514,11 +514,11 @@ export default function ChatSidebar({
               }}
             >
               <MessageSquarePlus size={15} />
-              ????? ???
+              Новый чат
             </button>
 
             <div className="px-2 pb-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">??? ????</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Мои чаты</p>
             </div>
 
             <SidebarList

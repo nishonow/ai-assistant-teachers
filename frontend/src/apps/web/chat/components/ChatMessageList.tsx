@@ -15,9 +15,9 @@ interface ChatMessageListProps {
 }
 
 const SUGGESTED_QUESTIONS = [
-  "????? ????? ???? ? ??????? ?? ???????",
-  "????? ?? ??????? ??????? ??? ??? ?????????",
-  "??? ???????? ?????? ?? ???????????? ? ??????",
+  "Как лучше подготовиться к уроку по теме?",
+  "Объясни эту тему простыми словами для ученика",
+  "Какие практические задания можно дать по теме?",
 ] as const;
 
 const AUTO_SCROLL_THRESHOLD = 96;
@@ -122,7 +122,7 @@ function ChatScrollShell({
             type="button"
             onClick={onScrollToBottom}
             className="webchat-scroll-button flex h-10 w-10 items-center justify-center rounded-full border border-[#1e3448] bg-[#0d1827]/90 text-brand-300 backdrop-blur-sm transition-all hover:bg-[#15283f] hover:scale-105 active:scale-95"
-            aria-label="????"
+            aria-label="Вниз"
           >
             <ArrowDown size={18} />
           </button>
@@ -271,7 +271,7 @@ export default function ChatMessageList({
               <span className="webchat-loading-chip inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#305169] bg-[#102033] text-brand-200">
                 <MessageSquare size={14} />
               </span>
-              <span>????????? ??????...</span>
+              <span>Загружаем ответы...</span>
             </div>
           </div>
         </ChatScrollShell>
@@ -289,8 +289,8 @@ export default function ChatMessageList({
         <div className="grid h-full place-items-center px-4 py-5 md:px-6 md:py-10">
         <div className="w-full max-w-[50rem] px-4 py-5 text-center sm:px-8 sm:py-10">
 
-          <h2 className="font-heading text-[2rem] leading-tight text-slate-100 sm:text-3xl">??? ?? ?????? ???????</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-400">??????? ?????? ??? ???????? ???? ?? ???????? ????</p>
+          <h2 className="font-heading text-[2rem] leading-tight text-slate-100 sm:text-3xl">С чего начнем диалог</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-400">Выберите вопрос или напишите свой запрос ниже</p>
           <div className="mx-auto mt-6 grid w-full max-w-[760px] gap-2.5 text-left sm:mt-8 sm:gap-3 sm:grid-cols-3">
             {SUGGESTED_QUESTIONS.map((question, index) => (
               <button
@@ -347,14 +347,14 @@ export default function ChatMessageList({
                             selectedSourcesMessageId === message.id ? "border-brand-400/30 text-slate-200" : "",
                           ].join(" ")}
                           onClick={() => onSelectSources(message)}
-                          aria-label={`???????? ????????? ??? ????? ?????? (${message.sources.length})`}
+                          aria-label={`Показать источники для этого ответа (${message.sources.length})`}
                           aria-pressed={selectedSourcesMessageId === message.id}
                         >
                           <BookOpenText size={12} />
-                          <span>?????????</span>
+                          <span>Источники</span>
                         </button>
                         <span className="ui-tooltip">
-                          ?????????: {message.sources.length}
+                          Источников: {message.sources.length}
                         </span>
                       </div>
                     ) : null}
@@ -368,11 +368,11 @@ export default function ChatMessageList({
                             message.role === "assistant" ? getAssistantMessagePlainText(message.content) : message.content;
                           void handleCopy(message.id, contentToCopy);
                         }}
-                        aria-label={copiedMessageId === message.id ? "???????????" : "??????????"}
+                        aria-label={copiedMessageId === message.id ? "Скопировано" : "Копировать"}
                       >
                         {copiedMessageId === message.id ? <Check size={12} /> : <Copy size={12} />}
                       </button>
-                      <span className="ui-tooltip">{copiedMessageId === message.id ? "???????????" : "??????????"}</span>
+                      <span className="ui-tooltip">{copiedMessageId === message.id ? "Скопировано" : "Копировать"}</span>
                     </div>
                   </div>
               </article>
@@ -384,7 +384,7 @@ export default function ChatMessageList({
                 <span className="thinking-core shrink-0" aria-hidden="true" />
                 <div className="flex items-center gap-2.5">
                   <span className="webchat-thinking-label text-sm text-slate-100" aria-live="polite">
-                    Mugallim AI ??????...
+                    Mugallim AI думает...
                   </span>
                   <span className="thinking-inline-dots" aria-hidden="true">
                     <span />
