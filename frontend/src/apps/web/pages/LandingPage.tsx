@@ -285,14 +285,8 @@ export default function LandingPage() {
       <section className="relative flex min-h-screen items-center overflow-hidden px-4 pb-24 pt-28 md:px-6 md:pt-36">
         {/* Grid pattern */}
         <div
-          className="pointer-events-none absolute inset-0 hidden opacity-25 md:block"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(0,199,171,0.07) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0,199,171,0.07) 1px, transparent 1px)
-            `,
-            backgroundSize: "72px 72px",
-          }}
+          className="pointer-events-none absolute inset-0 hidden"
+          aria-hidden="true"
         />
 
         <div className="relative z-10 mx-auto max-w-5xl text-center">
@@ -482,14 +476,8 @@ export default function LandingPage() {
       <section className="relative overflow-hidden bg-ink-950 px-4 py-28 md:px-6">
         {/* Grid pattern */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(0,199,171,0.06) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0,199,171,0.06) 1px, transparent 1px)
-            `,
-            backgroundSize: "60px 60px",
-          }}
+          className="pointer-events-none absolute inset-0 hidden"
+          aria-hidden="true"
         />
         {/* Glow */}
         <div

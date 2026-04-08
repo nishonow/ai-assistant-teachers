@@ -47,29 +47,13 @@ export default function useWebchatDocumentMeta({
 
   useEffect(() => {
     const root = document.documentElement;
-    const previousColorScheme = root.style.colorScheme;
-    const previousUnderlayColor = root.style.getPropertyValue(UNDERLAY_CSS_VARIABLE);
-    const previousThemeAttribute = root.getAttribute(THEME_ATTRIBUTE_NAME);
+    const underlayColor = PAGE_UNDERLAY_COLORS[resolvedTheme];
 
     root.style.colorScheme = resolvedTheme;
-    root.style.setProperty(UNDERLAY_CSS_VARIABLE, PAGE_UNDERLAY_COLORS[resolvedTheme]);
+    root.style.setProperty(UNDERLAY_CSS_VARIABLE, underlayColor);
+    root.style.setProperty("background-color", underlayColor, "important");
+    document.body.style.setProperty("background-color", underlayColor, "important");
     root.setAttribute(THEME_ATTRIBUTE_NAME, resolvedTheme);
-
-    return () => {
-      root.style.colorScheme = previousColorScheme;
-
-      if (previousUnderlayColor) {
-        root.style.setProperty(UNDERLAY_CSS_VARIABLE, previousUnderlayColor);
-      } else {
-        root.style.removeProperty(UNDERLAY_CSS_VARIABLE);
-      }
-
-      if (previousThemeAttribute === null) {
-        root.removeAttribute(THEME_ATTRIBUTE_NAME);
-      } else {
-        root.setAttribute(THEME_ATTRIBUTE_NAME, previousThemeAttribute);
-      }
-    };
   }, [resolvedTheme]);
 
 }
