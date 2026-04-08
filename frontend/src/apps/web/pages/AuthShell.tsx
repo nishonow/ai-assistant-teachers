@@ -1,4 +1,4 @@
-import { CheckCircle2, GraduationCap, Scale } from "lucide-react";
+import { CheckCircle2, GraduationCap } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
@@ -47,33 +47,13 @@ export default function AuthShell({
             }}
           />
 
-          {/* Glow orbs */}
-          <div
-            className="pointer-events-none absolute left-1/4 top-1/3 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20 blur-[140px]"
-            style={{ background: "radial-gradient(circle, #00c7ab 0%, transparent 70%)" }}
-          />
-          <div
-            className="pointer-events-none absolute bottom-0 right-0 h-[300px] w-[300px] translate-x-1/3 translate-y-1/3 rounded-full opacity-10 blur-[80px]"
-            style={{ background: "radial-gradient(circle, #2f4f74 0%, transparent 70%)" }}
-          />
-
-          {/* Floating decoration */}
-          <div
-            className="pointer-events-none absolute right-16 top-1/3 opacity-15"
-            style={{ animation: "float 10s ease-in-out infinite" }}
-          >
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-brand-500/30 bg-brand-500/10">
-              <Scale size={24} className="text-brand-400" />
-            </div>
-          </div>
-
           <div className="relative z-10 flex min-h-screen w-full flex-col px-10 py-10 xl:px-14 xl:py-12">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 text-white transition-opacity hover:opacity-80">
               <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white/10">
-                <img src={logo} alt="Mugalim AI" className="h-full w-full object-cover" />
+                <img src={logo} alt="Mugallim AI" className="h-full w-full object-cover" />
               </span>
-              <span className="text-xl font-extrabold tracking-tight">Mugalim AI</span>
+              <span className="text-xl font-extrabold tracking-tight">Mugallim AI</span>
             </Link>
 
             {/* Center content */}
@@ -101,16 +81,13 @@ export default function AuthShell({
             </div>
 
             <p className="text-xs font-semibold text-white/25">
-              © {new Date().getFullYear()} Mugalim AI
+              © {new Date().getFullYear()} Mugallim AI
             </p>
           </div>
         </section>
 
         {/* ── RIGHT PANEL (form) ───────────────────────────────── */}
         <section className="relative flex min-h-[100svh] items-center justify-center px-6 py-8 sm:px-8">
-          {/* Subtle left border glow on desktop */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-px bg-gradient-to-b from-transparent via-white/10 to-transparent lg:block" />
-
           <div className="w-full max-w-[360px] animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Mobile logo */}
             <Link
@@ -118,9 +95,9 @@ export default function AuthShell({
               className="mb-10 inline-flex items-center gap-3 text-white lg:hidden"
             >
               <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white/10">
-                <img src={logo} alt="Mugalim AI" className="h-full w-full object-cover" />
+                <img src={logo} alt="Mugallim AI" className="h-full w-full object-cover" />
               </span>
-              <span className="text-xl font-extrabold tracking-tight">Mugalim AI</span>
+              <span className="text-xl font-extrabold tracking-tight">Mugallim AI</span>
             </Link>
 
             {/* Heading */}

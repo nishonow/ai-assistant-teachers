@@ -170,11 +170,6 @@
   30% { transform: translateY(-6px); opacity: 1; }
 }
 
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(0, 199, 171, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(0, 199, 171, 0.6); }
-}
-
 @keyframes count-up {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }

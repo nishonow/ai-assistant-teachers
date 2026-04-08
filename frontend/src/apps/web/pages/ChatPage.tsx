@@ -1,4 +1,4 @@
-﻿import { BookOpenText, ChevronRight, PanelLeft, PanelLeftClose } from "lucide-react";
+import { BookOpenText, ChevronRight, PanelLeft, PanelLeftClose } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -141,25 +141,25 @@ export default function ChatPage() {
       const outcome = await promptInstall();
 
       if (outcome === "accepted") {
-        showNotice("success", "Приложение добавлено на главный экран.");
+        showNotice("success", "?????????? ????????? ?? ??????? ?????.");
         return;
       }
 
       if (outcome === "dismissed") {
-        showNotice("warning", "Установка отменена. Можно попробовать снова позже.");
+        showNotice("warning", "????????? ????????. ????? ??????????? ????? ?????.");
         return;
       }
 
-      showNotice("warning", "Установка пока недоступна. Обновите страницу или откройте меню браузера и выберите «Установить приложение».");
+      showNotice("warning", "????????? ???? ??????????. ???????? ???????? ??? ???????? ???? ???????? ? ???????? �?????????? ??????????�.");
       return;
     }
 
     if (canShowManualInstall) {
-      showNotice("warning", "На iPhone откройте меню «Поделиться» и выберите «На экран Домой».");
+      showNotice("warning", "?? iPhone ???????? ???? �??????????� ? ???????? �?? ????? ?????�.");
       return;
     }
 
-    showNotice("warning", "Откройте меню браузера и выберите «Установить приложение». Если пункта нет, устройство не поддерживает установку.");
+    showNotice("warning", "???????? ???? ???????? ? ???????? �?????????? ??????????�. ???? ?????? ???, ?????????? ?? ???????????? ?????????.");
   }, [canPromptInstall, canShowManualInstall, promptInstall, showNotice]);
 
   const requestComposerFocus = useCallback(() => {
@@ -276,7 +276,7 @@ export default function ChatPage() {
           conversation = await createConversation({ session });
           isFreshConversation = true;
         } catch (requestError) {
-          showNotice("error", localizeUserErrorMessage(requestError, "Не удалось начать новый диалог."));
+          showNotice("error", localizeUserErrorMessage(requestError, "?? ??????? ?????? ????? ??????."));
           setPending(false);
           sendLockRef.current = false;
           return;
@@ -307,7 +307,7 @@ export default function ChatPage() {
         });
         setIsMessagingBlocked(false);
         setRateLimitUntil(null);
-        const answer = response.answer || "Ответ не был получен.";
+        const answer = response.answer || "????? ?? ??? ???????.";
         const sources = response.sources || [];
         const answeredConversation: Conversation = {
           ...optimisticConversation,
@@ -332,25 +332,25 @@ export default function ChatPage() {
         } catch (saveError) {
           showNotice(
             "error",
-            saveError instanceof Error ? `${saveError.message} Диалог не был сохранён.` : "Диалог не был сохранён.",
+            saveError instanceof Error ? `${saveError.message} ?????? ?? ??? ????????.` : "?????? ?? ??? ????????.",
           );
         }
       } catch (requestError) {
         if (isBlockedMessagingError(requestError)) {
           setIsMessagingBlocked(true);
-          showNotice("error", "Пользователь заблокирован. Отправка сообщений недоступна.");
+          showNotice("error", "???????????? ????????????. ???????? ????????? ??????????.");
           syncActiveConversation(conversation, "preserve", "preserve");
           return;
         }
 
         if (isRateLimitError(requestError)) {
           setRateLimitUntil(Date.now() + RATE_LIMIT_WINDOW_SECONDS * 1000);
-          showNotice("warning", localizeUserErrorMessage(requestError, "Слишком много запросов."));
+          showNotice("warning", localizeUserErrorMessage(requestError, "??????? ????? ????????."));
           syncActiveConversation(conversation, "preserve", "preserve");
           return;
         }
 
-        showNotice("error", localizeUserErrorMessage(requestError, "Запрос не выполнен."));
+        showNotice("error", localizeUserErrorMessage(requestError, "?????? ?? ????????."));
         syncActiveConversation(conversation, "preserve", "preserve");
       } finally {
         setPending(false);
@@ -380,12 +380,12 @@ export default function ChatPage() {
     const email = profileEmail.trim();
 
     if (!name) {
-      showNotice("error", "Укажите имя.");
+      showNotice("error", "??????? ???.");
       return;
     }
 
     if (!email) {
-      showNotice("error", "Укажите адрес электронной почты.");
+      showNotice("error", "??????? ????? ??????????? ?????.");
       return;
     }
 
@@ -395,9 +395,9 @@ export default function ChatPage() {
       await updateProfile({ name, email, password: profilePassword });
       setProfileOpen(false);
       setProfilePassword("");
-      showNotice("success", "Профиль успешно обновлён.");
+      showNotice("success", "??????? ??????? ????????.");
     } catch (requestError) {
-      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось обновить профиль."));
+      showNotice("error", localizeUserErrorMessage(requestError, "?? ??????? ???????? ???????."));
     } finally {
       setProfilePending(false);
     }
@@ -414,7 +414,7 @@ export default function ChatPage() {
 
     const title = renameValue.trim();
     if (!title) {
-      showNotice("error", "Название диалога не может быть пустым.");
+      showNotice("error", "???????? ??????? ?? ????? ???? ??????.");
       return;
     }
 
@@ -433,11 +433,11 @@ export default function ChatPage() {
         setConversations((prev) => upsertConversationSummary(prev, renamedConversation, "preserve"));
       }
 
-      showNotice("success", "Диалог успешно переименован.");
+      showNotice("success", "?????? ??????? ????????????.");
       setRenameTargetConversation(null);
       setRenameValue("");
     } catch (requestError) {
-      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось переименовать диалог."));
+      showNotice("error", localizeUserErrorMessage(requestError, "?? ??????? ????????????? ??????."));
     } finally {
       setRenamePending(false);
     }
@@ -458,7 +458,7 @@ export default function ChatPage() {
       await deleteConversation(session, deleteTargetConversation.id);
 
       setConversations((prev) => prev.filter((item) => item.id !== deleteTargetConversation.id));
-      showNotice("success", "Диалог удален.");
+      showNotice("success", "?????? ??????.");
       setDeleteTargetConversation(null);
 
       if (deleteTargetConversation.id === activeConversationId) {
@@ -472,7 +472,7 @@ export default function ChatPage() {
         navigate("/app", { replace: true });
       }
     } catch (requestError) {
-      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось удалить диалог."));
+      showNotice("error", localizeUserErrorMessage(requestError, "?? ??????? ??????? ??????."));
     } finally {
       setDeletePending(false);
     }
@@ -500,7 +500,7 @@ export default function ChatPage() {
       setMobileSourcesOpen(false);
       navigate("/app", { replace: true });
     } catch (requestError) {
-      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось удалить историю чатов."));
+      showNotice("error", localizeUserErrorMessage(requestError, "?? ??????? ??????? ??????? ?????."));
     } finally {
       setDeleteAllPending(false);
     }
@@ -528,7 +528,7 @@ export default function ChatPage() {
         anchor.remove();
         URL.revokeObjectURL(objectUrl);
       } catch (requestError) {
-        showNotice("error", localizeUserErrorMessage(requestError, "Не удалось скачать источник."));
+        showNotice("error", localizeUserErrorMessage(requestError, "?? ??????? ??????? ????????."));
       } finally {
         setDownloadPendingId(null);
       }
@@ -541,7 +541,7 @@ export default function ChatPage() {
       if (!session || !activeConversationId || !source.documentId) return;
 
       if (window.matchMedia("(max-width: 1023px)").matches) {
-        showNotice("warning", "Онлайн-просмотр пока доступен только на ноутбуке или большом экране.");
+        showNotice("warning", "??????-???????? ???? ???????? ?????? ?? ???????? ??? ??????? ??????.");
         return;
       }
 
@@ -565,7 +565,7 @@ export default function ChatPage() {
         const headerLooksPdf = headerSignature === "%PDF-";
 
         if (!sourceLooksPdf && !blobIsPdf && !headerLooksPdf) {
-          setViewerError("Предпросмотр доступен только для PDF-источников.");
+          setViewerError("???????????? ???????? ?????? ??? PDF-??????????.");
           return;
         }
 
@@ -573,7 +573,7 @@ export default function ChatPage() {
         const objectUrl = URL.createObjectURL(previewBlob);
         replaceViewerSourceUrl(objectUrl);
       } catch (requestError) {
-        setViewerError(localizeUserErrorMessage(requestError, "Не удалось открыть источник."));
+        setViewerError(localizeUserErrorMessage(requestError, "?? ??????? ??????? ????????."));
       } finally {
         setViewerLoading(false);
         setViewPendingId(null);
@@ -657,7 +657,7 @@ export default function ChatPage() {
                   type="button"
                   className="btn-muted px-2.5 py-2"
                   onClick={() => setMobileSidebarOpen((current) => !current)}
-                  aria-label={mobileSidebarOpen ? "Закрыть меню" : "Открыть меню"}
+                  aria-label={mobileSidebarOpen ? "??????? ????" : "??????? ????"}
                 >
                   {mobileSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
                 </button>
@@ -665,7 +665,7 @@ export default function ChatPage() {
 
               <div className="min-w-0 flex-1 px-2 text-center">
                 <h1 className="truncate font-heading text-[13px] text-slate-100">
-                  {activeConversation?.title ?? "Mugalim AI"}
+                  {activeConversation?.title ?? "Mugallim AI"}
                 </h1>
               </div>
 
@@ -677,7 +677,7 @@ export default function ChatPage() {
                     setMobileSidebarOpen(false);
                     setMobileSourcesOpen((current) => !current);
                   }}
-                  aria-label={mobileSourcesOpen ? "Закрыть источники" : "Открыть источники"}
+                  aria-label={mobileSourcesOpen ? "??????? ?????????" : "??????? ?????????"}
                 >
                   <BookOpenText size={16} />
                 </button>
@@ -688,7 +688,7 @@ export default function ChatPage() {
               <div className="flex min-w-0 items-center gap-3">
                 <div className="min-w-0">
                   <h1 className="truncate font-heading text-[16px] text-slate-100">
-                    {activeConversation?.title ?? "Новый чат"}
+                    {activeConversation?.title ?? "????? ???"}
                   </h1>
                 </div>
               </div>
@@ -700,7 +700,7 @@ export default function ChatPage() {
                   onClick={() => setDesktopSourcesOpen((current) => !current)}
                 >
                   <BookOpenText size={16} />
-                  Источники
+                  ?????????
                   <ChevronRight
                     size={14}
                     className={[
@@ -724,7 +724,7 @@ export default function ChatPage() {
           />
           {isMessagingBlocked ? (
             <div className="webchat-warning-banner mx-3 mb-2 rounded-xl border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-200 md:mx-6">
-              Вы заблокированы. Отправка новых сообщений временно недоступна.
+              ?? ?????????????. ???????? ????? ????????? ???????? ??????????.
             </div>
           ) : null}
           <ChatComposer
@@ -738,7 +738,7 @@ export default function ChatPage() {
 
         <SourcesPanel
           activeConversationId={activeConversationId}
-          activeConversationTitle={activeConversation?.title ?? "Новый чат"}
+          activeConversationTitle={activeConversation?.title ?? "????? ???"}
           downloadPendingId={downloadPendingId}
           viewPendingId={viewPendingId}
           loading={isLoadingConversation}
@@ -770,7 +770,7 @@ export default function ChatPage() {
 
       <DeleteConversationModal
         open={Boolean(deleteTargetConversation)}
-        title={deleteTargetConversation?.title ?? "этот диалог"}
+        title={deleteTargetConversation?.title ?? "???? ??????"}
         pending={deletePending}
         onCancel={() => setDeleteTargetConversation(null)}
         onConfirm={() => {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "mugalim-v2";
+const CACHE_NAME = "Mugallim-v2";
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest", "/logo.png"];
 
 self.addEventListener("install", (event) => {

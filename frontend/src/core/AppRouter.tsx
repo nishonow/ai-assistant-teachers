@@ -2,6 +2,7 @@
 import AdminApp from "../apps/admin";
 import WebApp from "../apps/web";
 import LandingPage from "../apps/web/pages/LandingPage";
+import { PrivacyPage, TermsPage } from "../apps/web/pages/LegalPages";
 import LoginPage from "../apps/web/pages/LoginPage";
 import RegisterPage from "../apps/web/pages/RegisterPage";
 import { RedirectIfAuthenticated, RequireAdmin, RequireAuth } from "./auth";
@@ -10,6 +11,8 @@ export default function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
 
       <Route element={<RedirectIfAuthenticated />}>
         <Route path="/login" element={<LoginPage />} />

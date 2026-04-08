@@ -11,7 +11,7 @@ interface UseWebchatDocumentMetaOptions {
 export default function useWebchatDocumentMeta({
   conversationTitle,
   resolvedTheme,
-  appTitle = "Mugalim AI",
+  appTitle = "Mugallim AI",
 }: UseWebchatDocumentMetaOptions) {
   useEffect(() => {
     const title = conversationTitle?.trim();
