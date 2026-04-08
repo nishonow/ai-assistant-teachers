@@ -12,7 +12,7 @@ from app.database import SessionLocal
 
 UPLOAD_DIR = "uploads"
 MAX_FILE_SIZE = 20 * 1024 * 1024
-EMBEDDING_BATCH_SIZE = 64
+EMBEDDING_BATCH_SIZE = 32
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ async def _store_embedded_batch(
         for offset, ((chunk_text, page_number), embedding) in enumerate(zip(chunk_items, embeddings))
     ]
     await session.execute(insert(Chunk), rows)
-    await session.flush()
+    await session.commit()
     return len(rows)
 
 
@@ -116,6 +116,10 @@ async def process_document(document_id: int):
                 return
 
             document.status = "processing"
+            await session.commit()
+
+            # Defensive reset in case a previous indexing run was interrupted.
+            await session.execute(delete(Chunk).where(Chunk.document_id == document.id))
             await session.commit()
 
             segments = await asyncio.to_thread(extract_segments, document.file_path, document.file_type)
@@ -157,6 +161,7 @@ async def process_document(document_id: int):
 
             document.status = "indexed"
             await session.commit()
+            logger.info("Document indexed successfully: document_id=%s chunks=%s", document_id, indexed_chunk_count)
 
         except Exception:
             logger.exception("Document processing failed for document_id=%s", document_id)
