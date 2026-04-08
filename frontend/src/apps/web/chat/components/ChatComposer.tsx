@@ -333,11 +333,7 @@ export default function ChatComposer({
 
   const voiceButtonDisabled = isTranscribing || (!isRecording && disabled);
   const voiceButtonLabel = isRecording ? "Остановить запись" : "Записать голос";
-  const voiceTooltip = isTranscribing
-    ? "Распознаем речь..."
-    : isRecording
-      ? "Нажмите, чтобы остановить запись"
-      : "Нажмите, чтобы начать запись";
+  const voiceTooltip = isRecording ? "Нажмите, чтобы остановить запись" : "Нажмите, чтобы начать запись";
 
   return (
     <form
@@ -387,12 +383,10 @@ export default function ChatComposer({
           <SendHorizontal size={17} />
         </button>
       </div>
-      <div className="mx-auto mt-1 flex w-full max-w-4xl items-center justify-between px-2 md:mt-1.5">
-        <p className="text-[10px] leading-4 text-slate-500 md:text-[11px]">
-          {voiceError ? `Ошибка: ${voiceError}` : "Голосовой ввод включен. Нажмите микрофон."}
-        </p>
-        <p className="hidden text-[10px] leading-4 text-slate-600 md:block">
-          Enter | отправить | Shift+Enter | новая строка
+      <div className="mx-auto mt-1 flex w-full max-w-4xl items-center justify-center px-2 md:mt-1.5">
+        <p className="text-center text-[10px] leading-4 text-slate-500 md:text-[11px]">Mugallim AI может ошибаться. Проверяйте источники.</p>
+        <p aria-live="polite" className="sr-only" role="status">
+          {voiceError ? `Ошибка: ${voiceError}` : ""}
         </p>
       </div>
     </form>

@@ -10,6 +10,7 @@ const THEME_COLORS: Record<WebchatResolvedTheme, string> = {
 const DYNAMIC_THEME_META_ATTR = "data-webchat-theme-color";
 const DYNAMIC_THEME_META_SELECTOR = `meta[name="theme-color"][${DYNAMIC_THEME_META_ATTR}="true"]`;
 const APPLE_STATUS_BAR_META_SELECTOR = 'meta[name="apple-mobile-web-app-status-bar-style"]';
+const UNDERLAY_CSS_VARIABLE = "--app-underlay-bg";
 
 function upsertThemeColorMeta(): HTMLMetaElement {
   let dynamicThemeMeta = document.querySelector<HTMLMetaElement>(DYNAMIC_THEME_META_SELECTOR);
@@ -40,10 +41,20 @@ export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
   useEffect(() => {
     const color = THEME_COLORS[resolvedTheme];
 
-    const dynamicThemeMeta = upsertThemeColorMeta();
-    // Some mobile browsers keep the initial media-filtered value cached. Explicitly clear media to force live updates.
-    dynamicThemeMeta.removeAttribute("media");
-    dynamicThemeMeta.content = color;
+    const allThemeMetas = Array.from(document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]'));
+    const targets = allThemeMetas.length ? allThemeMetas : [upsertThemeColorMeta()];
+
+    for (const themeMeta of targets) {
+      themeMeta.setAttribute(DYNAMIC_THEME_META_ATTR, "true");
+      // Some mobile browsers keep the initial media-filtered value cached. Explicitly clear media to force live updates.
+      themeMeta.removeAttribute("media");
+      themeMeta.content = color;
+    }
+
+    // Keep the actual page underlay synchronized with theme-color so safe-area regions don't stay stale.
+    document.documentElement.style.setProperty(UNDERLAY_CSS_VARIABLE, color);
+    document.documentElement.style.backgroundColor = color;
+    document.body.style.backgroundColor = color;
 
     const statusBarMeta = upsertAppleStatusBarMeta();
     statusBarMeta.content = resolvedTheme === "dark" ? "black-translucent" : "default";

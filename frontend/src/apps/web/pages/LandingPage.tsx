@@ -161,7 +161,7 @@ export default function LandingPage() {
   const { canPromptInstall, canShowManualInstall, shouldShowInstallAction, promptInstall } =
     usePwaInstallPrompt();
 
-  const appHref = session ? (session.user.role === "admin" ? "/admin" : "/app") : "/login";
+  const appHref = session ? "/app" : "/login";
   const loginLabel = "Войти";
   const heroLabel = "Войти в веб-чат";
 
