@@ -12,8 +12,11 @@ interface RegisterErrors {
   confirmPassword?: string;
 }
 
-const inputBaseClass =
-  "mt-2 h-11 w-full rounded-xl border bg-slate-50 px-3 text-sm text-slate-900 transition-all duration-200 ease-in-out placeholder:text-slate-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-500/10";
+const inputBase =
+  "mt-2 h-11 w-full rounded-xl border bg-white/5 px-3.5 text-sm text-white transition-all duration-200 placeholder:text-white/25 focus:bg-white/8 focus:outline-none focus:ring-2 focus:ring-brand-500/30";
+
+const inputNormal = `${inputBase} border-white/10 focus:border-brand-500`;
+const inputError = `${inputBase} border-rose-500/50 bg-rose-500/5 focus:border-rose-500 focus:ring-rose-500/20`;
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -35,18 +38,9 @@ export default function RegisterPage() {
     const normalizedPassword = password.trim();
     const normalizedConfirmPassword = confirmPassword.trim();
 
-    if (!normalizedName) {
-      nextErrors.name = "Укажите имя.";
-    }
-
-    if (!normalizedEmail) {
-      nextErrors.email = "Укажите email.";
-    }
-
-    if (!normalizedPassword) {
-      nextErrors.password = "Укажите пароль.";
-    }
-
+    if (!normalizedName) nextErrors.name = "Укажите имя.";
+    if (!normalizedEmail) nextErrors.email = "Укажите email.";
+    if (!normalizedPassword) nextErrors.password = "Укажите пароль.";
     if (!normalizedConfirmPassword) {
       nextErrors.confirmPassword = "Повторите пароль.";
     } else if (normalizedPassword && normalizedPassword !== normalizedConfirmPassword) {
@@ -82,79 +76,89 @@ export default function RegisterPage() {
       footerLinkLabel="Войти"
       footerLinkTo="/login"
     >
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block">
-          <span className="text-[13px] font-semibold text-slate-700">Имя</span>
+          <span className="text-[13px] font-semibold text-white/60">Имя</span>
           <input
             type="text"
             value={name}
-            onChange={(event) => setName(event.target.value)}
-            className={`auth-input ${inputBaseClass} ${errors.name ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/20 bg-rose-50/30" : "border-slate-200"}`}
+            onChange={(e) => setName(e.target.value)}
+            className={errors.name ? inputError : inputNormal}
             placeholder="Ваше имя"
             autoComplete="name"
           />
-          {errors.name ? <p className="mt-2 text-xs font-medium text-rose-500">{errors.name}</p> : null}
+          {errors.name && (
+            <p className="mt-2 text-xs font-medium text-rose-400">{errors.name}</p>
+          )}
         </label>
 
         <label className="block">
-          <span className="text-[13px] font-semibold text-slate-700">Email</span>
+          <span className="text-[13px] font-semibold text-white/60">Email</span>
           <input
             type="email"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className={`auth-input ${inputBaseClass} ${errors.email ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/20 bg-rose-50/30" : "border-slate-200"}`}
+            onChange={(e) => setEmail(e.target.value)}
+            className={errors.email ? inputError : inputNormal}
             placeholder="name@example.com"
             autoComplete="email"
           />
-          {errors.email ? <p className="mt-2 text-xs font-medium text-rose-500">{errors.email}</p> : null}
+          {errors.email && (
+            <p className="mt-2 text-xs font-medium text-rose-400">{errors.email}</p>
+          )}
         </label>
 
         <label className="block">
-          <span className="text-[13px] font-semibold text-slate-700">Пароль</span>
+          <span className="text-[13px] font-semibold text-white/60">Пароль</span>
           <input
             type="password"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className={`auth-input ${inputBaseClass} ${errors.password ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/20 bg-rose-50/30" : "border-slate-200"}`}
+            onChange={(e) => setPassword(e.target.value)}
+            className={errors.password ? inputError : inputNormal}
             placeholder="Создайте пароль"
             autoComplete="new-password"
           />
-          {errors.password ? <p className="mt-2 text-xs font-medium text-rose-500">{errors.password}</p> : null}
+          {errors.password && (
+            <p className="mt-2 text-xs font-medium text-rose-400">{errors.password}</p>
+          )}
         </label>
 
         <label className="block">
-          <span className="text-[13px] font-semibold text-slate-700">Повторите пароль</span>
+          <span className="text-[13px] font-semibold text-white/60">Повторите пароль</span>
           <input
             type="password"
             value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            className={`auth-input ${inputBaseClass} ${errors.confirmPassword ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/20 bg-rose-50/30" : "border-slate-200"}`}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className={errors.confirmPassword ? inputError : inputNormal}
             placeholder="Повторите пароль"
             autoComplete="new-password"
           />
-          {errors.confirmPassword ? <p className="mt-2 text-xs font-medium text-rose-500">{errors.confirmPassword}</p> : null}
+          {errors.confirmPassword && (
+            <p className="mt-2 text-xs font-medium text-rose-400">{errors.confirmPassword}</p>
+          )}
         </label>
 
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-4 text-[15px] font-bold text-ink-950 shadow-sm transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:bg-brand-400 hover:shadow-md disabled:pointer-events-none disabled:opacity-70 focus:outline-none focus:ring-4 focus:ring-brand-500/20 active:translate-y-0"
+          className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-4 text-[15px] font-bold text-ink-950 shadow-lg shadow-brand-500/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-400 hover:shadow-brand-500/40 disabled:pointer-events-none disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-500/40 active:translate-y-0"
         >
-          {loading ? "Создание аккаунта..." : "Создать аккаунт"}
+          {loading ? "Создание аккаунта…" : "Создать аккаунт"}
         </button>
 
-        <div className="relative pt-2">
-          <div className="border-t border-slate-200" />
-          <span className="absolute left-1/2 top-2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">или</span>
+        <div className="relative py-1">
+          <div className="border-t border-white/10" />
+          <span className="absolute left-1/2 top-1 -translate-x-1/2 -translate-y-1/2 bg-ink-950 px-3 text-[11px] font-bold uppercase tracking-widest text-white/25">
+            или
+          </span>
         </div>
 
         <a
           href="https://t.me/mugallim_bot"
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md active:translate-y-0"
+          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10 hover:text-white active:translate-y-0"
         >
-          <MessageCircle size={18} />
+          <MessageCircle size={17} />
           Открыть Telegram-бота
         </a>
       </form>
