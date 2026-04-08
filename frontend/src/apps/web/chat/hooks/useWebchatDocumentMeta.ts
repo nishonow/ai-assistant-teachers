@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import type { WebchatResolvedTheme } from "../utils/theme";
 
@@ -6,6 +6,7 @@ interface UseWebchatDocumentMetaOptions {
   conversationTitle?: string | null;
   resolvedTheme: WebchatResolvedTheme;
   appTitle?: string;
+  preservePreviousConversationTitle?: boolean;
 }
 
 const PAGE_UNDERLAY_COLORS: Record<WebchatResolvedTheme, string> = {
@@ -16,15 +17,33 @@ const PAGE_UNDERLAY_COLORS: Record<WebchatResolvedTheme, string> = {
 const THEME_ATTRIBUTE_NAME = "data-webchat-theme";
 const UNDERLAY_CSS_VARIABLE = "--app-underlay-bg";
 
+function normalizeConversationTitle(rawTitle: string | null | undefined): string | null {
+  if (!rawTitle) return null;
+
+  const collapsed = rawTitle.replace(/\s+/g, " ").trim();
+  return collapsed || null;
+}
+
 export default function useWebchatDocumentMeta({
   conversationTitle,
   resolvedTheme,
   appTitle = "Mugallim AI",
+  preservePreviousConversationTitle = false,
 }: UseWebchatDocumentMetaOptions) {
+  const lastConversationTitleRef = useRef<string | null>(null);
+
   useEffect(() => {
-    const title = conversationTitle?.trim();
-    document.title = title ? `${title} - ${appTitle}` : appTitle;
-  }, [appTitle, conversationTitle]);
+    const normalizedTitle = normalizeConversationTitle(conversationTitle);
+
+    if (normalizedTitle) {
+      lastConversationTitleRef.current = normalizedTitle;
+    }
+
+    const effectiveTitle =
+      normalizedTitle || (preservePreviousConversationTitle ? lastConversationTitleRef.current : null);
+
+    document.title = effectiveTitle ? `${effectiveTitle} - ${appTitle}` : appTitle;
+  }, [appTitle, conversationTitle, preservePreviousConversationTitle]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -53,9 +72,4 @@ export default function useWebchatDocumentMeta({
     };
   }, [resolvedTheme]);
 
-  useEffect(() => {
-    return () => {
-      document.title = appTitle;
-    };
-  }, [appTitle]);
 }

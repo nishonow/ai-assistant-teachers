@@ -285,7 +285,7 @@ export default function LandingPage() {
       <section className="relative flex min-h-screen items-center overflow-hidden px-4 pb-24 pt-28 md:px-6 md:pt-36">
         {/* Grid pattern */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-25"
+          className="pointer-events-none absolute inset-0 hidden opacity-25 md:block"
           style={{
             backgroundImage: `
               linear-gradient(rgba(0,199,171,0.07) 1px, transparent 1px),

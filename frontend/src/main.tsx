@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { AppRouter, AuthProvider } from "./core";
 import "./index.css";
+import "./styles/webchat-theme-rich.css";
 
 if ("serviceWorker" in navigator) {
   if (import.meta.env.PROD) {

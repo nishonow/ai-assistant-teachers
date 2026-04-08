@@ -1,5 +1,5 @@
 import { ArrowDown, BookOpenText, Check, Copy, MessageSquare } from "lucide-react";
-import React, { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import React, { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import AssistantMessageContent, { getAssistantMessagePlainText } from "./AssistantMessageContent";
 import type { ChatMessage } from "../utils/types";
@@ -15,9 +15,9 @@ interface ChatMessageListProps {
 }
 
 const SUGGESTED_QUESTIONS = [
-  "Как лучше подготовиться к уроку по теме?",
-  "Объясни эту тему простыми словами для ученика",
-  "Какие практические задания можно дать по теме?",
+  "Можно ли уволить учителя без объяснения причин?",
+  "Какие права есть у учителя по закону?",
+  "Как получить декретный отпуск?",
 ] as const;
 
 const AUTO_SCROLL_THRESHOLD = 100;
@@ -118,7 +118,7 @@ function ChatScrollShell({
       </div>
       
       {showScrollButton && (
-        <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 md:bottom-[-14px] z-20">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 md:bottom-9 z-20">
           <button
             type="button"
             onClick={onScrollToBottom}
@@ -144,12 +144,25 @@ export default function ChatMessageList({
 }: ChatMessageListProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const previousLengthRef = useRef(0);
-  const previousPendingRef = useRef(false);
   const previousFirstMessageIdRef = useRef<string | undefined>(undefined);
   const shouldStickToBottomRef = useRef(true);
+  const suppressScrollButtonUntilRef = useRef(0);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+
+  const suppressScrollButtonTemporarily = useCallback((durationMs = 220) => {
+    suppressScrollButtonUntilRef.current = performance.now() + durationMs;
+    setShowScrollButton(false);
+  }, []);
+
+  const jumpToBottomWithoutButtonFlicker = useCallback((suppressMs = 220) => {
+    const element = scrollRef.current;
+    if (!element) return;
+
+    suppressScrollButtonTemporarily(suppressMs);
+    shouldStickToBottomRef.current = true;
+    element.scrollTop = element.scrollHeight;
+  }, [suppressScrollButtonTemporarily]);
 
   const scrollToBottom = useCallback(() => {
     const element = scrollRef.current;
@@ -160,6 +173,10 @@ export default function ChatMessageList({
   const handleScroll = useCallback(() => {
     const element = scrollRef.current;
     if (!element) return;
+
+    if (performance.now() < suppressScrollButtonUntilRef.current) {
+      return;
+    }
     
     const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
     const isSticky = distanceFromBottom <= AUTO_SCROLL_THRESHOLD;
@@ -170,12 +187,17 @@ export default function ChatMessageList({
   // Update stickiness on initial render or when messages change
   useEffect(() => {
     handleScroll();
-  }, [messages.length, pending, handleScroll]);
+  }, [messages.length, handleScroll]);
 
   useEffect(() => {
-    if (!messages.length && !pending) {
-      previousLengthRef.current = 0;
-      previousPendingRef.current = false;
+    if (!loading) return;
+
+    shouldStickToBottomRef.current = true;
+    suppressScrollButtonTemporarily(260);
+  }, [loading, suppressScrollButtonTemporarily]);
+
+  useLayoutEffect(() => {
+    if (!messages.length) {
       previousFirstMessageIdRef.current = undefined;
       return;
     }
@@ -183,21 +205,11 @@ export default function ChatMessageList({
     const isNewConversation = messages[0]?.id !== previousFirstMessageIdRef.current;
 
     if (isNewConversation || shouldStickToBottomRef.current) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          scrollToBottom();
-          if (isNewConversation) {
-             shouldStickToBottomRef.current = true;
-             setShowScrollButton(false);
-          }
-        });
-      });
+      jumpToBottomWithoutButtonFlicker(700);
     }
 
-    previousLengthRef.current = messages.length;
-    previousPendingRef.current = pending;
     previousFirstMessageIdRef.current = messages[0]?.id;
-  }, [messages, pending, scrollToBottom]);
+  }, [jumpToBottomWithoutButtonFlicker, messages]);
 
   useEffect(() => {
     const content = contentRef.current;
@@ -245,7 +257,7 @@ export default function ChatMessageList({
           onScroll={handleScroll}
         >
           <div className="mx-auto w-full max-w-4xl space-y-3.5 md:space-y-4" role="status" aria-live="polite">
-            <div className="webchat-loading-card max-w-[72%] animate-pulse rounded-[24px] border border-[#284863] bg-[#0f1c2c] px-4 py-4">
+            <div className="webchat-loading-card max-w-[72%] rounded-[24px] border border-[#284863] bg-[#0f1c2c] px-4 py-4">
               <div className="mb-3 flex items-center gap-2">
                 <span className="webchat-loading-chip inline-flex h-6 w-24 rounded-full border border-[#305169] bg-[#102033]" />
               </div>
@@ -256,7 +268,7 @@ export default function ChatMessageList({
               </div>
             </div>
 
-            <div className="webchat-loading-card ml-auto max-w-[54%] animate-pulse rounded-[24px] border border-brand-400/25 bg-brand-500/10 px-4 py-4 [animation-delay:120ms]">
+            <div className="webchat-loading-card ml-auto max-w-[54%] rounded-[24px] border border-brand-400/25 bg-brand-500/10 px-4 py-4 [animation-delay:180ms]">
               <div className="mb-3 flex justify-end">
                 <span className="webchat-loading-chip inline-flex h-6 w-16 rounded-full border border-brand-400/20 bg-brand-500/10" />
               </div>
@@ -324,7 +336,10 @@ export default function ChatMessageList({
         showScrollButton={showScrollButton}
         onScroll={handleScroll}
       >
-        <div ref={contentRef} className="mx-auto w-full max-w-4xl space-y-1 md:space-y-1.5">
+        <div
+          ref={contentRef}
+          className="mx-auto w-full max-w-4xl space-y-1 md:space-y-1.5"
+        >
           {messages.map((message) =>
             message.role === "user" ? (
               <div key={message.id} className="flex justify-end">

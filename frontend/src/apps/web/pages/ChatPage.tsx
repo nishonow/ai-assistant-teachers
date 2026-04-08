@@ -230,6 +230,7 @@ export default function ChatPage() {
   useWebchatDocumentMeta({
     conversationTitle: activeConversation?.title,
     resolvedTheme,
+    preservePreviousConversationTitle: Boolean(routeConversationId && isLoadingConversation),
   });
   usePreventIosInputZoom();
   useThemeColor(resolvedTheme);
