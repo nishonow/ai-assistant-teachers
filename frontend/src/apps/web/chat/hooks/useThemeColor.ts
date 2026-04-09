@@ -8,22 +8,9 @@ const THEME_COLORS: Record<WebchatResolvedTheme, string> = {
 };
 
 const DYNAMIC_THEME_META_ATTR = "data-webchat-theme-color";
-const DYNAMIC_THEME_META_SELECTOR = `meta[name="theme-color"][${DYNAMIC_THEME_META_ATTR}="true"]`;
 const APPLE_STATUS_BAR_META_SELECTOR = 'meta[name="apple-mobile-web-app-status-bar-style"]';
 const UNDERLAY_CSS_VARIABLE = "--app-underlay-bg";
 
-function upsertThemeColorMeta(): HTMLMetaElement {
-  let dynamicThemeMeta = document.querySelector<HTMLMetaElement>(DYNAMIC_THEME_META_SELECTOR);
-  if (dynamicThemeMeta) {
-    return dynamicThemeMeta;
-  }
-
-  dynamicThemeMeta = document.createElement("meta");
-  dynamicThemeMeta.name = "theme-color";
-  dynamicThemeMeta.setAttribute(DYNAMIC_THEME_META_ATTR, "true");
-  document.head.appendChild(dynamicThemeMeta);
-  return dynamicThemeMeta;
-}
 
 function upsertAppleStatusBarMeta(): HTMLMetaElement {
   let statusBarMeta = document.querySelector<HTMLMetaElement>(APPLE_STATUS_BAR_META_SELECTOR);
@@ -44,15 +31,20 @@ export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
     let timeoutId: number | null = null;
 
     const applyThemeColor = () => {
+      // Remove all existing theme-color meta tags and re-insert a fresh one.
+      // Safari on iOS only picks up theme-color changes when the meta element
+      // is newly added to the DOM — updating the content attribute alone is
+      // often ignored until the next page load.
       const allThemeMetas = Array.from(document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]'));
-      const targets = allThemeMetas.length ? allThemeMetas : [upsertThemeColorMeta()];
-
-      for (const themeMeta of targets) {
-        themeMeta.setAttribute(DYNAMIC_THEME_META_ATTR, "true");
-        themeMeta.removeAttribute("media");
-        themeMeta.content = color;
-        themeMeta.setAttribute("content", color);
+      for (const meta of allThemeMetas) {
+        meta.parentNode?.removeChild(meta);
       }
+
+      const freshMeta = document.createElement("meta");
+      freshMeta.name = "theme-color";
+      freshMeta.setAttribute(DYNAMIC_THEME_META_ATTR, "true");
+      freshMeta.content = color;
+      document.head.appendChild(freshMeta);
 
       // Keep page underlay and safe-area backing color in sync with the selected theme.
       document.documentElement.style.setProperty(UNDERLAY_CSS_VARIABLE, color);
