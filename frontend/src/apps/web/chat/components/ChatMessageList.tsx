@@ -17,7 +17,7 @@ interface ChatMessageListProps {
 const SUGGESTED_QUESTIONS = [
   "Можно ли уволить учителя без объяснения причин?",
   "Какие права есть у учителя по закону?",
-  "Как получить декретный отпуск?",
+  "Как получить отпуск по беременность?",
 ] as const;
 
 const AUTO_SCROLL_THRESHOLD = 100;
