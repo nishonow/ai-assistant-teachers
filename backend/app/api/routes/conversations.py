@@ -9,7 +9,13 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.dependencies import require_web_user
-from app.models import ChatConversation, ChatConversationMessage, ChatConversationMessageSource, Document, User
+from app.models import (
+    ChatConversation,
+    ChatConversationMessage,
+    ChatConversationMessageSource,
+    Document,
+    User,
+)
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
@@ -49,7 +55,9 @@ def _serialize_summary(conversation: ChatConversation) -> dict:
     return {
         "id": str(conversation.id),
         "title": conversation.title,
-        "updatedAt": conversation.updated_at.isoformat() if conversation.updated_at else "",
+        "updatedAt": conversation.updated_at.isoformat()
+        if conversation.updated_at
+        else "",
         "lastMessagePreview": last_message[:120],
         "messageCount": len(conversation.messages),
     }
@@ -59,13 +67,17 @@ def _serialize_detail(conversation: ChatConversation) -> dict:
     return {
         "id": str(conversation.id),
         "title": conversation.title,
-        "updatedAt": conversation.updated_at.isoformat() if conversation.updated_at else "",
+        "updatedAt": conversation.updated_at.isoformat()
+        if conversation.updated_at
+        else "",
         "messages": [
             {
                 "id": str(message.id),
                 "role": message.role,
                 "content": message.content,
-                "createdAt": message.created_at.isoformat() if message.created_at else "",
+                "createdAt": message.created_at.isoformat()
+                if message.created_at
+                else "",
                 "sources": [
                     {
                         "id": str(source.id),
@@ -84,11 +96,15 @@ def _serialize_detail(conversation: ChatConversation) -> dict:
 
 def _conversation_load_options():
     return [
-        selectinload(ChatConversation.messages).selectinload(ChatConversationMessage.sources),
+        selectinload(ChatConversation.messages).selectinload(
+            ChatConversationMessage.sources
+        ),
     ]
 
 
-async def _get_user_conversation(db: AsyncSession, conversation_id: int, user_id: int) -> ChatConversation:
+async def _get_user_conversation(
+    db: AsyncSession, conversation_id: int, user_id: int
+) -> ChatConversation:
     conversation = (
         await db.execute(
             select(ChatConversation)
@@ -105,15 +121,21 @@ async def _get_user_conversation(db: AsyncSession, conversation_id: int, user_id
 
 
 @router.get("/")
-async def list_conversations(current_user: User = Depends(require_web_user), db: AsyncSession = Depends(get_db)):
+async def list_conversations(
+    current_user: User = Depends(require_web_user), db: AsyncSession = Depends(get_db)
+):
     conversations = (
-        await db.execute(
-            select(ChatConversation)
-            .options(*_conversation_load_options())
-            .where(ChatConversation.user_id == current_user.id)
-            .order_by(desc(ChatConversation.updated_at), desc(ChatConversation.id))
+        (
+            await db.execute(
+                select(ChatConversation)
+                .options(*_conversation_load_options())
+                .where(ChatConversation.user_id == current_user.id)
+                .order_by(desc(ChatConversation.updated_at), desc(ChatConversation.id))
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return [_serialize_summary(conversation) for conversation in conversations]
 
 
@@ -123,21 +145,34 @@ async def create_conversation(
     current_user: User = Depends(require_web_user),
     db: AsyncSession = Depends(get_db),
 ):
-    conversation = ChatConversation(user_id=current_user.id, title=(request.title or "New chat").strip() or "New chat")
+    conversation = ChatConversation(
+        user_id=current_user.id,
+        title=(request.title or "New chat").strip() or "New chat",
+    )
     db.add(conversation)
     await db.commit()
-    return _serialize_detail(await _get_user_conversation(db, conversation.id, current_user.id))
+    return _serialize_detail(
+        await _get_user_conversation(db, conversation.id, current_user.id)
+    )
 
 
 @router.delete("/")
-async def delete_all_conversations(current_user: User = Depends(require_web_user), db: AsyncSession = Depends(get_db)):
-    await db.execute(delete(ChatConversation).where(ChatConversation.user_id == current_user.id))
+async def delete_all_conversations(
+    current_user: User = Depends(require_web_user), db: AsyncSession = Depends(get_db)
+):
+    await db.execute(
+        delete(ChatConversation).where(ChatConversation.user_id == current_user.id)
+    )
     await db.commit()
     return {"ok": True}
 
 
 @router.get("/{conversation_id}")
-async def get_conversation(conversation_id: int, current_user: User = Depends(require_web_user), db: AsyncSession = Depends(get_db)):
+async def get_conversation(
+    conversation_id: int,
+    current_user: User = Depends(require_web_user),
+    db: AsyncSession = Depends(get_db),
+):
     conversation = await _get_user_conversation(db, conversation_id, current_user.id)
     return _serialize_detail(conversation)
 
@@ -156,9 +191,13 @@ async def download_conversation_source(
         for source in message.sources
     )
     if not has_cited_document:
-        raise HTTPException(status_code=404, detail="Source not found in this conversation")
+        raise HTTPException(
+            status_code=404, detail="Source not found in this conversation"
+        )
 
-    document = (await db.execute(select(Document).where(Document.id == document_id))).scalar_one_or_none()
+    document = (
+        await db.execute(select(Document).where(Document.id == document_id))
+    ).scalar_one_or_none()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     if not os.path.exists(document.file_path):
@@ -258,6 +297,7 @@ async def save_exchange(
         if next_title:
             conversation.title = next_title
 
+    await db.flush()
     conversation.updated_at = func.now()
     await db.commit()
 

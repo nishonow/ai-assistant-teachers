@@ -6,6 +6,7 @@ interface AskPayload {
   question: string;
   session: AuthSession;
   history: ChatMessage[];
+  conversationId?: string;
 }
 
 interface SaveConversationExchangePayload {
@@ -13,7 +14,6 @@ interface SaveConversationExchangePayload {
   conversationId: string;
   question: string;
   answer: string;
-  title?: string;
   sources?: ChatSource[];
 }
 
@@ -40,7 +40,7 @@ interface TranscribeVoicePayload {
   fileName?: string;
 }
 
-export async function askAssistant({ question, session, history }: AskPayload): Promise<AskApiResponse> {
+export async function askAssistant({ question, session, history, conversationId }: AskPayload): Promise<AskApiResponse> {
   return await apiRequest<AskApiResponse>({
     path: "/api/v1/ask/",
     method: "POST",
@@ -55,6 +55,7 @@ export async function askAssistant({ question, session, history }: AskPayload): 
         role: item.role,
         content: item.content,
       })),
+      conversation_id: conversationId ? parseInt(conversationId, 10) : undefined,
     },
   });
 }
@@ -116,14 +117,13 @@ export async function saveConversationExchange({
   conversationId,
   question,
   answer,
-  title,
   sources,
 }: SaveConversationExchangePayload): Promise<Conversation> {
   return await apiRequest<Conversation>({
     path: `/api/v1/conversations/${conversationId}/exchange`,
     method: "POST",
     token: session.token,
-    body: { question, answer, title, sources },
+    body: { question, answer, sources },
   });
 }
 

@@ -1,19 +1,23 @@
+import asyncio
+import logging
 from collections import defaultdict
 from time import time
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from openai import AsyncOpenAI
-from pydantic import BaseModel
-from sqlalchemy import select
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.database import get_db
+from app.database import SessionLocal, get_db
 from app.dependencies import get_token_subject_from_authorization, require_web_user
-from app.models import User
+from app.models import ChatConversation, User
 from app.services.rag import ask
+from app.services.title import generate_chat_title
 
 router = APIRouter(prefix="/ask", tags=["ask"])
+logger = logging.getLogger(__name__)
 
 RATE_LIMIT = 5
 RATE_WINDOW = 60
@@ -48,7 +52,8 @@ class AskRequest(BaseModel):
     platform: str = "telegram"
     name: str = "User"
     username: str | None = None
-    history: list[HistoryMessage] = []
+    history: list[HistoryMessage] = Field(default_factory=list)
+    conversation_id: int | None = None
 
 
 class TranscriptionResponse(BaseModel):
@@ -60,11 +65,15 @@ def _check_rate_limit(key: str) -> None:
     timestamps = _request_counts[key]
     _request_counts[key] = [t for t in timestamps if now - t < RATE_WINDOW]
     if len(_request_counts[key]) >= RATE_LIMIT:
-        raise HTTPException(status_code=429, detail="Rate limit exceeded. Try again later.")
+        raise HTTPException(
+            status_code=429, detail="Rate limit exceeded. Try again later."
+        )
     _request_counts[key].append(now)
 
 
-async def _resolve_user(request: AskRequest, db: AsyncSession, authorization: str | None) -> User:
+async def _resolve_user(
+    request: AskRequest, db: AsyncSession, authorization: str | None
+) -> User:
     if request.platform == "web":
         if not authorization:
             raise HTTPException(status_code=401, detail="Unauthorized")
@@ -105,6 +114,48 @@ async def _resolve_user(request: AskRequest, db: AsyncSession, authorization: st
     return user
 
 
+async def _update_conversation_title(
+    conversation_id: int | None, question: str, user_id: int
+) -> None:
+    if not conversation_id:
+        return
+
+    normalized_question = question.strip()
+    if not normalized_question:
+        return
+
+    generated_title = await generate_chat_title(normalized_question)
+
+    async with SessionLocal() as title_db:
+        conv = (
+            await title_db.execute(
+                select(ChatConversation).where(
+                    ChatConversation.id == conversation_id,
+                    ChatConversation.user_id == user_id,
+                )
+            )
+        ).scalar_one_or_none()
+
+        if not conv:
+            return
+
+        if (conv.title or "").strip().lower() != "new chat":
+            return
+
+        conv.title = generated_title[:120]
+        conv.updated_at = func.now()
+        await title_db.commit()
+
+
+def _log_background_task_exception(task: asyncio.Task) -> None:
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        return
+    except Exception:
+        logger.exception("background title update failed")
+
+
 @router.post("/")
 async def ask_question(
     request: AskRequest,
@@ -118,18 +169,50 @@ async def ask_question(
 
     _check_rate_limit(f"{request.platform}:{request.platform_user_id}")
 
-    result = await ask(
-        question=request.question,
-        user_id=user.id,
-        platform=request.platform,
-        history=[m.model_dump() for m in request.history],
-        db=db,
-    )
+    title_task: asyncio.Task | None = None
+    if request.conversation_id:
+        title_task = asyncio.create_task(
+            _update_conversation_title(
+                request.conversation_id,
+                request.question,
+                user.id,
+            )
+        )
+        title_task.add_done_callback(_log_background_task_exception)
 
-    return {
+    try:
+        result = await ask(
+            question=request.question,
+            user_id=user.id,
+            platform=request.platform,
+            history=[m.model_dump() for m in request.history],
+            db=db,
+        )
+    except Exception:
+        if title_task and not title_task.done():
+            title_task.cancel()
+        logger.exception("ask processing failed")
+        raise HTTPException(status_code=500, detail="Failed to process question")
+
+    response_data = {
         "answer": result["answer"],
         "sources": result["sources"],
     }
+
+    if request.conversation_id:
+        conv = (
+            await db.execute(
+                select(ChatConversation).where(
+                    ChatConversation.id == request.conversation_id,
+                    ChatConversation.user_id == user.id,
+                )
+            )
+        ).scalar_one_or_none()
+        if conv:
+            response_data["title"] = conv.title
+            response_data["conversationId"] = str(conv.id)
+
+    return response_data
 
 
 @router.post("/transcribe", response_model=TranscriptionResponse)
@@ -146,7 +229,10 @@ async def transcribe_audio(
         and not normalized_content_type.startswith("audio/")
         and not normalized_content_type.startswith("video/")
     ):
-        raise HTTPException(status_code=400, detail=f"Unsupported audio format: {normalized_content_type}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported audio format: {normalized_content_type}",
+        )
 
     audio_bytes = await file.read()
     if not audio_bytes:
@@ -160,7 +246,11 @@ async def transcribe_audio(
     try:
         transcription = await stt_client.audio.transcriptions.create(
             model=TRANSCRIBE_MODEL,
-            file=(file.filename or "recording.webm", audio_bytes, normalized_content_type or "audio/webm"),
+            file=(
+                file.filename or "recording.webm",
+                audio_bytes,
+                normalized_content_type or "audio/webm",
+            ),
         )
     except Exception:
         raise HTTPException(status_code=502, detail="Transcription service unavailable")

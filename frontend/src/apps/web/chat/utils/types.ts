@@ -34,4 +34,6 @@ export interface Conversation {
 export interface AskApiResponse {
   answer: string;
   sources?: ChatSource[];
+  title?: string;
+  conversationId?: string;
 }

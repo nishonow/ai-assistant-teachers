@@ -264,6 +264,15 @@ export default function ChatPage() {
     navigate("/app");
   }, [navigate, requestComposerFocus]);
 
+  const resolveImmediateDraftTitle = useCallback((prompt: string) => {
+    const normalized = prompt.replace(/\s+/g, " ").trim();
+    if (!normalized) {
+      return "New chat";
+    }
+
+    return normalized.length > 60 ? `${normalized.slice(0, 57).trimEnd()}...` : normalized;
+  }, []);
+
   const handleSend = useCallback(
     async (prompt: string) => {
       if (!session || pending || sendLockRef.current || rateLimitSecondsLeft > 0) return;
@@ -287,11 +296,13 @@ export default function ChatPage() {
       }
 
       const userMessage = createTransientMessage("user", prompt);
-      const optimisticTitle =
-        conversation.messages.length === 0 ? prompt.slice(0, 40).trim() || conversation.title : conversation.title;
+      const immediateTitle =
+        conversation.messages.length === 0 && conversation.title.trim() === "New chat"
+          ? resolveImmediateDraftTitle(prompt)
+          : conversation.title;
       const optimisticConversation: Conversation = {
         ...conversation,
-        title: optimisticTitle,
+        title: immediateTitle,
         updatedAt: new Date().toISOString(),
         messages: [...conversation.messages, userMessage],
       };
@@ -307,6 +318,7 @@ export default function ChatPage() {
           question: prompt,
           session,
           history: optimisticConversation.messages,
+          conversationId: conversation.id,
         });
         setIsMessagingBlocked(false);
         setRateLimitUntil(null);
@@ -314,6 +326,7 @@ export default function ChatPage() {
         const sources = response.sources || [];
         const answeredConversation: Conversation = {
           ...optimisticConversation,
+          title: response.title || optimisticConversation.title,
           updatedAt: new Date().toISOString(),
           messages: [...optimisticConversation.messages, createTransientMessage("assistant", answer, sources)],
         };
@@ -327,7 +340,6 @@ export default function ChatPage() {
             conversationId: conversation.id,
             question: prompt,
             answer,
-            title: conversation.messages.length === 0 ? optimisticTitle : undefined,
             sources,
           });
 
@@ -360,7 +372,16 @@ export default function ChatPage() {
         sendLockRef.current = false;
       }
     },
-    [activeConversation, navigate, pending, rateLimitSecondsLeft, session, showNotice, syncActiveConversation],
+    [
+      activeConversation,
+      navigate,
+      pending,
+      rateLimitSecondsLeft,
+      resolveImmediateDraftTitle,
+      session,
+      showNotice,
+      syncActiveConversation,
+    ],
   );
 
   const handleConfirmLogout = () => {
