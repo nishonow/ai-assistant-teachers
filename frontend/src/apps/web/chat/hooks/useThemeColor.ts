@@ -30,21 +30,29 @@ export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
     let rafId: number | null = null;
     let timeoutId: number | null = null;
 
-    const applyThemeColor = () => {
-      // Remove all existing theme-color meta tags and re-insert a fresh one.
-      // Safari on iOS only picks up theme-color changes when the meta element
-      // is newly added to the DOM — updating the content attribute alone is
-      // often ignored until the next page load.
-      const allThemeMetas = Array.from(document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]'));
-      for (const meta of allThemeMetas) {
-        meta.parentNode?.removeChild(meta);
-      }
+    const insertFreshMeta = (): HTMLMetaElement => {
+      // Remove all existing theme-color meta tags and insert a fresh one.
+      // Safari on iOS only picks up theme-color changes when the tag is newly
+      // added to the DOM — mutating the content attribute alone is often ignored.
+      const existing = Array.from(document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]'));
+      for (const m of existing) m.parentNode?.removeChild(m);
+      const meta = document.createElement("meta");
+      meta.name = "theme-color";
+      meta.setAttribute(DYNAMIC_THEME_META_ATTR, "true");
+      meta.content = color;
+      document.head.appendChild(meta);
+      return meta;
+    };
 
-      const freshMeta = document.createElement("meta");
-      freshMeta.name = "theme-color";
-      freshMeta.setAttribute(DYNAMIC_THEME_META_ATTR, "true");
-      freshMeta.content = color;
-      document.head.appendChild(freshMeta);
+    const applyThemeColor = (fresh = false) => {
+      // On subsequent calls (RAF / timeout) reuse the existing tag so we don't
+      // keep thrashing the DOM, but still update content in case it drifted.
+      let themeMeta = document.querySelector<HTMLMetaElement>(`meta[name="theme-color"][${DYNAMIC_THEME_META_ATTR}="true"]`);
+      if (!themeMeta || fresh) {
+        themeMeta = insertFreshMeta();
+      } else {
+        themeMeta.content = color;
+      }
 
       // Keep page underlay and safe-area backing color in sync with the selected theme.
       document.documentElement.style.setProperty(UNDERLAY_CSS_VARIABLE, color);
@@ -57,11 +65,12 @@ export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
 
     const reapplyOnVisibility = () => {
       if (document.visibilityState === "visible") {
-        applyThemeColor();
+        applyThemeColor(true);
       }
     };
 
-    applyThemeColor();
+    // First call: force-insert a fresh meta tag so Safari notices the change.
+    applyThemeColor(true);
     // Some mobile browsers apply browser chrome color asynchronously.
     rafId = window.requestAnimationFrame(() => {
       applyThemeColor();
@@ -70,8 +79,11 @@ export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
       applyThemeColor();
     }, 120);
 
-    window.addEventListener("pageshow", applyThemeColor);
-    window.addEventListener("focus", applyThemeColor);
+    const onPageShow = () => applyThemeColor(true);
+    const onFocus = () => applyThemeColor(true);
+
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", reapplyOnVisibility);
 
     return () => {
@@ -81,8 +93,8 @@ export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
       if (timeoutId !== null) {
         window.clearTimeout(timeoutId);
       }
-      window.removeEventListener("pageshow", applyThemeColor);
-      window.removeEventListener("focus", applyThemeColor);
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", reapplyOnVisibility);
     };
   }, [resolvedTheme]);
