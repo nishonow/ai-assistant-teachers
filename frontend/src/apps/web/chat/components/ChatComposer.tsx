@@ -1,10 +1,12 @@
-import { CircleStop, Loader2, Mic, SendHorizontal } from "lucide-react";
+import { Ban, CircleStop, Clock, Loader2, Mic, SendHorizontal } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useAuth } from "../../../../core/auth";
 import { transcribeVoiceMessage } from "../utils/api";
 
 interface ChatComposerProps {
   disabled: boolean;
+  isMessagingBlocked?: boolean;
+  rateLimitSecondsLeft?: number;
   onSubmit: (value: string) => Promise<void>;
   suggestedValue: string | null;
   onSuggestedValueConsumed: () => void;
@@ -43,6 +45,8 @@ function localizeVoiceErrorMessage(error: unknown): string {
 
 export default function ChatComposer({
   disabled,
+  isMessagingBlocked = false,
+  rateLimitSecondsLeft = 0,
   onSubmit,
   suggestedValue,
   onSuggestedValueConsumed,
@@ -334,6 +338,36 @@ export default function ChatComposer({
   const voiceButtonDisabled = isTranscribing || (!isRecording && disabled);
   const voiceButtonLabel = isRecording ? "Остановить запись" : "Записать голос";
   const voiceTooltip = isRecording ? "Нажмите, чтобы остановить запись" : "Нажмите, чтобы начать запись";
+
+  if (isMessagingBlocked) {
+    return (
+      <div className="relative -mt-6 bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:-mt-7 md:px-6 md:pb-4 md:pt-0">
+        <div className="mx-auto w-full max-w-4xl">
+          <div className="flex items-center gap-3 rounded-[20px] border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+            <Ban size={16} className="shrink-0 text-rose-400" />
+            <span className="flex-1">Ваш аккаунт заблокирован. Вы можете просматривать историю, но не можете отправлять сообщения. Обратитесь к администратору.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (rateLimitSecondsLeft > 0) {
+    return (
+      <div className="relative -mt-6 bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:-mt-7 md:px-6 md:pb-4 md:pt-0">
+        <div className="mx-auto w-full max-w-4xl">
+          <div className="flex items-center gap-3 rounded-[20px] border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            <Clock size={16} className="shrink-0 text-amber-400" />
+            <span className="flex-1">
+              Слишком много запросов. Подождите{" "}
+              <span className="font-semibold tabular-nums">{rateLimitSecondsLeft}с</span>{" "}
+              перед следующим вопросом.
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form

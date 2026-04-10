@@ -41,7 +41,7 @@ def _create_access_token(subject: str) -> str:
     )
 
 
-def _build_auth_response(*, token: str, role: str, user_id: str, username: str, display_name: str) -> dict:
+def _build_auth_response(*, token: str, role: str, user_id: str, username: str, display_name: str, is_blocked: bool = False) -> dict:
     return {
         "accessToken": token,
         "role": role,
@@ -49,6 +49,7 @@ def _build_auth_response(*, token: str, role: str, user_id: str, username: str, 
             "id": user_id,
             "username": username,
             "displayName": display_name,
+            "isBlocked": is_blocked,
         },
     }
 
@@ -95,6 +96,7 @@ async def _resolve_auth_subject(subject: str, db: AsyncSession) -> dict:
             user_id=subject,
             username=subject,
             display_name=web_user.name or subject,
+            is_blocked=web_user.is_blocked,
         )
 
     raise HTTPException(status_code=404, detail="User not found")
@@ -196,6 +198,7 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
                 user_id=normalized_email,
                 username=normalized_email,
                 display_name=web_user.name or normalized_email,
+                is_blocked=web_user.is_blocked,
             )
 
     raise HTTPException(status_code=401, detail="Invalid credentials")

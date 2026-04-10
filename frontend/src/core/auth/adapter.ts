@@ -25,6 +25,7 @@ function buildSessionFromResponse(response: LoginResponse, fallbackIdentifier: s
       username,
       displayName,
       role,
+      isBlocked: response.user?.isBlocked ?? false,
     },
   };
 }

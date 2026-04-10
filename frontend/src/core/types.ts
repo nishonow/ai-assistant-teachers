@@ -49,6 +49,7 @@ export interface LoginResponse {
     id?: string;
     username?: string;
     displayName?: string;
+    isBlocked?: boolean;
   };
 }
 

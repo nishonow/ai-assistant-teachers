@@ -7,6 +7,7 @@ export interface AuthUser {
   username: string;
   displayName: string;
   role: UserRole;
+  isBlocked: boolean;
 }
 
 export interface AuthSession {

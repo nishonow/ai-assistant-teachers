@@ -1,6 +1,8 @@
 import { Download, LogOut, MessageSquarePlus, Moon, MoreHorizontal, Palette, PanelLeftClose, Pencil, Shield, Sun, Trash2, UserRound } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 
+import AnimatedTitle from "./AnimatedTitle";
+
 import logo from "../../../../../logo.png";
 
 import type { WebchatResolvedTheme, WebchatThemePreference } from "../utils/theme";
@@ -16,6 +18,7 @@ interface ChatSidebarProps {
   username?: string | null;
   isAdmin?: boolean;
   historyPending?: boolean;
+  titleAnimationTrigger?: number;
   onCloseMobile: () => void;
   onSelectConversation: (id: string) => void;
   onRenameConversation: (conversation: ConversationSummary) => void;
@@ -35,6 +38,7 @@ interface SidebarListProps {
   activeConversationId: string | null;
   conversations: ConversationSummary[];
   loading: boolean;
+  titleAnimationTrigger: number;
   onCloseMobile: () => void;
   onSelectConversation: (id: string) => void;
   onRenameConversation: (conversation: ConversationSummary) => void;
@@ -80,6 +84,7 @@ function SidebarList({
   activeConversationId,
   conversations,
   loading,
+  titleAnimationTrigger,
   onCloseMobile,
   onSelectConversation,
   onRenameConversation,
@@ -162,7 +167,11 @@ function SidebarList({
             >
               <div className="min-w-0">
                 <p className="truncate text-[13px] font-medium leading-5" title={conversation.title}>
-                  {conversation.title}
+                  {conversation.id === activeConversationId ? (
+                    <AnimatedTitle title={conversation.title} animationTrigger={titleAnimationTrigger} />
+                  ) : (
+                    conversation.title
+                  )}
                 </p>
               </div>
             </button>
@@ -374,6 +383,7 @@ export default function ChatSidebar({
   username,
   isAdmin = false,
   historyPending = false,
+  titleAnimationTrigger = 0,
   onCloseMobile,
   onSelectConversation,
   onRenameConversation,
@@ -478,6 +488,7 @@ export default function ChatSidebar({
           activeConversationId={activeConversationId}
           conversations={conversations}
           loading={loading}
+          titleAnimationTrigger={titleAnimationTrigger ?? 0}
           onCloseMobile={onCloseMobile}
           onSelectConversation={onSelectConversation}
           onRenameConversation={onRenameConversation}
@@ -547,6 +558,7 @@ export default function ChatSidebar({
               activeConversationId={activeConversationId}
               conversations={conversations}
               loading={loading}
+              titleAnimationTrigger={titleAnimationTrigger ?? 0}
               onCloseMobile={onCloseMobile}
               onSelectConversation={onSelectConversation}
               onRenameConversation={onRenameConversation}

@@ -2,6 +2,7 @@ import { BookOpenText, ChevronRight, PanelLeft, PanelLeftClose } from "lucide-re
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import AnimatedTitle from "../chat/components/AnimatedTitle";
 import ToastNotice from "../../../core/components/ToastNotice";
 import { useAuth } from "../../../core/auth";
 import type { NoticeState } from "../../../core/types";
@@ -85,10 +86,17 @@ export default function ChatPage() {
   const [viewerSourceUrl, setViewerSourceUrl] = useState<string | null>(null);
   const [viewerLoading, setViewerLoading] = useState(false);
   const [viewerError, setViewerError] = useState<string | null>(null);
-  const [isMessagingBlocked, setIsMessagingBlocked] = useState(false);
-  const [rateLimitUntil, setRateLimitUntil] = useState<number | null>(null);
+  const [isMessagingBlocked, setIsMessagingBlocked] = useState(() => session?.user.isBlocked ?? false);
+  const [rateLimitUntil, setRateLimitUntil] = useState<number | null>(() => {
+    const key = session ? `rateLimitUntil:${session.user.id}` : null;
+    if (!key) return null;
+    const stored = Number(localStorage.getItem(key) ?? "0");
+    return stored > Date.now() ? stored : null;
+  });
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [themePreference, setThemePreference] = useState<WebchatThemePreference>(() => loadWebchatThemePreference());
+  const [pendingDraftTitle, setPendingDraftTitle] = useState<string | null>(null);
+  const [titleAnimationTrigger, setTitleAnimationTrigger] = useState(0);
   const systemPrefersDark = useSystemPrefersDark();
   const { canPromptInstall, canShowManualInstall, shouldShowInstallAction, promptInstall } = usePwaInstallPrompt();
 
@@ -111,6 +119,11 @@ export default function ChatPage() {
       }
     };
   }, []);
+
+  // Keep blocked state in sync with the session (updated on hydration / re-auth)
+  useEffect(() => {
+    setIsMessagingBlocked(session?.user.isBlocked ?? false);
+  }, [session?.user.isBlocked]);
 
   useEffect(() => {
     return () => {
@@ -223,9 +236,21 @@ export default function ChatPage() {
 
   const resolvedTheme = resolveWebchatTheme(themePreference, systemPrefersDark);
 
+  const applyRateLimit = useCallback((until: number | null) => {
+    const key = session ? `rateLimitUntil:${session.user.id}` : null;
+    if (key) {
+      if (until) {
+        localStorage.setItem(key, String(until));
+      } else {
+        localStorage.removeItem(key);
+      }
+    }
+    setRateLimitUntil(until);
+  }, [session]);
+
   const handleRateLimitExpire = useCallback(() => {
-    setRateLimitUntil(null);
-  }, []);
+    applyRateLimit(null);
+  }, [applyRateLimit]);
   const rateLimitSecondsLeft = useRateLimitCountdown(rateLimitUntil, handleRateLimitExpire);
   useWebchatDocumentMeta({
     conversationTitle: activeConversation?.title,
@@ -250,6 +275,7 @@ export default function ChatPage() {
 
   const handleStartDraftConversation = useCallback(() => {
     conversationRequestIdRef.current += 1;
+    setPendingDraftTitle(null);
     setActiveConversationId(null);
     setActiveConversation(null);
     setActiveSources([]);
@@ -275,7 +301,7 @@ export default function ChatPage() {
 
   const handleSend = useCallback(
     async (prompt: string) => {
-      if (!session || pending || sendLockRef.current || rateLimitSecondsLeft > 0) return;
+      if (!session || pending || sendLockRef.current || isMessagingBlocked || rateLimitSecondsLeft > 0) return;
 
       sendLockRef.current = true;
       setPending(true);
@@ -283,11 +309,18 @@ export default function ChatPage() {
       let conversation = activeConversation;
       let isFreshConversation = false;
 
+      // Show the user's question as the title instantly — before any API call.
+      const draftTitle = !conversation ? resolveImmediateDraftTitle(prompt) : null;
+      if (draftTitle) {
+        setPendingDraftTitle(draftTitle);
+      }
+
       if (!conversation) {
         try {
           conversation = await createConversation({ session });
           isFreshConversation = true;
         } catch (requestError) {
+          setPendingDraftTitle(null);
           showNotice("error", localizeUserErrorMessage(requestError, "Не удалось начать новый диалог."));
           setPending(false);
           sendLockRef.current = false;
@@ -307,8 +340,13 @@ export default function ChatPage() {
         messages: [...conversation.messages, userMessage],
       };
 
+      // Conversation is in state now — the header uses activeConversation.title, drop the draft.
+      setPendingDraftTitle(null);
       syncActiveConversation(optimisticConversation, "move-to-top", "preserve");
 
+      // Navigate only after the conversation is created — we'll confirm navigation on success.
+      // For fresh conversations we navigate now so the URL is correct, but we handle
+      // cleanup (deletion) on terminal failures so no stale empty chat remains.
       if (isFreshConversation) {
         navigate(`/app/chat/${conversation.id}`, { replace: true });
       }
@@ -321,16 +359,20 @@ export default function ChatPage() {
           conversationId: conversation.id,
         });
         setIsMessagingBlocked(false);
-        setRateLimitUntil(null);
+        applyRateLimit(null);
         const answer = response.answer || "Ответ не был получен.";
         const sources = response.sources || [];
+        const aiTitle = response.title || null;
         const answeredConversation: Conversation = {
           ...optimisticConversation,
-          title: response.title || optimisticConversation.title,
+          title: aiTitle ?? optimisticConversation.title,
           updatedAt: new Date().toISOString(),
           messages: [...optimisticConversation.messages, createTransientMessage("assistant", answer, sources)],
         };
 
+        if (aiTitle) {
+          setTitleAnimationTrigger((n) => n + 1);
+        }
         syncActiveConversation(answeredConversation, "move-to-top", "latest");
         setPending(false);
 
@@ -353,15 +395,27 @@ export default function ChatPage() {
       } catch (requestError) {
         if (isBlockedMessagingError(requestError)) {
           setIsMessagingBlocked(true);
-          showNotice("error", "Пользователь заблокирован. Обратитесь к администратору.");
-          syncActiveConversation(conversation, "preserve", "preserve");
+          // Clean up the stale empty conversation so the sidebar and URL don't linger
+          if (isFreshConversation) {
+            void deleteConversation(session, conversation.id).catch(() => undefined);
+            setConversations((prev) => prev.filter((c) => c.id !== conversation!.id));
+            navigate("/app", { replace: true });
+          } else {
+            syncActiveConversation(conversation, "preserve", "preserve");
+          }
           return;
         }
 
         if (isRateLimitError(requestError)) {
-          setRateLimitUntil(Date.now() + RATE_LIMIT_WINDOW_SECONDS * 1000);
-          showNotice("warning", localizeUserErrorMessage(requestError, "Слишком много запросов."));
-          syncActiveConversation(conversation, "preserve", "preserve");
+          applyRateLimit(Date.now() + RATE_LIMIT_WINDOW_SECONDS * 1000);
+          // Clean up the stale empty conversation so the sidebar and URL don't linger
+          if (isFreshConversation) {
+            void deleteConversation(session, conversation.id).catch(() => undefined);
+            setConversations((prev) => prev.filter((c) => c.id !== conversation!.id));
+            navigate("/app", { replace: true });
+          } else {
+            syncActiveConversation(conversation, "preserve", "preserve");
+          }
           return;
         }
 
@@ -374,11 +428,16 @@ export default function ChatPage() {
     },
     [
       activeConversation,
+      applyRateLimit,
+      isMessagingBlocked,
       navigate,
       pending,
       rateLimitSecondsLeft,
       resolveImmediateDraftTitle,
       session,
+      setConversations,
+      setPendingDraftTitle,
+      setTitleAnimationTrigger,
       showNotice,
       syncActiveConversation,
     ],
@@ -658,6 +717,7 @@ export default function ChatPage() {
         isMobileOpen={mobileSidebarOpen}
         isAdmin={session.user.role === "admin"}
         historyPending={deleteAllPending}
+        titleAnimationTrigger={titleAnimationTrigger}
         username={session.user.displayName || session.user.username}
         onCloseMobile={() => setMobileSidebarOpen(false)}
         onDeleteAllHistory={() => setDeleteAllConfirmOpen(true)}
@@ -697,7 +757,10 @@ export default function ChatPage() {
 
               <div className="min-w-0 flex-1 px-2 text-center">
                 <h1 className="truncate font-heading text-[13px] text-slate-100">
-                  {activeConversation?.title ?? "Mugallim AI"}
+                  <AnimatedTitle
+                    title={activeConversation?.title ?? pendingDraftTitle ?? "Mugallim AI"}
+                    animationTrigger={titleAnimationTrigger}
+                  />
                 </h1>
               </div>
 
@@ -720,7 +783,10 @@ export default function ChatPage() {
               <div className="flex min-w-0 items-center gap-3">
                 <div className="min-w-0">
                   <h1 className="truncate font-heading text-[16px] text-slate-100">
-                    {activeConversation?.title ?? "Новый чат"}
+                    <AnimatedTitle
+                      title={activeConversation?.title ?? pendingDraftTitle ?? "Новый чат"}
+                      animationTrigger={titleAnimationTrigger}
+                    />
                   </h1>
                 </div>
               </div>
@@ -752,15 +818,12 @@ export default function ChatPage() {
             selectedSourcesMessageId={selectedSourcesMessageId}
             onSelectSources={handleSelectMessageSources}
             onSelectSuggestion={handleSelectSuggestion}
-            suggestionsDisabled={pending || isLoadingList || isLoadingConversation || isMessagingBlocked}
+            suggestionsDisabled={pending || isLoadingList || isLoadingConversation || isMessagingBlocked || rateLimitSecondsLeft > 0}
           />
-          {isMessagingBlocked ? (
-            <div className="webchat-warning-banner mx-3 mb-2 rounded-xl border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-200 md:mx-6">
-              Пользователь заблокирован. Обратитесь к администратору.
-            </div>
-          ) : null}
           <ChatComposer
-            disabled={pending || isLoadingList || isLoadingConversation || isMessagingBlocked || rateLimitSecondsLeft > 0}
+            disabled={pending || isLoadingList || isLoadingConversation}
+            isMessagingBlocked={isMessagingBlocked}
+            rateLimitSecondsLeft={rateLimitSecondsLeft}
             onSubmit={handleSend}
             suggestedValue={suggestedQuestion}
             onSuggestedValueConsumed={() => setSuggestedQuestion(null)}
