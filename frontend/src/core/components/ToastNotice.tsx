@@ -61,10 +61,10 @@ export default function ToastNotice({ notice, onDismiss }: ToastNoticeProps) {
     <div
       className={[
         "pointer-events-none fixed z-[80]",
-        // Mobile: top, full width with side margins, away from keyboard/input
-        "left-2 right-2 top-4",
+        // Mobile: bottom, full width with side margins, above safe area
+        "left-2 right-2 bottom-[calc(1rem+env(safe-area-inset-bottom))]",
         // Desktop: bottom-right, auto width
-        "md:left-auto md:right-6 md:top-auto md:bottom-6 md:w-auto md:max-w-sm",
+        "md:left-auto md:right-6 md:bottom-6 md:w-auto md:max-w-sm",
       ].join(" ")}
     >
       <div

@@ -410,7 +410,7 @@
   }
 
   .toast-enter-mobile {
-    animation: toastDropIn 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: toastRiseIn 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .toast-enter-desktop {
