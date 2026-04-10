@@ -1,3 +1,5 @@
+import uuid as _uuid
+
 from sqlalchemy import Column, BigInteger, Text, Integer, ForeignKey, TIMESTAMP, Boolean, UniqueConstraint, func
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
@@ -59,6 +61,7 @@ class ChatConversation(Base):
     __tablename__ = "chat_conversations"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
+    uuid = Column(Text, nullable=False, unique=True, default=lambda: str(_uuid.uuid4()))
     user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     title = Column(Text, nullable=False, default="New chat")
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())

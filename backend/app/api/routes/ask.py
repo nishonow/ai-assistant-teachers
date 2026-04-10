@@ -53,7 +53,7 @@ class AskRequest(BaseModel):
     name: str = "User"
     username: str | None = None
     history: list[HistoryMessage] = Field(default_factory=list)
-    conversation_id: int | None = None
+    conversation_id: str | None = None
 
 
 class TranscriptionResponse(BaseModel):
@@ -115,7 +115,7 @@ async def _resolve_user(
 
 
 async def _update_conversation_title(
-    conversation_id: int | None, question: str, user_id: int
+    conversation_id: str | None, question: str, user_id: int
 ) -> None:
     if not conversation_id:
         return
@@ -130,7 +130,7 @@ async def _update_conversation_title(
         conv = (
             await title_db.execute(
                 select(ChatConversation).where(
-                    ChatConversation.id == conversation_id,
+                    ChatConversation.uuid == conversation_id,
                     ChatConversation.user_id == user_id,
                 )
             )
@@ -203,14 +203,14 @@ async def ask_question(
         conv = (
             await db.execute(
                 select(ChatConversation).where(
-                    ChatConversation.id == request.conversation_id,
+                    ChatConversation.uuid == request.conversation_id,
                     ChatConversation.user_id == user.id,
                 )
             )
         ).scalar_one_or_none()
         if conv:
             response_data["title"] = conv.title
-            response_data["conversationId"] = str(conv.id)
+            response_data["conversationId"] = conv.uuid
 
     return response_data
 

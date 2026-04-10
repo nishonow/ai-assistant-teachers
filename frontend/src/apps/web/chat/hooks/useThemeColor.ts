@@ -44,15 +44,10 @@ export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
       return meta;
     };
 
-    const applyThemeColor = (fresh = false) => {
-      // On subsequent calls (RAF / timeout) reuse the existing tag so we don't
-      // keep thrashing the DOM, but still update content in case it drifted.
-      let themeMeta = document.querySelector<HTMLMetaElement>(`meta[name="theme-color"][${DYNAMIC_THEME_META_ATTR}="true"]`);
-      if (!themeMeta || fresh) {
-        themeMeta = insertFreshMeta();
-      } else {
-        themeMeta.content = color;
-      }
+    const applyThemeColor = () => {
+      // Always insert a fresh meta tag — Safari on iOS only notices theme-color
+      // changes when the element is newly added to the DOM.
+      insertFreshMeta();
 
       // Keep page underlay and safe-area backing color in sync with the selected theme.
       document.documentElement.style.setProperty(UNDERLAY_CSS_VARIABLE, color);
@@ -63,24 +58,38 @@ export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
       statusBarMeta.content = resolvedTheme === "dark" ? "black-translucent" : "default";
     };
 
+    // Safari iOS only repaints the toolbar chrome (safe-area color) when a
+    // scroll/layout event occurs after the meta tag changes. Nudging scroll
+    // by 1px and back forces it to re-evaluate without visible movement.
+    const nudgeScroll = () => {
+      const scrollable = document.scrollingElement ?? document.documentElement;
+      const prev = scrollable.scrollTop;
+      scrollable.scrollTop = prev + 1;
+      scrollable.scrollTop = prev;
+    };
+
     const reapplyOnVisibility = () => {
       if (document.visibilityState === "visible") {
-        applyThemeColor(true);
+        applyThemeColor();
+        nudgeScroll();
       }
     };
 
-    // First call: force-insert a fresh meta tag so Safari notices the change.
-    applyThemeColor(true);
-    // Some mobile browsers apply browser chrome color asynchronously.
+    applyThemeColor();
+    nudgeScroll();
+    // Re-apply at increasing delays — Safari processes toolbar color updates
+    // asynchronously and sometimes misses the first attempt.
     rafId = window.requestAnimationFrame(() => {
       applyThemeColor();
+      nudgeScroll();
     });
     timeoutId = window.setTimeout(() => {
       applyThemeColor();
-    }, 120);
+      nudgeScroll();
+    }, 300);
 
-    const onPageShow = () => applyThemeColor(true);
-    const onFocus = () => applyThemeColor(true);
+    const onPageShow = () => { applyThemeColor(); nudgeScroll(); };
+    const onFocus = () => { applyThemeColor(); nudgeScroll(); };
 
     window.addEventListener("pageshow", onPageShow);
     window.addEventListener("focus", onFocus);

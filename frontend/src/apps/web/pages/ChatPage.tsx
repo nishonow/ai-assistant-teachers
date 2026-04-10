@@ -849,7 +849,7 @@ export default function ChatPage() {
         }}
       />
       <WebLogoutConfirmModal open={logoutConfirmOpen} onCancel={() => setLogoutConfirmOpen(false)} onConfirm={handleConfirmLogout} />
-      <ToastNotice notice={notice} />
+      <ToastNotice notice={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }

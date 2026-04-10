@@ -1,13 +1,14 @@
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import type { NoticeState } from "../types";
 
 interface ToastNoticeProps {
   notice: NoticeState | null;
+  onDismiss?: () => void;
 }
 
-export default function ToastNotice({ notice }: ToastNoticeProps) {
+export default function ToastNotice({ notice, onDismiss }: ToastNoticeProps) {
   const [displayed, setDisplayed] = useState<NoticeState | null>(null);
   const [exiting, setExiting] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -82,7 +83,16 @@ export default function ToastNotice({ notice }: ToastNoticeProps) {
         ) : (
           <AlertCircle size={16} className="mt-0.5 shrink-0" />
         )}
-        <span>{displayed.message}</span>
+        <span className="flex-1">{displayed.message}</span>
+        {onDismiss && (
+          <button
+            onClick={onDismiss}
+            className="ml-1 shrink-0 rounded p-0.5 opacity-60 transition-opacity hover:opacity-100"
+            aria-label="Dismiss"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
     </div>
   );

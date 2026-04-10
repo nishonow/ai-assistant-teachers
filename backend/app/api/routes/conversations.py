@@ -53,7 +53,7 @@ class ConversationExchangeRequest(BaseModel):
 def _serialize_summary(conversation: ChatConversation) -> dict:
     last_message = conversation.messages[-1].content if conversation.messages else ""
     return {
-        "id": str(conversation.id),
+        "id": conversation.uuid,
         "title": conversation.title,
         "updatedAt": conversation.updated_at.isoformat()
         if conversation.updated_at
@@ -65,7 +65,7 @@ def _serialize_summary(conversation: ChatConversation) -> dict:
 
 def _serialize_detail(conversation: ChatConversation) -> dict:
     return {
-        "id": str(conversation.id),
+        "id": conversation.uuid,
         "title": conversation.title,
         "updatedAt": conversation.updated_at.isoformat()
         if conversation.updated_at
@@ -103,14 +103,14 @@ def _conversation_load_options():
 
 
 async def _get_user_conversation(
-    db: AsyncSession, conversation_id: int, user_id: int
+    db: AsyncSession, conversation_uuid: str, user_id: int
 ) -> ChatConversation:
     conversation = (
         await db.execute(
             select(ChatConversation)
             .options(*_conversation_load_options())
             .where(
-                ChatConversation.id == conversation_id,
+                ChatConversation.uuid == conversation_uuid,
                 ChatConversation.user_id == user_id,
             )
         )
@@ -152,7 +152,7 @@ async def create_conversation(
     db.add(conversation)
     await db.commit()
     return _serialize_detail(
-        await _get_user_conversation(db, conversation.id, current_user.id)
+        await _get_user_conversation(db, conversation.uuid, current_user.id)
     )
 
 
@@ -169,7 +169,7 @@ async def delete_all_conversations(
 
 @router.get("/{conversation_id}")
 async def get_conversation(
-    conversation_id: int,
+    conversation_id: str,
     current_user: User = Depends(require_web_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -179,7 +179,7 @@ async def get_conversation(
 
 @router.get("/{conversation_id}/sources/{document_id}/download")
 async def download_conversation_source(
-    conversation_id: int,
+    conversation_id: str,
     document_id: int,
     current_user: User = Depends(require_web_user),
     db: AsyncSession = Depends(get_db),
@@ -212,7 +212,7 @@ async def download_conversation_source(
 
 @router.patch("/{conversation_id}")
 async def rename_conversation(
-    conversation_id: int,
+    conversation_id: str,
     request: ConversationRenameRequest,
     current_user: User = Depends(require_web_user),
     db: AsyncSession = Depends(get_db),
@@ -226,13 +226,13 @@ async def rename_conversation(
     conversation.updated_at = func.now()
     await db.commit()
 
-    refreshed = await _get_user_conversation(db, conversation.id, current_user.id)
+    refreshed = await _get_user_conversation(db, conversation.uuid, current_user.id)
     return _serialize_detail(refreshed)
 
 
 @router.delete("/{conversation_id}")
 async def delete_conversation(
-    conversation_id: int,
+    conversation_id: str,
     current_user: User = Depends(require_web_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -244,7 +244,7 @@ async def delete_conversation(
 
 @router.post("/{conversation_id}/exchange")
 async def save_exchange(
-    conversation_id: int,
+    conversation_id: str,
     request: ConversationExchangeRequest,
     current_user: User = Depends(require_web_user),
     db: AsyncSession = Depends(get_db),
@@ -302,5 +302,5 @@ async def save_exchange(
     await db.commit()
 
     db.expunge_all()
-    refreshed = await _get_user_conversation(db, conversation.id, current_user.id)
+    refreshed = await _get_user_conversation(db, conversation.uuid, current_user.id)
     return _serialize_detail(refreshed)

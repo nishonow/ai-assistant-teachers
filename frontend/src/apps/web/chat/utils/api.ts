@@ -55,7 +55,7 @@ export async function askAssistant({ question, session, history, conversationId 
         role: item.role,
         content: item.content,
       })),
-      conversation_id: conversationId ? parseInt(conversationId, 10) : undefined,
+      conversation_id: conversationId || undefined,
     },
   });
 }
