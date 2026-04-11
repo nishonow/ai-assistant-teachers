@@ -226,7 +226,8 @@ async def update_me(request: UpdateProfileRequest, authorization: str = Header(.
     if subject == settings.ADMIN_USERNAME:
         raise HTTPException(status_code=400, detail="Built-in admin profile cannot be edited here")
 
-    user = (
+    # Try to find as a web user by their email/platform_user_id
+    web_user = (
         await db.execute(
             select(User).where(
                 User.platform == "web",
@@ -234,44 +235,65 @@ async def update_me(request: UpdateProfileRequest, authorization: str = Header(.
             )
         )
     ).scalar_one_or_none()
-    if not user:
-        user = (
+
+    # Fallback: find by login (e.g. Telegram user or web user granted admin login)
+    login_user = None
+    if not web_user:
+        login_user = (
+            await db.execute(
+                select(User).where(User.login == subject)
+            )
+        ).scalar_one_or_none()
+
+    if not web_user and not login_user:
+        raise HTTPException(status_code=400, detail="This profile cannot be edited here")
+
+    if web_user:
+        # Web user: can update email, name, password
+        existing = (
             await db.execute(
                 select(User).where(
                     User.platform == "web",
-                    User.login == subject,
+                    User.platform_user_id == email,
                 )
             )
         ).scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=400, detail="This profile cannot be edited here")
+        if existing and existing.id != web_user.id:
+            raise HTTPException(status_code=400, detail="Email already registered")
 
-    existing = (
-        await db.execute(
-            select(User).where(
-                User.platform == "web",
-                User.platform_user_id == email,
-            )
+        web_user.platform_user_id = email
+        web_user.username = email
+        web_user.name = name
+        if password:
+            web_user.password_hash = (
+                await asyncio.to_thread(bcrypt.hashpw, password.encode(), bcrypt.gensalt())
+            ).decode()
+        await db.commit()
+        await db.refresh(web_user)
+
+        token = _create_access_token(email)
+        return _build_auth_response(
+            token=token,
+            role="admin" if web_user.is_admin else "user",
+            user_id=email,
+            username=email,
+            display_name=web_user.name or email,
         )
-    ).scalar_one_or_none()
-    if existing and existing.id != user.id:
-        raise HTTPException(status_code=400, detail="Email already registered")
+    else:
+        # Non-web admin (e.g. Telegram user): only update name and password
+        login_user.name = name
+        if password:
+            login_user.password_hash = (
+                await asyncio.to_thread(bcrypt.hashpw, password.encode(), bcrypt.gensalt())
+            ).decode()
+        await db.commit()
+        await db.refresh(login_user)
 
-    user.platform_user_id = email
-    user.username = email
-    user.name = name
-    if password:
-        user.password_hash = (
-            await asyncio.to_thread(bcrypt.hashpw, password.encode(), bcrypt.gensalt())
-        ).decode()
-    await db.commit()
-    await db.refresh(user)
-
-    token = _create_access_token(email)
-    return _build_auth_response(
-        token=token,
-        role="admin" if user.is_admin else "user",
-        user_id=email,
-        username=email,
-        display_name=user.name or email,
-    )
+        token = _create_access_token(subject)
+        return _build_auth_response(
+            token=token,
+            role="admin" if login_user.is_admin else "user",
+            user_id=subject,
+            username=subject,
+            display_name=login_user.name or subject,
+        )
