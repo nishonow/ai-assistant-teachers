@@ -29,7 +29,7 @@ class RegisterRequest(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     name: str
-    email: EmailStr
+    email: str
     password: str | None = None
 
 
