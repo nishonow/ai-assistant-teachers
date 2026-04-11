@@ -235,6 +235,15 @@ async def update_me(request: UpdateProfileRequest, authorization: str = Header(.
         )
     ).scalar_one_or_none()
     if not user:
+        user = (
+            await db.execute(
+                select(User).where(
+                    User.platform == "web",
+                    User.login == subject,
+                )
+            )
+        ).scalar_one_or_none()
+    if not user:
         raise HTTPException(status_code=400, detail="This profile cannot be edited here")
 
     existing = (
