@@ -280,8 +280,21 @@ async def update_me(request: UpdateProfileRequest, authorization: str = Header(.
             display_name=web_user.name or email,
         )
     else:
-        # Non-web admin (e.g. Telegram user): only update name and password
+        # Non-web admin (e.g. Telegram user): update name, login (username), and password
+        existing_login = (
+            await db.execute(
+                select(User).where(
+                    User.login == email,
+                    User.id != login_user.id,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing_login:
+            raise HTTPException(status_code=400, detail="Login already taken")
+
         login_user.name = name
+        login_user.login = email
+        login_user.username = email
         if password:
             login_user.password_hash = (
                 await asyncio.to_thread(bcrypt.hashpw, password.encode(), bcrypt.gensalt())
@@ -289,11 +302,11 @@ async def update_me(request: UpdateProfileRequest, authorization: str = Header(.
         await db.commit()
         await db.refresh(login_user)
 
-        token = _create_access_token(subject)
+        token = _create_access_token(email)
         return _build_auth_response(
             token=token,
             role="admin" if login_user.is_admin else "user",
-            user_id=subject,
-            username=subject,
-            display_name=login_user.name or subject,
+            user_id=email,
+            username=email,
+            display_name=login_user.name or email,
         )
