@@ -467,11 +467,6 @@ export default function ChatPage() {
       return;
     }
 
-    if (!email) {
-      showNotice("error", "Укажите корректный email.");
-      return;
-    }
-
     setProfilePending(true);
 
     try {
