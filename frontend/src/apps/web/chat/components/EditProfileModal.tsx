@@ -67,7 +67,7 @@ export default function EditProfileModal({
               <span className="mb-2 block text-sm font-medium text-slate-200">Email</span>
               <input
                 className="input"
-                type="email"
+                type="text"
                 value={email}
                 onChange={(event) => onChangeEmail(event.target.value)}
                 placeholder="name@example.com"
