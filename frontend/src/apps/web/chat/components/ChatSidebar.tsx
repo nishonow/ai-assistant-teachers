@@ -3,7 +3,8 @@ import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useStat
 
 import AnimatedTitle from "./AnimatedTitle";
 
-import logo from "../../../../../logo.png";
+import logoDark from "../../../../../logofull-dark.svg";
+import logoLight from "../../../../../logofull.svg";
 
 import type { WebchatResolvedTheme, WebchatThemePreference } from "../utils/theme";
 import type { ConversationSummary } from "../utils/types";
@@ -63,18 +64,12 @@ interface SidebarAccountMenuProps {
   resolvedTheme: WebchatResolvedTheme;
 }
 
-function SidebarBrand({ compact = false }: { compact?: boolean }) {
+function SidebarBrand({ compact = false, resolvedTheme }: { compact?: boolean; resolvedTheme: WebchatResolvedTheme }) {
+  const logo = resolvedTheme === "light" ? logoLight : logoDark;
   return (
     <div className={compact ? "px-1 py-0" : "mb-5 px-2 py-1"}>
-      <div className="inline-flex items-center gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[16px] bg-white/5 md:h-11 md:w-11">
-          <img
-            src={logo}
-            alt="Mugallim AI"
-            className="h-[112%] w-[112%] rounded-[14px] object-contain"
-          />
-        </span>
-        <p className="truncate font-heading text-lg tracking-[0.08em] text-[#f5fffd]">Mugallim AI</p>
+      <div className="inline-flex items-center">
+        <img src={logo} alt="Mektep AI" className="h-9 w-auto object-contain" />
       </div>
     </div>
   );
@@ -473,7 +468,7 @@ export default function ChatSidebar({
   return (
     <>
       <aside className="webchat-sidebar-shell sidebar-shell hidden h-full w-[290px] flex-col bg-[#09111d] px-3 py-3 md:flex">
-        <SidebarBrand />
+        <SidebarBrand resolvedTheme={resolvedTheme} />
 
         <button type="button" className="webchat-new-chat-button mb-3 flex w-full items-center justify-start gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors" onClick={onStartNewChat}>
           <MessageSquarePlus size={15} />

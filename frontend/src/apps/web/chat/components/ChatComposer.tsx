@@ -380,7 +380,7 @@ export default function ChatComposer({
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Напишите Mugallim AI..."
+          placeholder="Напишите Mektep AI..."
           rows={1}
           style={{ touchAction: 'manipulation' }}
           className="webchat-composer-input chat-input-scroll min-h-[34px] max-h-[220px] flex-1 resize-none bg-transparent px-1 py-1.5 text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[38px] md:py-[7px]"
@@ -418,7 +418,7 @@ export default function ChatComposer({
         </button>
       </div>
       <div className="mx-auto mt-1 flex w-full max-w-4xl items-center justify-center px-2 md:mt-1.5">
-        <p className="text-center text-[10px] leading-4 text-slate-500 md:text-[11px]">Mugallim AI может ошибаться. Проверяйте источники.</p>
+        <p className="text-center text-[10px] leading-4 text-slate-500 md:text-[11px]">Mektep AI может ошибаться. Проверяйте источники.</p>
         <p aria-live="polite" className="sr-only" role="status">
           {voiceError ? `Ошибка: ${voiceError}` : ""}
         </p>

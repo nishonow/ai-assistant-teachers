@@ -28,7 +28,7 @@ export default function Sidebar({ items, activeTab, onSelect, open, onClose }: S
       >
         <div className="flex items-start justify-between gap-2 border-b border-ink-600/60 pb-4">
           <div>
-            <p className="font-heading text-xs uppercase tracking-[0.2em] text-brand-300">Mugallim AI</p>
+            <p className="font-heading text-xs uppercase tracking-[0.2em] text-brand-300">Mektep AI</p>
             <h2 className="mt-2 font-heading text-2xl font-bold">Admin Panel</h2>
           </div>
           <button className="btn-muted p-2 md:hidden" onClick={onClose} type="button" aria-label="Close menu">

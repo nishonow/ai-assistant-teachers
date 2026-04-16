@@ -753,7 +753,7 @@ export default function ChatPage() {
               <div className="min-w-0 flex-1 px-2 text-center">
                 <h1 className="truncate font-heading text-[13px] text-slate-100">
                   <AnimatedTitle
-                    title={activeConversation?.title ?? pendingDraftTitle ?? "Mugallim AI"}
+                    title={activeConversation?.title ?? pendingDraftTitle ?? "Mektep AI"}
                     animationTrigger={titleAnimationTrigger}
                   />
                 </h1>

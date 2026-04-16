@@ -27,7 +27,7 @@ function normalizeConversationTitle(rawTitle: string | null | undefined): string
 export default function useWebchatDocumentMeta({
   conversationTitle,
   resolvedTheme,
-  appTitle = "Mugallim AI",
+  appTitle = "Mektep AI",
   preservePreviousConversationTitle = false,
 }: UseWebchatDocumentMetaOptions) {
   const lastConversationTitleRef = useRef<string | null>(null);

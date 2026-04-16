@@ -2,7 +2,7 @@ import { CheckCircle2, GraduationCap } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
-import logo from "../../../../logo.png";
+import logo from "../../../../logofull-dark.svg";
 
 const BRAND_LINES = [
   "Ответы на основе документов",
@@ -49,11 +49,8 @@ export default function AuthShell({
 
           <div className="relative z-10 flex min-h-screen w-full flex-col px-10 py-10 xl:px-14 xl:py-12">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 text-white transition-opacity hover:opacity-80">
-              <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white/10">
-                <img src={logo} alt="Mugallim AI" className="h-full w-full object-cover" />
-              </span>
-              <span className="text-xl font-extrabold tracking-tight">Mugallim AI</span>
+            <Link to="/" className="flex items-center transition-opacity hover:opacity-80">
+              <img src={logo} alt="Mektep AI" className="h-9 w-auto object-contain" />
             </Link>
 
             {/* Center content */}
@@ -81,7 +78,7 @@ export default function AuthShell({
             </div>
 
             <p className="text-xs font-semibold text-white/25">
-              © {new Date().getFullYear()} Mugallim AI
+              © {new Date().getFullYear()} Mektep AI
             </p>
           </div>
         </section>
@@ -92,12 +89,9 @@ export default function AuthShell({
             {/* Mobile logo */}
             <Link
               to="/"
-              className="mb-10 inline-flex items-center gap-3 text-white lg:hidden"
+              className="mb-10 inline-flex items-center lg:hidden transition-opacity hover:opacity-80"
             >
-              <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white/10">
-                <img src={logo} alt="Mugallim AI" className="h-full w-full object-cover" />
-              </span>
-              <span className="text-xl font-extrabold tracking-tight">Mugallim AI</span>
+              <img src={logo} alt="Mektep AI" className="h-9 w-auto object-contain" />
             </Link>
 
             {/* Heading */}

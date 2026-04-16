@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
-import logo from "../../../../logo.png";
+import logo from "../../../../logofull.svg";
 
 function LegalLayout({ title, children }: { title: string; children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -27,10 +27,7 @@ function LegalLayout({ title, children }: { title: string; children: React.React
             to="/"
             className="flex items-center gap-3 text-slate-900 transition-opacity hover:opacity-80"
           >
-            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <img src={logo} alt="Mugallim AI" className="h-full w-full object-cover" />
-            </span>
-            <span className="text-xl font-bold tracking-tight">Mugallim AI</span>
+            <img src={logo} alt="Mektep AI" className="h-9 w-auto object-contain" />
           </Link>
         </div>
       </header>
@@ -48,7 +45,7 @@ function LegalLayout({ title, children }: { title: string; children: React.React
 
       <footer className="bg-slate-50 px-4 py-8 md:px-6 border-t border-slate-200/60">
         <div className="mx-auto text-center text-sm font-bold text-slate-400">
-          © {new Date().getFullYear()} Mugallim AI. Все права защищены.
+          © {new Date().getFullYear()} Mektep AI. Все права защищены.
         </div>
       </footer>
     </main>
@@ -64,7 +61,7 @@ export function PrivacyPage() {
         <h3 className="mb-2 text-xl font-bold text-slate-900">1. Сбор информации</h3>
         <p>
           Мы собираем информацию, которую вы предоставляете напрямую, включая ваше имя, email 
-          и любые данные, переданные в чате при обращении к боту Mugallim AI. Эти данные 
+          и любые данные, переданные в чате при обращении к боту Mektep AI. Эти данные 
           используются исключительно для предоставления услуг платформы.
         </p>
       </div>
@@ -115,7 +112,7 @@ export function TermsPage() {
       <div>
         <h3 className="mb-2 text-xl font-bold text-slate-900">1. Общие положения</h3>
         <p>
-          Настоящее Пользовательское соглашение регулирует условия использования сервиса Mugallim AI, 
+          Настоящее Пользовательское соглашение регулирует условия использования сервиса Mektep AI, 
           предоставляющего информационную и правовую поддержку пользователям платформы (в первую 
           очередь — учителям и преподавателям).
         </p>
@@ -133,7 +130,7 @@ export function TermsPage() {
       <div>
         <h3 className="mb-2 text-xl font-bold text-slate-900">3. Характер предоставляемой информации</h3>
         <p>
-          Сервис Mugallim AI предоставляет ответы на основе встроенной базы документов и алгоритмов. 
+          Сервис Mektep AI предоставляет ответы на основе встроенной базы документов и алгоритмов. 
           Обратите внимание: ответы носят исключительно справочный характер и не заменяют 
           профессиональную персональную юридическую консультацию.
         </p>
@@ -150,7 +147,7 @@ export function TermsPage() {
       <div>
         <h3 className="mb-2 text-xl font-bold text-slate-900">5. Ограничение ответственности</h3>
         <p>
-          Платформа Mugallim AI не несет ответственности за возможные убытки, возникшие в результате 
+          Платформа Mektep AI не несет ответственности за возможные убытки, возникшие в результате 
           использования или невозможности использования нашего сервиса. Решения, принятые 
           пользователем на основе ответов сервиса, принимаются под личную ответственность 
           пользователя.

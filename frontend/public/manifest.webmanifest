@@ -1,6 +1,6 @@
 {
-  "name": "Mugallim AI",
-  "short_name": "Mugallim",
+  "name": "Mektep AI",
+  "short_name": "Mektep AI",
   "description": "Юридическая помощь учителям Кыргызстана",
   "start_url": "/",
   "scope": "/",
@@ -9,6 +9,12 @@
   "background_color": "#fafaf8",
   "theme_color": "#07101a",
   "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/logo.png",
       "sizes": "1024x1024",

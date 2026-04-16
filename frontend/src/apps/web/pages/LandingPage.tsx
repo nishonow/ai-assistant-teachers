@@ -20,7 +20,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 
-import logo from "../../../../logo.png";
+import logo from "../../../../logofull-dark.svg";
 
 import { useAuth } from "../../../core/auth";
 import usePwaInstallPrompt from "../hooks/usePwaInstallPrompt";
@@ -211,10 +211,7 @@ export default function LandingPage() {
             to="/"
             className="flex items-center gap-3 text-white transition-opacity hover:opacity-80"
           >
-            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm">
-              <img src={logo} alt="Mugallim AI" className="h-full w-full object-cover" />
-            </span>
-            <span className="text-lg font-extrabold tracking-tight">Mugallim AI</span>
+            <img src={logo} alt="Mektep AI" className="h-9 w-auto object-contain" />
           </Link>
 
           <div className="hidden items-center gap-2 md:flex">
@@ -523,7 +520,7 @@ export default function LandingPage() {
       <footer className="bg-ink-950 px-4 py-10 md:px-6">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 md:flex-row md:justify-between">
           <div className="flex order-2 md:order-1 flex-col items-center md:items-start">
-            <span className="mb-1 text-sm font-bold text-white">Mugallim AI</span>
+            <img src={logo} alt="Mektep AI" className="h-6 w-auto object-contain mb-1" />
             <p className="text-xs font-medium text-white/30">
               © {new Date().getFullYear()} Все права защищены
             </p>
