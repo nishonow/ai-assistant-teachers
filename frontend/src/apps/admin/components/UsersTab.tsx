@@ -274,7 +274,9 @@ export default function UsersTab({
                     <td className="px-3 py-3">{user.id}</td>
                     <td className="px-3 py-3">
                       <p className="font-medium">{user.name || "-"}</p>
-                      <p className="text-xs text-slate-400">@{user.username || "-"}</p>
+                      <p className="text-xs text-slate-400">
+                        {user.platform === "telegram" ? `@${user.username || "-"}` : (user.username || "-")}
+                      </p>
                     </td>
                     <td className="px-3 py-3">{user.platform}</td>
                     <td className="px-3 py-3">{user.platform_user_id}</td>

@@ -1,6 +1,6 @@
-﻿# Mugallim AI
+﻿# Mektep AI
 
-Mugallim AI is a legal and practical assistant for teachers and education workers in Kyrgyzstan.
+Mektep is a legal and practical assistant for teachers and education workers in Kyrgyzstan.
 
 This repository contains three main parts:
 - `frontend/` - web app and admin panel

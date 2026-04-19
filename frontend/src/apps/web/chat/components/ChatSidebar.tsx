@@ -142,34 +142,39 @@ function SidebarList({
         conversations.map((conversation) => (
           <div
             key={conversation.id}
+            role="button"
+            tabIndex={0}
             data-active={conversation.id === activeConversationId ? "true" : "false"}
             className={[
-                      "webchat-conversation-item chat-card-enter group isolate relative flex items-center gap-2 rounded-2xl px-3 py-1.5 transition-all duration-200 md:hover:z-30 md:focus-within:z-30",
+                      "webchat-conversation-item chat-card-enter group isolate relative flex cursor-pointer items-center gap-2 rounded-2xl px-3 py-1.5 transition-all duration-200 md:hover:z-30 md:focus-within:z-30",
               openMenuId === conversation.id ? "z-20" : "z-0",
               conversation.id === activeConversationId
                 ? "bg-slate-100 text-slate-800 dark:bg-[#102033] dark:text-slate-200"
                 : "bg-transparent text-slate-300 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-[#102033] dark:hover:text-slate-200",
             ].join(" ")}
-          >
-            <button
-              type="button"
-                      className="min-w-0 flex-1 self-center text-left"
-              onClick={() => {
+            onClick={() => {
+              setOpenMenuId(null);
+              onSelectConversation(conversation.id);
+              onCloseMobile();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
                 setOpenMenuId(null);
                 onSelectConversation(conversation.id);
                 onCloseMobile();
-              }}
-            >
-              <div className="min-w-0">
-                <p className="truncate text-[13px] font-medium leading-5" title={conversation.title}>
-                  {conversation.id === activeConversationId ? (
-                    <AnimatedTitle title={conversation.title} animationTrigger={titleAnimationTrigger} />
-                  ) : (
-                    conversation.title
-                  )}
-                </p>
-              </div>
-            </button>
+              }
+            }}
+          >
+            <div className="min-w-0 flex-1 self-center">
+              <p className="truncate text-[13px] font-medium leading-5" title={conversation.title}>
+                {conversation.id === activeConversationId ? (
+                  <AnimatedTitle title={conversation.title} animationTrigger={titleAnimationTrigger} />
+                ) : (
+                  conversation.title
+                )}
+              </p>
+            </div>
 
             <div className="relative z-30 shrink-0 self-center" data-chat-actions-menu>
                 <button
