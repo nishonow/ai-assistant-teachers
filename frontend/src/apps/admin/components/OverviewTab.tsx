@@ -227,7 +227,7 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
           <h2 className="font-heading text-2xl font-bold text-slate-50">Overview</h2>
           <p className="mt-1 text-sm text-slate-400">Live summary of users, documents, and platform activity.</p>
         </div>
-        <ReloadButton loading={loading} onReload={onRefresh} idleLabel="Reload data" loadingLabel="Reloading" successLabel="Reloaded" />
+        <ReloadButton loading={loading} onReload={onRefresh} idleLabel="Reload" loadingLabel="Reloading" successLabel="Reloaded" />
       </div>
 
       {/* Top stat cards */}

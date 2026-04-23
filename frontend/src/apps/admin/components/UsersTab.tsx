@@ -206,6 +206,7 @@ export default function UsersTab({
             <SlidersHorizontal size={14} />
             Filters
           </button>
+          {totalPages > 1 && <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />}
           <ReloadButton loading={loading} onReload={onRefresh} />
         </div>
       </div>
@@ -335,7 +336,6 @@ export default function UsersTab({
         </table>
       </div>
 
-      <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
     </section>
   );
 }

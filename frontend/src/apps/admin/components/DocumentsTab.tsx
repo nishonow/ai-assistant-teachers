@@ -82,7 +82,10 @@ export default function DocumentsTab({
           </p>
         </div>
 
-        <ReloadButton className="shrink-0" loading={loading} onReload={onRefresh} />
+        <div className="flex shrink-0 items-center gap-2">
+          {totalPages > 1 && <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />}
+          <ReloadButton loading={loading} onReload={onRefresh} />
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-ink-600/50 bg-ink-900/35">
@@ -162,7 +165,6 @@ export default function DocumentsTab({
         </table>
       </div>
 
-      {totalPages > 1 ? <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} /> : null}
     </section>
   );
 }
