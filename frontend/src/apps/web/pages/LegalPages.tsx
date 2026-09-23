@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
-import logo from "../../../../logofull.svg";
+import logo from "../../../../logofull-dark.svg";
+import LiquidBackdrop from "../../../core/components/LiquidBackdrop";
 
 function LegalLayout({ title, children }: { title: string; children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -12,41 +13,29 @@ function LegalLayout({ title, children }: { title: string; children: React.React
   }, []);
 
   return (
-    <main className="min-h-[100svh] overflow-hidden bg-slate-50 font-sans text-slate-900 selection:bg-brand-500/30">
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-4 px-4 md:px-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50"
-            aria-label="Назад"
-            type="button"
-          >
-            <ArrowLeft size={20} />
+    <main className="relative min-h-[100svh] overflow-x-hidden font-sans text-white">
+      <LiquidBackdrop />
+
+      <header className="fixed inset-x-0 top-0 z-40 px-3 pt-[calc(0.75rem+env(safe-area-inset-top))] md:px-6 md:pt-4">
+        <div className="glass-strong mx-auto flex h-14 w-full max-w-3xl items-center gap-3 rounded-full pl-2 pr-5">
+          <button onClick={() => navigate(-1)} className="btn-icon" aria-label="Назад" type="button">
+            <ArrowLeft size={18} />
           </button>
-          <Link
-            to="/"
-            className="flex items-center gap-3 text-slate-900 transition-opacity hover:opacity-80"
-          >
-            <img src={logo} alt="Mektep AI" className="h-9 w-auto object-contain" />
+          <Link to="/" className="flex items-center transition-opacity hover:opacity-80">
+            <img src={logo} alt="Mektep AI" className="h-8 w-auto object-contain" />
           </Link>
         </div>
       </header>
 
-      <section className="relative px-4 pb-20 pt-[120px] md:px-6 md:pb-24 md:pt-[140px]">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:p-12">
-          <h1 className="mb-8 text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
-            {title}
-          </h1>
-          <div className="space-y-6 text-base leading-relaxed text-slate-600">
-            {children}
-          </div>
-        </div>
+      <section className="relative z-10 px-4 pb-16 pt-28 md:px-6 md:pb-20 md:pt-32">
+        <article className="glass mx-auto max-w-3xl rounded-[30px] p-6 md:p-10 [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-white">
+          <h1 className="mb-7 font-heading text-3xl font-bold tracking-[-0.03em] text-white md:text-[2.25rem]">{title}</h1>
+          <div className="space-y-6 text-[15px] leading-relaxed text-white/65">{children}</div>
+        </article>
       </section>
 
-      <footer className="bg-slate-50 px-4 py-8 md:px-6 border-t border-slate-200/60">
-        <div className="mx-auto text-center text-sm font-bold text-slate-400">
-          © {new Date().getFullYear()} Mektep AI. Все права защищены.
-        </div>
+      <footer className="relative z-10 px-4 pb-[calc(2rem+env(safe-area-inset-bottom))] text-center text-sm text-white/35 md:px-6">
+        © {new Date().getFullYear()} Mektep AI. Все права защищены.
       </footer>
     </main>
   );
@@ -55,10 +44,10 @@ function LegalLayout({ title, children }: { title: string; children: React.React
 export function PrivacyPage() {
   return (
     <LegalLayout title="Политика конфиденциальности">
-      <p className="text-sm font-semibold text-slate-400">Последнее обновление: 8 апреля 2026 г.</p>
+      <p className="text-sm font-medium text-white/40">Последнее обновление: 8 апреля 2026 г.</p>
 
       <div>
-        <h3 className="mb-2 text-xl font-bold text-slate-900">1. Сбор информации</h3>
+        <h3>1. Сбор информации</h3>
         <p>
           Мы собираем информацию, которую вы предоставляете напрямую, включая ваше имя, email 
           и любые данные, переданные в чате при обращении к боту Mektep AI. Эти данные 
@@ -67,7 +56,7 @@ export function PrivacyPage() {
       </div>
 
       <div>
-        <h3 className="mb-2 text-xl font-bold text-slate-900">2. Использование данных</h3>
+        <h3>2. Использование данных</h3>
         <p className="mb-2">Собранная информация используется для:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Обеспечения работы веб-чата и Telegram-бота.</li>
@@ -77,7 +66,7 @@ export function PrivacyPage() {
       </div>
 
       <div>
-        <h3 className="mb-2 text-xl font-bold text-slate-900">3. Защита данных</h3>
+        <h3>3. Защита данных</h3>
         <p>
           Мы принимаем соответствующие технические и организационные меры для защиты вашей 
           личной информации от несанкционированного доступа, изменения или удаления. 
@@ -86,7 +75,7 @@ export function PrivacyPage() {
       </div>
 
       <div>
-        <h3 className="mb-2 text-xl font-bold text-slate-900">4. Передача третьим лицам</h3>
+        <h3>4. Передача третьим лицам</h3>
         <p>
           Мы не продаем, не обмениваем и не передаем вашу личную информацию третьим лицам без 
           вашего согласия, за исключением случаев, предусмотренных законодательством.
@@ -94,7 +83,7 @@ export function PrivacyPage() {
       </div>
 
       <div>
-        <h3 className="mb-2 text-xl font-bold text-slate-900">5. Изменения политики</h3>
+        <h3>5. Изменения политики</h3>
         <p>
           Мы оставляем за собой право обновлять эту политику в любое время. Изменения 
           вступают в силу с момента публикации на данной странице.
@@ -107,10 +96,10 @@ export function PrivacyPage() {
 export function TermsPage() {
   return (
     <LegalLayout title="Пользовательское соглашение">
-      <p className="text-sm font-semibold text-slate-400">Последнее обновление: 8 апреля 2026 г.</p>
+      <p className="text-sm font-medium text-white/40">Последнее обновление: 8 апреля 2026 г.</p>
 
       <div>
-        <h3 className="mb-2 text-xl font-bold text-slate-900">1. Общие положения</h3>
+        <h3>1. Общие положения</h3>
         <p>
           Настоящее Пользовательское соглашение регулирует условия использования сервиса Mektep AI, 
           предоставляющего информационную и правовую поддержку пользователям платформы (в первую 
@@ -119,7 +108,7 @@ export function TermsPage() {
       </div>
 
       <div>
-        <h3 className="mb-2 text-xl font-bold text-slate-900">2. Регистрация и аккаунт</h3>
+        <h3>2. Регистрация и аккаунт</h3>
         <p>
           Для полного доступа к истории диалогов в веб-приложении требуется регистрация или вход 
           соответствующим образом. Вы несете ответственность за сохранность и безопасность 
@@ -128,7 +117,7 @@ export function TermsPage() {
       </div>
 
       <div>
-        <h3 className="mb-2 text-xl font-bold text-slate-900">3. Характер предоставляемой информации</h3>
+        <h3>3. Характер предоставляемой информации</h3>
         <p>
           Сервис Mektep AI предоставляет ответы на основе встроенной базы документов и алгоритмов. 
           Обратите внимание: ответы носят исключительно справочный характер и не заменяют 
@@ -137,7 +126,7 @@ export function TermsPage() {
       </div>
 
       <div>
-        <h3 className="mb-2 text-xl font-bold text-slate-900">4. Обязанности пользователя</h3>
+        <h3>4. Обязанности пользователя</h3>
         <p>
           Пользователь обязуется не использовать сервис для целей, противоречащих законодательству, 
           не рассылать спам, а также не пытаться нарушить техническую работу и алгоритмы платформы.
@@ -145,7 +134,7 @@ export function TermsPage() {
       </div>
 
       <div>
-        <h3 className="mb-2 text-xl font-bold text-slate-900">5. Ограничение ответственности</h3>
+        <h3>5. Ограничение ответственности</h3>
         <p>
           Платформа Mektep AI не несет ответственности за возможные убытки, возникшие в результате 
           использования или невозможности использования нашего сервиса. Решения, принятые 

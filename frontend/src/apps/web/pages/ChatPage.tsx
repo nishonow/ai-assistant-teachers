@@ -1,6 +1,6 @@
-import { BookOpenText, ChevronRight, PanelLeft, PanelLeftClose } from "lucide-react";
+import { BookOpenText, PanelLeft, PanelRightClose, PanelRightOpen, SquarePen } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import AnimatedTitle from "../chat/components/AnimatedTitle";
 import ToastNotice from "../../../core/components/ToastNotice";
@@ -47,6 +47,7 @@ import { useThemeColor } from "../chat/hooks/useThemeColor";
 
 export default function ChatPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { conversationId: routeConversationId } = useParams<{ conversationId?: string }>();
   const { session, logout, updateProfile } = useAuth();
   const conversationRequestIdRef = useRef(0);
@@ -66,6 +67,7 @@ export default function ChatPage() {
   const [desktopSourcesOpen, setDesktopSourcesOpen] = useState(false);
   const [composerFocusKey, setComposerFocusKey] = useState(0);
   const [suggestedQuestion, setSuggestedQuestion] = useState<string | null>(null);
+  const [draftPrefill, setDraftPrefill] = useState<string | null>(null);
   const [deleteTargetConversation, setDeleteTargetConversation] = useState<ConversationSummary | null>(null);
   const [deletePending, setDeletePending] = useState(false);
   const [deleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false);
@@ -179,6 +181,19 @@ export default function ChatPage() {
   const requestComposerFocus = useCallback(() => {
     setComposerFocusKey((current) => current + 1);
   }, []);
+
+  // Landing-page use cases link to /app?q=… — put the question in the composer (not auto-sent)
+  // and drop it from the URL so a reload doesn't re-insert it.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const question = params.get("q")?.trim();
+    if (!question) return;
+
+    setDraftPrefill(question.slice(0, 2000));
+    params.delete("q");
+    const search = params.toString();
+    navigate({ pathname: location.pathname, search: search ? `?${search}` : "" }, { replace: true });
+  }, [location.pathname, location.search, navigate]);
 
   const syncActiveConversation = useCallback(
     (
@@ -696,12 +711,7 @@ export default function ChatPage() {
 
   return (
     <div
-      className={[
-        `webchat-shell webchat-theme-${resolvedTheme} fixed inset-0 flex overflow-hidden pt-[env(safe-area-inset-top)]`,
-        resolvedTheme === "light"
-          ? "bg-[linear-gradient(180deg,_#ffffff_0%,_#f5f7fb_100%)] text-[#1c1b18]"
-          : "bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)] text-slate-100",
-      ].join(" ")}
+      className={`webchat-shell webchat-theme-${resolvedTheme} fixed inset-0 isolate flex gap-2.5 overflow-hidden pt-[env(safe-area-inset-top)] md:p-2.5`}
       style={{ height: "100dvh" }}
     >
       <ChatSidebar
@@ -735,23 +745,22 @@ export default function ChatPage() {
         resolvedTheme={resolvedTheme}
       />
 
-      <div className="webchat-main-surface flex min-w-0 flex-1 bg-[#07101a]">
-        <main className="webchat-main-panel flex min-w-0 flex-1 flex-col bg-[#07101a]">
-          <header className="webchat-header relative z-20 flex flex-col justify-center border-b border-[#1e3448]/60 bg-[#08121c]/85 shrink-0 md:bg-[#08111c] md:backdrop-blur-none backdrop-blur-xl md:border-[#21384b] md:h-[62px]">
-            <div className="flex h-[48px] md:hidden items-center justify-between gap-2 px-3">
-              <div className="flex w-10 items-center justify-start">
-                <button
-                  type="button"
-                  className="btn-muted px-2.5 py-2"
-                  onClick={() => setMobileSidebarOpen((current) => !current)}
-                  aria-label={mobileSidebarOpen ? "Скрыть меню" : "Открыть меню"}
-                >
-                  {mobileSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
-                </button>
-              </div>
+      <div className="webchat-main-surface relative z-10 flex min-w-0 flex-1 gap-2.5">
+        <main className="webchat-main-panel relative flex min-w-0 flex-1 flex-col">
+          <header className="webchat-header pointer-events-none absolute inset-x-0 top-0 z-20">
+            {/* Mobile: round glass controls either side of a title capsule */}
+            <div className="flex h-[52px] items-center gap-2 px-3 md:hidden">
+              <button
+                type="button"
+                className="wc-icon-btn inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+                onClick={() => setMobileSidebarOpen((current) => !current)}
+                aria-label={mobileSidebarOpen ? "Скрыть меню" : "Открыть меню"}
+              >
+                <PanelLeft size={18} />
+              </button>
 
-              <div className="min-w-0 flex-1 px-2 text-center">
-                <h1 className="truncate font-heading text-[13px] text-slate-100">
+              <div className="flex min-w-0 flex-1 justify-center">
+                <h1 className="wc-glass wc-text min-w-0 max-w-full truncate rounded-full px-4 py-2 text-center text-[14px] font-semibold">
                   <AnimatedTitle
                     title={activeConversation?.title ?? pendingDraftTitle ?? "Mektep AI"}
                     animationTrigger={titleAnimationTrigger}
@@ -759,50 +768,47 @@ export default function ChatPage() {
                 </h1>
               </div>
 
-              <div className="flex w-10 items-center justify-end">
+              <div className="wc-glass flex shrink-0 items-center rounded-full p-0.5">
                 <button
                   type="button"
-                  className="btn-muted px-2.5 py-2"
+                  className="wc-hoverable wc-text inline-flex h-10 w-10 items-center justify-center rounded-full"
                   onClick={() => {
                     setMobileSidebarOpen(false);
                     setMobileSourcesOpen((current) => !current);
                   }}
                   aria-label={mobileSourcesOpen ? "Скрыть источники" : "Показать источники"}
                 >
-                  <BookOpenText size={16} />
+                  <BookOpenText size={18} />
+                </button>
+                <button
+                  type="button"
+                  className="wc-hoverable wc-text inline-flex h-10 w-10 items-center justify-center rounded-full"
+                  onClick={handleStartDraftConversation}
+                  aria-label="Новый чат"
+                >
+                  <SquarePen size={17} />
                 </button>
               </div>
             </div>
 
-            <div className="hidden h-full items-center justify-between gap-2.5 px-5 md:flex">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="min-w-0">
-                  <h1 className="truncate font-heading text-[16px] text-slate-100">
-                    <AnimatedTitle
-                      title={activeConversation?.title ?? pendingDraftTitle ?? "Новый чат"}
-                      animationTrigger={titleAnimationTrigger}
-                    />
-                  </h1>
-                </div>
-              </div>
+            {/* Desktop */}
+            <div className="hidden h-[56px] items-center justify-between gap-3 px-4 md:flex">
+              <h1 className="wc-glass wc-text min-w-0 max-w-[60%] truncate rounded-full px-4 py-2 text-[15px] font-semibold">
+                <AnimatedTitle
+                  title={activeConversation?.title ?? pendingDraftTitle ?? "Новый чат"}
+                  animationTrigger={titleAnimationTrigger}
+                />
+              </h1>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="btn-muted hidden lg:inline-flex"
-                  onClick={() => setDesktopSourcesOpen((current) => !current)}
-                >
-                  <BookOpenText size={16} />
-                  Источники
-                  <ChevronRight
-                    size={14}
-                    className={[
-                      "transition-transform duration-200",
-                      desktopSourcesOpen ? "rotate-180" : "rotate-0",
-                    ].join(" ")}
-                  />
-                </button>
-              </div>
+              <button
+                type="button"
+                className="wc-icon-btn hidden h-10 items-center gap-2 rounded-full px-4 text-sm font-medium lg:inline-flex"
+                onClick={() => setDesktopSourcesOpen((current) => !current)}
+                aria-pressed={desktopSourcesOpen}
+              >
+                {desktopSourcesOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
+                Источники
+              </button>
             </div>
           </header>
 
@@ -822,6 +828,8 @@ export default function ChatPage() {
             onSubmit={handleSend}
             suggestedValue={suggestedQuestion}
             onSuggestedValueConsumed={() => setSuggestedQuestion(null)}
+            draftValue={draftPrefill}
+            onDraftValueConsumed={() => setDraftPrefill(null)}
             focusRequestKey={composerFocusKey}
           />
         </main>
@@ -834,7 +842,8 @@ export default function ChatPage() {
           loading={isLoadingConversation}
           desktopOpen={desktopSourcesOpen}
           mobileOpen={mobileSourcesOpen}
-          sources={activeSources}          
+          sources={activeSources}
+          onCloseDesktop={() => setDesktopSourcesOpen(false)}
           onCloseMobile={() => setMobileSourcesOpen(false)}
           onViewSource={(source) => {
             void handleViewSource(source);

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../core/auth";
 import { apiRequest, ApiRequestError, type ApiRequestOptions } from "../../core/api";
+import LiquidBackdrop from "../../core/components/LiquidBackdrop";
 import ToastNotice from "../../core/components/ToastNotice";
 import type {
   DocumentRecord,
@@ -461,7 +462,8 @@ export default function AdminApp() {
   }
 
   return (
-    <div className="min-h-[100svh] overflow-x-hidden bg-[rgb(9,23,40)] md:min-h-screen">
+    <div className="relative min-h-[100svh] overflow-x-hidden text-slate-100 md:min-h-screen">
+      <LiquidBackdrop />
       <Sidebar
         items={TABS}
         activeTab={activeTab}
@@ -473,7 +475,7 @@ export default function AdminApp() {
         }}
       />
 
-      <main className="flex min-h-[100svh] flex-col gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:ml-72 md:min-h-screen md:gap-4 md:p-6">
+      <main className="relative z-10 flex min-h-[100svh] flex-col gap-3 p-3 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] md:ml-[272px] md:min-h-screen md:gap-3.5 md:p-4 md:pl-0">
         <Topbar username={username} onOpenMenu={() => setSidebarOpen(true)} onRequestLogout={() => setLogoutConfirmOpen(true)} />
         <ToastNotice notice={notice} />
 

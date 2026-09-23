@@ -1,4 +1,4 @@
-import { Ban, CircleStop, Clock, Loader2, Mic, SendHorizontal } from "lucide-react";
+import { ArrowUp, Ban, Clock, Loader2, Mic, Square } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useAuth } from "../../../../core/auth";
 import { transcribeVoiceMessage } from "../utils/api";
@@ -10,6 +10,9 @@ interface ChatComposerProps {
   onSubmit: (value: string) => Promise<void>;
   suggestedValue: string | null;
   onSuggestedValueConsumed: () => void;
+  /** Text to place in the composer without sending it (e.g. a question picked on the landing page). */
+  draftValue?: string | null;
+  onDraftValueConsumed?: () => void;
   focusRequestKey?: number;
 }
 
@@ -50,6 +53,8 @@ export default function ChatComposer({
   onSubmit,
   suggestedValue,
   onSuggestedValueConsumed,
+  draftValue = null,
+  onDraftValueConsumed,
   focusRequestKey = 0,
 }: ChatComposerProps) {
   const { session } = useAuth();
@@ -163,6 +168,16 @@ export default function ChatComposer({
       onSuggestedValueConsumed();
     });
   }, [disabled, onSuggestedValueConsumed, submitValue, suggestedValue]);
+
+  useEffect(() => {
+    if (!draftValue) return;
+
+    setValue(draftValue);
+    onDraftValueConsumed?.();
+    requestAnimationFrame(() => {
+      focusComposer();
+    });
+  }, [draftValue, focusComposer, onDraftValueConsumed]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -341,10 +356,10 @@ export default function ChatComposer({
 
   if (isMessagingBlocked) {
     return (
-      <div className="relative -mt-6 bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:-mt-7 md:px-6 md:pb-4 md:pt-0">
-        <div className="mx-auto w-full max-w-4xl">
-          <div className="flex items-center gap-3 rounded-[20px] border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-            <Ban size={16} className="shrink-0 text-rose-400" />
+      <div className="webchat-composer-dock relative px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] md:px-6 md:pb-3">
+        <div className="mx-auto w-full max-w-[940px]">
+          <div className="webchat-banner-danger flex items-center gap-3 rounded-[24px] border border-rose-500/30 bg-rose-500/15 px-4 py-3 text-sm text-rose-100 backdrop-blur-xl" role="status">
+            <Ban size={16} className="shrink-0" />
             <span className="flex-1">Ваш аккаунт заблокирован. Вы можете просматривать историю, но не можете отправлять сообщения. Обратитесь к администратору.</span>
           </div>
         </div>
@@ -354,10 +369,10 @@ export default function ChatComposer({
 
   if (rateLimitSecondsLeft > 0) {
     return (
-      <div className="relative -mt-6 bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:-mt-7 md:px-6 md:pb-4 md:pt-0">
-        <div className="mx-auto w-full max-w-4xl">
-          <div className="flex items-center gap-3 rounded-[20px] border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-            <Clock size={16} className="shrink-0 text-amber-400" />
+      <div className="webchat-composer-dock relative px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] md:px-6 md:pb-3">
+        <div className="mx-auto w-full max-w-[940px]">
+          <div className="webchat-banner-warn flex items-center gap-3 rounded-[24px] border border-amber-500/30 bg-amber-500/15 px-4 py-3 text-sm text-amber-100 backdrop-blur-xl" role="status">
+            <Clock size={16} className="shrink-0" />
             <span className="flex-1">
               Слишком много запросов. Подождите{" "}
               <span className="font-semibold tabular-nums">{rateLimitSecondsLeft}с</span>{" "}
@@ -372,36 +387,43 @@ export default function ChatComposer({
   return (
     <form
       onSubmit={handleSubmit}
-      className="relative -mt-6 bg-transparent px-3 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-0 md:-mt-7 md:px-6 md:pb-4 md:pt-0"
+      className="webchat-composer-dock relative px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))] md:px-6 md:pb-3"
     >
-      <div className="chat-composer-shell relative mx-auto flex w-full max-w-4xl items-end gap-2 overflow-visible rounded-[24px] border border-[#1e3448]/70 bg-[#0b1520] px-3 py-2 transition-all duration-250 md:gap-2.5 md:px-4 md:py-2.5">
+      <div
+        className={[
+          "chat-composer-shell relative mx-auto flex w-full max-w-[940px] items-end gap-1.5 overflow-visible rounded-[28px] py-1.5 pl-4 pr-1.5 transition-[border-color] duration-200",
+          "focus-within:border-[color-mix(in_srgb,var(--wc-accent)_45%,transparent)]",
+        ].join(" ")}
+      >
         <textarea
           ref={textareaRef}
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Напишите Mektep AI..."
+          placeholder={isRecording ? "Говорите… нажмите ■, чтобы закончить" : isTranscribing ? "Распознаём речь…" : "Спросите Mektep AI…"}
           rows={1}
+          aria-label="Сообщение"
           style={{ touchAction: 'manipulation' }}
-          className="webchat-composer-input chat-input-scroll min-h-[34px] max-h-[220px] flex-1 resize-none bg-transparent px-1 py-1.5 text-base leading-6 text-slate-100 placeholder:text-slate-500 focus:outline-none md:min-h-[38px] md:py-[7px]"
+          className="webchat-composer-input wc-text chat-input-scroll min-h-[34px] max-h-[220px] flex-1 resize-none bg-transparent py-[7px] text-base leading-6 placeholder:text-[var(--wc-text-subtle)] focus:outline-none md:min-h-[38px] md:py-[8px]"
         />
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             type="button"
             style={{ touchAction: 'manipulation' }}
-            className={`webchat-source-download inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#1e3448]/70 bg-[#102033] text-slate-300 transition-colors hover:bg-[#1a344d] hover:text-slate-100 md:h-10 md:w-10 ${
-              isRecording ? "border-rose-400/60 bg-rose-500/20 text-rose-100 hover:bg-rose-500/25" : ""
+            className={`wc-icon-btn inline-flex h-10 w-10 items-center justify-center rounded-full border-transparent bg-transparent shadow-none ${
+              isRecording ? "webchat-mic-recording" : ""
             }`}
             onClick={handleVoiceToggle}
             disabled={voiceButtonDisabled}
             aria-label={voiceButtonLabel}
+            aria-pressed={isRecording}
           >
             {isTranscribing ? (
-              <Loader2 size={16} className="animate-spin" />
+              <Loader2 size={18} className="animate-spin" />
             ) : isRecording ? (
-              <CircleStop size={15} />
+              <Square size={13} fill="currentColor" />
             ) : (
-              <Mic size={16} />
+              <Mic size={18} />
             )}
           </button>
           <span className="ui-tooltip">{voiceTooltip}</span>
@@ -410,15 +432,19 @@ export default function ChatComposer({
         <button
           type="submit"
           style={{ touchAction: 'manipulation' }}
-          className="webchat-send-button inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-300 text-[#0a1e18] transition-all duration-200 hover:bg-[#b7fbf3] disabled:cursor-not-allowed disabled:opacity-40 md:h-10 md:w-10"
+          className="webchat-send-button inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed"
           disabled={disabled || !value.trim()}
           aria-label="Отправить сообщение"
         >
-          <SendHorizontal size={17} />
+          {disabled && value.trim() ? <Loader2 size={18} className="animate-spin" /> : <ArrowUp size={19} strokeWidth={2.4} />}
         </button>
       </div>
-      <div className="mx-auto mt-1 flex w-full max-w-4xl items-center justify-center px-2 md:mt-1.5">
-        <p className="text-center text-[10px] leading-4 text-slate-500 md:text-[11px]">Mektep AI может ошибаться. Проверяйте источники.</p>
+      <div className="mx-auto mt-1.5 flex w-full max-w-[940px] items-center justify-center px-2">
+        {voiceError ? (
+          <p className="text-center text-[11px] leading-4 text-rose-400">{voiceError}</p>
+        ) : (
+          <p className="wc-subtle text-center text-[10.5px] leading-4 md:text-[11px]">Mektep AI может ошибаться. Проверяйте источники.</p>
+        )}
         <p aria-live="polite" className="sr-only" role="status">
           {voiceError ? `Ошибка: ${voiceError}` : ""}
         </p>

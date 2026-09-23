@@ -88,15 +88,15 @@ export default function DocumentsTab({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-ink-600/50 bg-ink-900/35">
+      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.035]">
         <table className="min-w-full table-auto text-left text-sm lg:min-w-[1024px]">
-          <thead className="bg-ink-800/65 text-slate-300">
+          <thead className="bg-white/[0.06] text-slate-300">
             <tr>
-              <th className="hidden w-16 px-4 py-3 lg:table-cell">ID</th>
-              <th className="w-[42%] px-4 py-3">File Name</th>
-              <th className="w-32 px-4 py-3">Status</th>
-              <th className="w-24 px-4 py-3">Chunks</th>
-              <th className="w-[12rem] px-4 py-3 sm:w-[15rem] lg:w-[25rem]">Actions</th>
+              <th className="hidden w-16 px-4 py-2.5 lg:table-cell">ID</th>
+              <th className="w-[42%] px-4 py-2.5">File Name</th>
+              <th className="w-32 px-4 py-2.5">Status</th>
+              <th className="w-24 px-4 py-2.5">Chunks</th>
+              <th className="w-[12rem] px-4 py-2.5 sm:w-[15rem] lg:w-[25rem]">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -115,16 +115,16 @@ export default function DocumentsTab({
                 const rowProcessing = reindexingDocumentId === doc.id;
 
                 return (
-                  <tr key={doc.id} className="border-t border-ink-600/40 align-top transition-colors hover:bg-ink-900/35">
-                    <td className="hidden px-4 py-4 text-slate-400 lg:table-cell">{doc.id}</td>
-                    <td className="px-4 py-4" title={displayName}>
+                  <tr key={doc.id} className="border-t border-white/[0.06] align-top transition-colors hover:bg-white/[0.035]">
+                    <td className="hidden px-4 py-2.5 text-slate-400 lg:table-cell">{doc.id}</td>
+                    <td className="px-4 py-2.5" title={displayName}>
                       <p className="break-words text-slate-100 sm:truncate">{displayName}</p>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-2.5">
                       <DocumentStatus value={doc.status} processing={rowProcessing} />
                     </td>
-                    <td className="px-4 py-4 text-slate-200">{doc.chunk_count ?? 0}</td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-2.5 text-slate-200">{doc.chunk_count ?? 0}</td>
+                    <td className="px-4 py-2.5">
                       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:flex-nowrap">
                         <button
                           className="btn-muted w-full justify-start sm:w-auto"

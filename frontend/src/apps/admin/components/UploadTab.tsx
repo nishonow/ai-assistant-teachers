@@ -84,7 +84,7 @@ export default function UploadTab({ loading, onUpload }: UploadTabProps) {
           <h2 className="font-heading text-2xl font-bold">Upload Documents</h2>
           <p className="text-sm text-slate-400">Drag files in or browse to upload one file or many at once.</p>
         </div>
-        <div className="rounded-xl border border-ink-600/70 bg-ink-900/55 px-3 py-2 text-xs text-slate-300">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs text-slate-300">
           Supported: PDF, TXT, DOCX. Max 20MB per file.
         </div>
       </div>
@@ -101,7 +101,7 @@ export default function UploadTab({ loading, onUpload }: UploadTabProps) {
               className={`w-full rounded-2xl border border-dashed px-5 py-8 text-left transition-colors ${
                 dragActive
                   ? "border-brand-400 bg-brand-500/10"
-                  : "border-ink-500 bg-ink-900/40 hover:border-brand-400/45 hover:bg-ink-800/60"
+                  : "border-white/15 bg-white/[0.035] hover:border-brand-400/45 hover:bg-white/[0.06]"
               }`}
               type="button"
               onClick={() => inputRef.current?.click()}
@@ -152,10 +152,10 @@ export default function UploadTab({ loading, onUpload }: UploadTabProps) {
               {selectedFiles.map((file, index) => (
                 <div
                   key={`${file.name}-${file.size}-${file.lastModified}-${index}`}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-ink-600/70 bg-ink-900/55 px-3 py-3"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-3"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="rounded-xl border border-ink-500/70 bg-ink-800/70 p-2 text-slate-300">
+                    <div className="rounded-2xl border border-white/15 bg-white/[0.06] p-2 text-slate-300">
                       <FileText size={16} />
                     </div>
                     <div className="min-w-0">
@@ -165,7 +165,7 @@ export default function UploadTab({ loading, onUpload }: UploadTabProps) {
                   </div>
 
                   <button
-                    className="rounded-lg border border-ink-500 bg-ink-800/70 p-2 text-slate-300 transition-colors hover:border-rose-400/50 hover:bg-rose-500/10 hover:text-rose-200"
+                    className="rounded-xl border border-white/15 bg-white/[0.06] p-2 text-slate-300 transition-colors hover:border-rose-400/50 hover:bg-rose-500/10 hover:text-rose-200"
                     type="button"
                     onClick={() => removeFile(index)}
                     disabled={loading}
@@ -177,7 +177,7 @@ export default function UploadTab({ loading, onUpload }: UploadTabProps) {
               ))}
             </div>
           ) : (
-            <div className="rounded-xl border border-ink-600/70 bg-ink-900/30 px-4 py-5 text-sm text-slate-400">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-5 text-sm text-slate-400">
               No files selected yet.
             </div>
           )}

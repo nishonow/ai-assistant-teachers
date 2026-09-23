@@ -2,6 +2,7 @@
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { AppRouter, AuthProvider } from "./core";
+import LiquidGlassFilter from "./core/components/LiquidGlassFilter";
 import "./index.css";
 import "./styles/webchat-theme-rich.css";
 
@@ -32,6 +33,7 @@ if ("serviceWorker" in navigator) {
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
+    <LiquidGlassFilter />
     <BrowserRouter>
       <AuthProvider>
         <AppRouter />

@@ -106,7 +106,7 @@ interface HealthRowProps {
 
 function HealthRow({ icon: Icon, label, value, iconColor, badge }: HealthRowProps) {
   return (
-    <div className="flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-ink-800/40">
+    <div className="flex items-center justify-between rounded-xl px-3 py-2 transition-colors hover:bg-white/5">
       <div className="flex items-center gap-2.5 text-sm text-slate-300">
         <Icon size={14} className={iconColor} />
         <span>{label}</span>
@@ -237,7 +237,7 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
           return (
             <article
               key={card.label}
-              className={`rounded-xl border ${card.border} ${card.bg} p-4 transition duration-200 hover:-translate-y-0.5`}
+              className={`rounded-2xl border ${card.border} ${card.bg} p-4 transition duration-200 hover:-translate-y-0.5`}
               style={{ animation: "softRise 260ms ease-out both", animationDelay: `${index * 60}ms` }}
             >
               <div className="flex items-start justify-between gap-2">
@@ -249,7 +249,7 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
                   <p className="mt-1.5 text-xs text-slate-400">{card.note}</p>
                 </div>
                 <span
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border"
                   style={{ color: card.accent, borderColor: `${card.accent}40`, backgroundColor: `${card.accent}18` }}
                   aria-hidden
                 >
@@ -265,7 +265,7 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
       <div className="grid gap-4 lg:grid-cols-2">
         {/* System Health */}
         <article
-          className="rounded-xl border border-ink-600/70 bg-ink-900/35 p-4"
+          className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"
           style={{ animation: "softRise 300ms ease-out both", animationDelay: "120ms" }}
         >
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-100">
@@ -273,7 +273,7 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
             System Health
           </h3>
 
-          <div className="divide-y divide-ink-700/50">
+          <div className="divide-y divide-white/[0.06]">
             <HealthRow
               icon={UserCheck}
               label="Active users"
@@ -312,7 +312,7 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
 
         {/* Activity Snapshot */}
         <article
-          className="rounded-xl border border-ink-600/70 bg-ink-900/35 p-4"
+          className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"
           style={{ animation: "softRise 300ms ease-out both", animationDelay: "200ms" }}
         >
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-100">
@@ -320,7 +320,7 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
             Activity Snapshot
           </h3>
 
-          <div className="divide-y divide-ink-700/50">
+          <div className="divide-y divide-white/[0.06]">
             <HealthRow
               icon={Globe}
               label="Web messages"
@@ -366,7 +366,7 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
           </div>
 
           {/* Platform split bar */}
-          <div className="mt-4 rounded-lg border border-ink-700/50 bg-ink-900/50 p-3">
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.05] p-3">
             <p className="mb-2.5 flex items-center gap-1.5 text-xs font-medium text-slate-400">
               <BarChart3 size={12} />
               Platform message split
@@ -377,7 +377,7 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
                   <span className="flex items-center gap-1.5 text-teal-300"><Globe size={11} />Web</span>
                   <span className="font-semibold text-slate-200">{numberFmt.format(Math.round(animatedWebWidth))}%</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-ink-700/80">
+                <div className="h-2 overflow-hidden rounded-full bg-white/10">
                   <div
                     className="h-full rounded-full bg-teal-400 transition-all duration-500"
                     style={{ width: `${Math.max(0, Math.min(animatedWebWidth, 100))}%` }}
@@ -389,7 +389,7 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
                   <span className="flex items-center gap-1.5 text-blue-300"><Send size={11} />Telegram</span>
                   <span className="font-semibold text-slate-200">{numberFmt.format(Math.round(animatedTelegramWidth))}%</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-ink-700/80">
+                <div className="h-2 overflow-hidden rounded-full bg-white/10">
                   <div
                     className="h-full rounded-full bg-blue-400 transition-all duration-500"
                     style={{ width: `${Math.max(0, Math.min(animatedTelegramWidth, 100))}%` }}
@@ -403,8 +403,8 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
 
       {/* Quick insights row */}
       <div className="grid gap-3 sm:grid-cols-3" style={{ animation: "softRise 320ms ease-out both", animationDelay: "280ms" }}>
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-3">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/15 text-emerald-400">
+        <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-3">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400">
             <UserCheck size={16} />
           </span>
           <div>
@@ -415,8 +415,8 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
           </div>
         </div>
 
-        <div className="flex items-center gap-3 rounded-xl border border-blue-500/20 bg-blue-500/8 p-3">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/15 text-blue-400">
+        <div className="flex items-center gap-3 rounded-2xl border border-blue-500/20 bg-blue-500/8 p-3">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/15 text-blue-400">
             <CheckCircle2 size={16} />
           </span>
           <div>
@@ -427,8 +427,8 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
           </div>
         </div>
 
-        <div className="flex items-center gap-3 rounded-xl border border-violet-500/20 bg-violet-500/8 p-3">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/30 bg-violet-500/15 text-violet-400">
+        <div className="flex items-center gap-3 rounded-2xl border border-violet-500/20 bg-violet-500/8 p-3">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/15 text-violet-400">
             <AlertTriangle size={16} />
           </span>
           <div>

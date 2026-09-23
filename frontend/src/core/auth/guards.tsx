@@ -1,4 +1,7 @@
+import { Loader2 } from "lucide-react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+
+import LiquidBackdrop from "../components/LiquidBackdrop";
 
 import { useAuth } from "./AuthContext";
 
@@ -7,14 +10,11 @@ function FullScreenLoader() {
   const isAdminRoute = location.pathname.startsWith("/admin");
 
   return (
-    <div
-      className={[
-        "grid min-h-screen place-items-center px-6",
-        isAdminRoute ? "bg-[rgb(9,23,40)]" : "bg-[linear-gradient(180deg,_#07101a_0%,_#03070d_100%)]",
-      ].join(" ")}
-    >
-      <div className="panel max-w-sm p-6 text-center">
-        <p className="text-sm text-slate-300">{isAdminRoute ? "Loading session..." : "Загрузка сессии..."}</p>
+    <div className="relative grid min-h-screen place-items-center px-6">
+      <LiquidBackdrop />
+      <div className="panel relative z-10 flex items-center gap-3 rounded-full py-3 pl-3 pr-5" role="status">
+        <Loader2 size={18} className="animate-spin text-brand-300" />
+        <p className="text-sm text-slate-200">{isAdminRoute ? "Loading session..." : "Загрузка сессии..."}</p>
       </div>
     </div>
   );

@@ -1,453 +1,572 @@
+/* ═══════════════════════════════════════════════════════════════
+   Web chat — liquid glass theme (solid translucent fills, no
+   gradients, no shadows). Every surface reads its colours from the
+   --wc-* tokens, so the in-app light/dark toggle works on its own.
+   ═══════════════════════════════════════════════════════════════ */
+
+.webchat-shell.webchat-theme-dark {
+  color-scheme: dark;
+  --wc-bg: #070d17;
+
+  --wc-text: #eef3f9;
+  --wc-text-muted: #9aa8ba;
+  --wc-text-subtle: #66758a;
+
+  --wc-glass: rgba(255, 255, 255, 0.08);
+  --wc-glass-strong: rgba(24, 36, 54, 0.55);
+  --wc-glass-border: rgba(255, 255, 255, 0.1);
+  --wc-glass-border-top: rgba(255, 255, 255, 0.2);
+  --wc-hover: rgba(255, 255, 255, 0.07);
+  --wc-active: rgba(255, 255, 255, 0.11);
+  --wc-divider: rgba(255, 255, 255, 0.08);
+  --wc-field: rgba(255, 255, 255, 0.05);
+
+  --wc-accent: #2ee6c9;
+  --wc-accent-fill: #17dfc1;
+  --wc-on-accent: #04201b;
+  --wc-user-bubble: #1fd3b6;
+  --wc-user-text: #03231d;
+
+  --wc-answer-bg: #0b1520;
+  --wc-answer-border: rgba(30, 52, 72, 0.6);
+  --wc-code-bg: rgba(255, 255, 255, 0.08);
+  --wc-pre-bg: rgba(0, 0, 0, 0.28);
+  --wc-danger: #fda4af;
+  --wc-danger-hover: rgba(244, 63, 94, 0.14);
+
+  background: var(--wc-bg);
+  color: var(--wc-text);
+}
+
 .webchat-shell.webchat-theme-light {
-    color-scheme: light;
-    background: linear-gradient(180deg, #f7f9fc 0%, #f1f5f9 100%);
-    color: #18212b;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-main-surface,
-  .webchat-shell.webchat-theme-light .webchat-main-panel {
-    background: #ffffff;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-sidebar-shell,
-  .webchat-shell.webchat-theme-light .webchat-sources-shell {
-    border-color: rgba(148, 163, 184, 0.3);
-    background: #f9f9f9;
-    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-header {
-    border-color: rgba(148, 163, 184, 0.3);
-    background: #ffffff;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
-  }
-
-  .webchat-shell.webchat-theme-light .chat-composer-shell {
-    border-color: rgba(148, 163, 184, 0.34);
-    background: #ffffff;
-    box-shadow: none;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-header h1,
-  .webchat-shell.webchat-theme-light .webchat-sidebar-shell p,
-  .webchat-shell.webchat-theme-light .webchat-account-button p,
-  .webchat-shell.webchat-theme-light .webchat-sources-mobile-header,
-  .webchat-shell.webchat-theme-light .grid.h-full.place-items-center h2 {
-    color: #18212b;
-  }
-
-  .webchat-shell.webchat-theme-light .grid.h-full.place-items-center p,
-  .webchat-shell.webchat-theme-light .webchat-sources-header p,
-  .webchat-shell.webchat-theme-light .webchat-sources-header span,
-  .webchat-shell.webchat-theme-light .webchat-sidebar-shell .text-slate-500 {
-    color: #64748b;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-floating-menu,
-  .webchat-shell.webchat-theme-light .webchat-account-panel {
-    border-color: rgba(148, 163, 184, 0.4);
-    background: #ffffff;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-account-button {
-    border-color: transparent;
-    background: transparent;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-account-button:hover {
-    background: #efefef;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-account-avatar {
-    background: linear-gradient(180deg, #e2f5f2 0%, #cfe9e4 100%);
-    color: #145a52;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-theme-row {
-    border-color: transparent;
-    background: transparent;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-theme-toggle-button:hover {
-    background: #efefef;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-theme-toggle {
-    border-color: rgba(148, 163, 184, 0.4);
-    background: #ffffff;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-theme-toggle-button {
-    color: #64748b;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-theme-toggle-button[aria-pressed="true"] {
-    background: #fff;
-    color: #18212b;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-conversation-item {
-    color: #334155;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-conversation-item:hover {
-    background: #efefef;
-    color: #111827;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-conversation-item[data-active="true"] {
-    background: #efefef;
-    color: #111827;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-new-chat-button {
-    background: #efefef;
-    color: #1f2937;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-new-chat-button:hover {
-    background: #e6e6e6;
-    color: #111827;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-new-chat-button svg {
-    color: #64748b;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-new-chat-button:hover svg {
-    color: #334155;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-sidebar-footer {
-    border-top-color: rgba(148, 163, 184, 0.52);
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-empty-state,
-  .webchat-shell.webchat-theme-light .webchat-suggestion-card,
-  .webchat-shell.webchat-theme-light .webchat-assistant-bubble,
-  .webchat-shell.webchat-theme-light .thinking-shell,
-  .webchat-shell.webchat-theme-light .webchat-source-card,
-  .webchat-shell.webchat-theme-light .webchat-loading-card,
-  .webchat-shell.webchat-theme-light .webchat-loading-note {
-    border-color: rgba(148, 163, 184, 0.28);
-    background: #ffffff;
-    color: #223042;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-suggestion-card:hover {
-    border-color: rgba(100, 116, 139, 0.46);
-    background: #ffffff;
-    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-user-bubble {
-    background: linear-gradient(135deg, #4aa597 0%, #3c8f82 100%);
-    color: #f8fffd;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-source-chip,
-  .webchat-shell.webchat-theme-light .webchat-copy-chip,
-  .webchat-shell.webchat-theme-light .webchat-scroll-button,
-  .webchat-shell.webchat-theme-light .webchat-source-download,
-  .webchat-shell.webchat-theme-light .btn-muted {
-    border-color: rgba(148, 163, 184, 0.42);
-    background: rgba(255, 255, 255, 0.96);
-    color: #334155;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-source-chip:hover,
-  .webchat-shell.webchat-theme-light .webchat-copy-chip:hover,
-  .webchat-shell.webchat-theme-light .webchat-scroll-button:hover,
-  .webchat-shell.webchat-theme-light .webchat-source-download:hover,
-  .webchat-shell.webchat-theme-light .btn-muted:hover {
-    background: #eef2f7;
-    color: #18212b;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-account-panel button:hover,
-  .webchat-shell.webchat-theme-light .webchat-floating-menu button:hover {
-    background: #efefef !important;
-    color: #18212b !important;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-source-card:hover {
-    border-color: rgba(148, 163, 184, 0.45);
-    background: #f8fafc;
-    color: #18212b;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-composer-input {
-    color: #18212b;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-composer-input::placeholder {
-    color: #94a3b8;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-send-button {
-    background: #1f7f72;
-    color: #f8fffd;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-send-button:hover {
-    background: #176b61;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-chat-actions-trigger {
-    color: #64748b;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-chat-actions-trigger:hover {
-    background: #efefef !important;
-    color: #18212b !important;
-  }
-
-  .webchat-shell.webchat-theme-light .toast-notice-card {
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
-    backdrop-filter: blur(12px);
-  }
-
-  .webchat-shell.webchat-theme-light .toast-notice-card.text-emerald-100 {
-    border-color: rgba(53, 138, 104, 0.28) !important;
-    background: #e6f7ee !important;
-    color: #1f6b4d !important;
-  }
-
-  .webchat-shell.webchat-theme-light .toast-notice-card.text-amber-100 {
-    border-color: rgba(181, 129, 35, 0.3) !important;
-    background: #fff2d9 !important;
-    color: #8b5a12 !important;
-  }
-
-  .webchat-shell.webchat-theme-light .toast-notice-card.text-rose-100 {
-    border-color: rgba(176, 71, 52, 0.28) !important;
-    background: #fde7e2 !important;
-    color: #8f2f21 !important;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-warning-banner {
-    border-color: rgba(209, 115, 94, 0.35);
-    background: rgba(255, 236, 231, 0.9);
-    color: #8a3a2c;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-loading-chip {
-    border-color: rgba(148, 163, 184, 0.42);
-    background: rgba(255, 255, 255, 0.96) !important;
-    color: #334155;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-loading-line {
-    background: rgba(203, 213, 225, 0.8) !important;
-  }
-
-  .webchat-shell.webchat-theme-light .thinking-core {
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.98) 0%, rgba(95, 188, 170, 0.92) 45%, rgba(54, 140, 125, 0.85) 100%);
-  }
-
-  .webchat-shell.webchat-theme-light .thinking-inline-dots span {
-    background: rgba(60, 143, 130, 0.9);
-  }
-
-  .webchat-shell.webchat-theme-light .ui-tooltip {
-    border-color: rgba(148, 163, 184, 0.45);
-    background: rgba(255, 255, 255, 0.98);
-    color: #2d3a49;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-account-panel button,
-  .webchat-shell.webchat-theme-light .webchat-floating-menu button,
-  .webchat-shell.webchat-theme-light .webchat-theme-row span,
-  .webchat-shell.webchat-theme-light .webchat-sources-mobile-header span,
-  .webchat-shell.webchat-theme-light .webchat-sources-mobile-header svg,
-  .webchat-shell.webchat-theme-light .webchat-source-card p,
-  .webchat-shell.webchat-theme-light .webchat-source-card span,
-  .webchat-shell.webchat-theme-light .message-rich,
-  .webchat-shell.webchat-theme-light .message-rich li,
-  .webchat-shell.webchat-theme-light .message-rich pre code,
-  .webchat-shell.webchat-theme-light .webchat-thinking-label {
-    color: #223042;
-  }
-
-  .webchat-shell.webchat-theme-light .message-rich strong,
-  .webchat-shell.webchat-theme-light .message-rich b {
-    color: #111827;
-  }
-
-  .webchat-shell.webchat-theme-light .message-rich blockquote {
-    border-color: rgba(76, 160, 147, 0.35);
-    color: #556575;
-  }
-
-  .webchat-shell.webchat-theme-light .message-rich code {
-    background: #eef2f7;
-    color: #145a52;
-  }
-
-  .webchat-shell.webchat-theme-light .message-rich pre {
-    border-color: rgba(148, 163, 184, 0.3);
-    background: #f8fafc;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-sources-title,
-  .webchat-shell.webchat-theme-light .webchat-sources-mobile-title,
-  .webchat-shell.webchat-theme-light .webchat-sources-mobile-title span,
-  .webchat-shell.webchat-theme-light .webchat-sources-mobile-title svg,
-  .webchat-shell.webchat-theme-light .webchat-sources-header h2,
-  .webchat-shell.webchat-theme-light .webchat-source-title,
-  .webchat-shell.webchat-theme-light .webchat-source-extension,
-  .webchat-shell.webchat-theme-light .webchat-source-title-popup-text,
-  .webchat-shell.webchat-theme-light .webchat-source-meta {
-    color: #223042 !important;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-sources-header,
-  .webchat-shell.webchat-theme-light .webchat-sources-mobile-header {
-    border-color: rgba(148, 163, 184, 0.32) !important;
-    background: #f9f9f9 !important;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-source-icon,
-  .webchat-shell.webchat-theme-light .webchat-source-extension,
-  .webchat-shell.webchat-theme-light .webchat-source-title-popup {
-    border-color: rgba(148, 163, 184, 0.35) !important;
-    background: #ffffff !important;
-  }
-
-  .webchat-shell.webchat-theme-light .webchat-source-title-shell:hover {
-    background: transparent !important;
-  }
-
-  .webchat-shell.webchat-theme-light .modal-backdrop {
-    background: rgba(15, 23, 42, 0.18) !important;
-    backdrop-filter: blur(10px);
-  }
-
-  .webchat-shell.webchat-theme-light .modal-card {
-    border-color: rgba(148, 163, 184, 0.35) !important;
-    background: #ffffff !important;
-    color: #223042 !important;
-    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
-  }
-
-  .webchat-shell.webchat-theme-light .modal-card h2,
-  .webchat-shell.webchat-theme-light .modal-card p,
-  .webchat-shell.webchat-theme-light .modal-card span,
-  .webchat-shell.webchat-theme-light .modal-card label {
-    color: #223042 !important;
-  }
-
-  .webchat-shell.webchat-theme-light .modal-card .text-slate-400,
-  .webchat-shell.webchat-theme-light .modal-card .text-slate-300,
-  .webchat-shell.webchat-theme-light .modal-card .text-slate-200 {
-    color: #64748b !important;
-  }
-
-  .webchat-shell.webchat-theme-light .modal-card .text-slate-100,
-  .webchat-shell.webchat-theme-light .modal-card .text-slate-50 {
-    color: #18212b !important;
-  }
-
-  .webchat-shell.webchat-theme-light .modal-card .input {
-    border-color: rgba(148, 163, 184, 0.45) !important;
-    background: #ffffff !important;
-    color: #223042 !important;
-  }
-
-  .webchat-shell.webchat-theme-light .modal-card .input::placeholder {
-    color: #94a3b8 !important;
-  }
-
-  .webchat-shell.webchat-theme-light .modal-card .btn-danger {
-    border-color: rgba(176, 71, 52, 0.28) !important;
-    background: rgba(214, 87, 66, 0.14) !important;
-    color: #8f2f21 !important;
-  }
-
-  .webchat-shell.webchat-theme-light .modal-card .btn-danger:hover {
-    background: rgba(214, 87, 66, 0.22) !important;
-    color: #7c261a !important;
-  }
-
-  /* Dark theme: explicit overrides so the app theme toggle works regardless of OS color-scheme preference */
+  color-scheme: light;
+  --wc-bg: #eef2f7;
+
+  --wc-text: #0f1a27;
+  --wc-text-muted: #56677b;
+  --wc-text-subtle: #8a98a9;
+
+  --wc-glass: rgba(255, 255, 255, 0.55);
+  --wc-glass-strong: rgba(255, 255, 255, 0.62);
+  --wc-glass-border: rgba(15, 23, 42, 0.08);
+  --wc-glass-border-top: rgba(255, 255, 255, 1);
+  --wc-hover: rgba(15, 23, 42, 0.05);
+  --wc-active: rgba(15, 23, 42, 0.08);
+  --wc-divider: rgba(15, 23, 42, 0.08);
+  --wc-field: rgba(255, 255, 255, 0.75);
+
+  --wc-accent: #0c9e88;
+  --wc-accent-fill: #13cdb0;
+  --wc-on-accent: #03231d;
+  --wc-user-bubble: #22d1b4;
+  --wc-user-text: #03231d;
+
+  --wc-answer-bg: #ffffff;
+  --wc-answer-border: rgba(148, 163, 184, 0.28);
+  --wc-code-bg: rgba(15, 23, 42, 0.06);
+  --wc-pre-bg: rgba(255, 255, 255, 0.7);
+  --wc-danger: #be123c;
+  --wc-danger-hover: rgba(225, 29, 72, 0.08);
+
+  background: var(--wc-bg);
+  color: var(--wc-text);
+}
+
+/* ── Semantic helpers ────────────────────────────────────────── */
+.webchat-shell .wc-text {
+  color: var(--wc-text);
+}
+
+.webchat-shell .wc-muted {
+  color: var(--wc-text-muted);
+}
+
+.webchat-shell .wc-subtle {
+  color: var(--wc-text-subtle);
+}
+
+.webchat-shell .wc-accent {
+  color: var(--wc-accent);
+}
+
+.webchat-shell .wc-glass,
+.webchat-shell .webchat-sidebar-shell,
+.webchat-shell .webchat-sources-shell,
+.webchat-shell .chat-composer-shell,
+.webchat-shell .webchat-suggestion-card,
+.webchat-shell .webchat-scroll-button,
+.webchat-shell .thinking-shell,
+.webchat-shell .webchat-loading-card,
+.webchat-shell .webchat-loading-note {
+  background: var(--wc-glass);
+  border: 1px solid var(--wc-glass-border);
+  border-top-color: var(--wc-glass-border-top);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+}
+
+.webchat-shell .wc-glass-strong,
+.webchat-shell .webchat-floating-menu,
+.webchat-shell .webchat-account-panel {
+  background: var(--wc-glass-strong);
+  border: 1px solid var(--wc-glass-border);
+  border-top-color: var(--wc-glass-border-top);
+  -webkit-backdrop-filter: var(--lg-blur-strong);
+  backdrop-filter: var(--lg-blur-strong);
+}
+
+.webchat-shell .webchat-floating-menu {
+  transform-origin: top right;
+  animation: popInSoft 220ms var(--lg-ease) both;
+}
+
+.webchat-shell .webchat-account-panel {
+  transform-origin: bottom center;
+  animation: popUpSoft 240ms var(--lg-ease) both;
+}
+
+.webchat-shell .wc-hoverable {
+  transition: background 160ms ease, color 160ms ease, transform 380ms var(--lg-spring);
+}
+
+.webchat-shell .wc-hoverable:not(:disabled):hover {
+  background: var(--wc-hover);
+}
+
+.webchat-shell .wc-hoverable:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.webchat-shell .wc-menu-item {
+  color: var(--wc-text);
+}
+
+.webchat-shell .wc-menu-item:not(:disabled):hover {
+  background: var(--wc-hover);
+}
+
+.webchat-shell .wc-menu-item:disabled {
+  color: var(--wc-text-subtle);
+  cursor: not-allowed;
+}
+
+.webchat-shell .wc-menu-item-danger {
+  color: var(--wc-danger);
+}
+
+.webchat-shell .wc-menu-item-danger:hover {
+  background: var(--wc-danger-hover);
+}
+
+.webchat-shell .wc-divider {
+  border-color: var(--wc-divider);
+}
+
+/* ── Floating header: transparent; only the glass pills show ─── */
+.webchat-shell .webchat-header {
+  background: transparent;
+  pointer-events: none;
+}
+
+.webchat-shell .webchat-header > * {
+  pointer-events: auto;
+}
+
+.webchat-shell .webchat-composer-dock {
+  background: transparent;
+}
+
+/* ── Icon & chip buttons ─────────────────────────────────────── */
+.webchat-shell .wc-icon-btn,
+.webchat-shell .webchat-source-chip,
+.webchat-shell .webchat-copy-chip,
+.webchat-shell .webchat-source-download,
+.webchat-shell .btn-muted {
+  color: var(--wc-text);
+  background: var(--wc-glass);
+  border: 1px solid var(--wc-glass-border);
+  border-top-color: var(--wc-glass-border-top);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  transition: background 160ms ease, color 160ms ease, transform 380ms var(--lg-spring);
+}
+
+.webchat-shell .webchat-source-chip,
+.webchat-shell .webchat-copy-chip {
+  color: var(--wc-text-muted);
+}
+
+.webchat-shell .wc-icon-btn:not(:disabled):hover,
+.webchat-shell .webchat-source-chip:hover,
+.webchat-shell .webchat-copy-chip:hover,
+.webchat-shell .webchat-source-download:not(:disabled):hover,
+.webchat-shell .btn-muted:not(:disabled):hover {
+  color: var(--wc-text);
+  background: var(--wc-active);
+}
+
+.webchat-shell .wc-icon-btn:not(:disabled):active {
+  transform: scale(0.92);
+  transition-duration: 110ms;
+}
+
+.webchat-shell .webchat-source-chip[aria-pressed="true"] {
+  color: var(--wc-accent);
+  border-color: color-mix(in srgb, var(--wc-accent) 40%, transparent);
+}
+
+.webchat-shell .webchat-scroll-button {
+  color: var(--wc-text);
+}
+
+.webchat-shell .webchat-send-button {
+  color: var(--wc-on-accent);
+  background: var(--wc-accent-fill);
+  transition: transform 380ms var(--lg-spring), background 160ms ease;
+}
+
+.webchat-shell .webchat-send-button:not(:disabled):hover {
+  background: var(--wc-accent);
+}
+
+.webchat-shell .webchat-send-button:not(:disabled):active {
+  transform: scale(0.9);
+  transition-duration: 110ms;
+}
+
+.webchat-shell .webchat-send-button:disabled {
+  background: var(--wc-active);
+  color: var(--wc-text-subtle);
+}
+
+.webchat-shell .webchat-mic-recording {
+  color: #fff !important;
+  background: #e11d48 !important;
+  border-color: transparent !important;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────── */
+.webchat-shell .webchat-new-chat-button {
+  color: var(--wc-text);
+  background: var(--wc-glass);
+  border: 1px solid var(--wc-glass-border);
+  border-top-color: var(--wc-glass-border-top);
+  transition: background 160ms ease, transform 380ms var(--lg-spring);
+}
+
+.webchat-shell .webchat-new-chat-button:hover {
+  background: var(--wc-active);
+}
+
+.webchat-shell .webchat-new-chat-button:active {
+  transform: scale(0.97);
+}
+
+.webchat-shell .webchat-new-chat-button svg {
+  color: var(--wc-accent);
+}
+
+.webchat-shell .webchat-conversation-item {
+  color: var(--wc-text-muted);
+}
+
+.webchat-shell .webchat-conversation-item:hover {
+  background: var(--wc-hover);
+  color: var(--wc-text);
+}
+
+.webchat-shell .webchat-conversation-item[data-active="true"] {
+  background: var(--wc-active);
+  color: var(--wc-text);
+}
+
+.webchat-shell .webchat-chat-actions-trigger {
+  color: var(--wc-text-muted);
+}
+
+.webchat-shell .webchat-chat-actions-trigger:hover {
+  background: var(--wc-active);
+  color: var(--wc-text);
+}
+
+.webchat-shell .webchat-account-button:hover {
+  background: var(--wc-hover);
+}
+
+.webchat-shell .webchat-account-avatar {
+  color: var(--wc-on-accent);
+  background: var(--wc-accent-fill);
+}
+
+.webchat-shell .webchat-theme-toggle {
+  background: var(--wc-field);
+  border: 1px solid var(--wc-divider);
+}
+
+.webchat-shell .webchat-theme-toggle-button {
+  color: var(--wc-text-muted);
+  transition: background 200ms ease, color 200ms ease;
+}
+
+.webchat-shell .webchat-theme-toggle-button[aria-pressed="true"] {
+  color: var(--wc-text);
+  background: var(--wc-glass-strong);
+}
+
+/* ── Messages ────────────────────────────────────────────────── */
+.webchat-shell .webchat-user-bubble {
+  color: var(--wc-user-text);
+  background: var(--wc-user-bubble);
+}
+
+.webchat-shell .webchat-assistant-bubble {
+  color: var(--wc-text);
+  background: var(--wc-answer-bg);
+  border: 1px solid var(--wc-answer-border);
+}
+
+.webchat-shell .webchat-suggestion-card {
+  color: var(--wc-text);
+  transition: transform 420ms var(--lg-spring), background 200ms ease;
+}
+
+.webchat-shell .webchat-suggestion-card:not(:disabled):hover {
+  background: var(--wc-glass-strong);
+  transform: translateY(-2px);
+}
+
+.webchat-shell .webchat-suggestion-card:not(:disabled):active {
+  transform: scale(0.98);
+  transition-duration: 110ms;
+}
+
+.webchat-shell .webchat-empty-state {
+  color: var(--wc-text-muted);
+  border: 1px dashed var(--wc-divider);
+  background: var(--wc-field);
+}
+
+.webchat-shell .webchat-loading-line {
+  background: var(--wc-active) !important;
+}
+
+.webchat-shell .thinking-core {
+  background: var(--wc-accent);
+}
+
+.webchat-shell .thinking-inline-dots span {
+  background: var(--wc-accent);
+}
+
+.webchat-shell .webchat-thinking-label {
+  color: var(--wc-text);
+}
+
+/* ── Sources ─────────────────────────────────────────────────── */
+.webchat-shell .webchat-source-card {
+  color: var(--wc-text);
+  background: var(--wc-field);
+  border: 1px solid var(--wc-divider);
+  transition: background 160ms ease;
+}
+
+.webchat-shell .webchat-source-card:hover {
+  background: var(--wc-hover);
+}
+
+.webchat-shell .webchat-source-extension {
+  color: var(--wc-text-muted);
+  background: var(--wc-active);
+}
+
+.webchat-shell .webchat-source-download {
+  color: var(--wc-accent);
+}
+
+/* ── Rich message content ────────────────────────────────────── */
+.message-rich {
+  font-weight: 400;
+  @apply text-[15px] leading-[1.65];
+  color: var(--wc-text, #e2e8f0);
+}
+
+.message-rich p + p {
+  @apply mt-2.5;
+}
+
+.message-rich ul,
+.message-rich ol {
+  @apply my-2.5 space-y-1.5 pl-6;
+}
+
+.message-rich ul {
+  @apply list-disc;
+}
+
+.message-rich ol {
+  @apply list-decimal;
+}
+
+.message-rich li {
+  @apply pl-1;
+}
+
+.message-rich li::marker {
+  color: var(--wc-accent, #53f6dc);
+}
+
+.message-rich a {
+  color: var(--wc-accent, #53f6dc);
+  @apply underline underline-offset-4 hover:opacity-80;
+}
+
+.message-rich b,
+.message-rich strong {
+  @apply font-semibold;
+  color: var(--wc-text, #f8fafc);
+}
+
+.message-rich blockquote {
+  @apply my-2.5 border-l-[3px] py-1 pl-4 italic;
+  border-color: var(--wc-accent, #17dfc1);
+  color: var(--wc-text-muted, #cbd5e1);
+}
+
+.message-rich code {
+  @apply rounded-md px-1.5 py-0.5 font-mono text-[13px];
+  background: var(--wc-code-bg, #102033);
+  color: var(--wc-accent, #53f6dc);
+}
+
+.message-rich pre {
+  @apply my-3 overflow-x-auto rounded-2xl p-4;
+  background: var(--wc-pre-bg, #08111c);
+  border: 1px solid var(--wc-divider, #284863);
+}
+
+.message-rich pre code {
+  @apply bg-transparent p-0 text-[13px] leading-5;
+  color: var(--wc-text, #e2e8f0);
+}
+
+/* ── Modals, inputs & toasts rendered inside the chat ────────── */
+.webchat-shell .modal-card {
+  color: var(--wc-text);
+  background: var(--wc-glass-strong);
+  border-color: var(--wc-glass-border);
+  border-top-color: var(--wc-glass-border-top);
+}
+
+.webchat-shell .input {
+  color: var(--wc-text);
+  background: var(--wc-field);
+  border-color: var(--wc-divider);
+}
+
+.webchat-shell .input::placeholder {
+  color: var(--wc-text-subtle);
+}
+
+.webchat-shell.webchat-theme-light .modal-backdrop {
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.webchat-shell.webchat-theme-light .modal-card .text-slate-50,
+.webchat-shell.webchat-theme-light .modal-card .text-slate-100 {
+  color: var(--wc-text);
+}
+
+.webchat-shell.webchat-theme-light .modal-card .text-slate-200,
+.webchat-shell.webchat-theme-light .modal-card .text-slate-300,
+.webchat-shell.webchat-theme-light .modal-card .text-slate-400 {
+  color: var(--wc-text-muted);
+}
+
+.webchat-shell.webchat-theme-light .btn-danger {
+  color: #be123c;
+  border-color: rgba(225, 29, 72, 0.25);
+  background: rgba(225, 29, 72, 0.08);
+}
+
+.webchat-shell.webchat-theme-light .toast-notice-card.text-emerald-100 {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(236, 253, 245, 0.92);
+  color: #065f46;
+}
+
+.webchat-shell.webchat-theme-light .toast-notice-card.text-amber-100 {
+  border-color: rgba(245, 158, 11, 0.32);
+  background: rgba(255, 251, 235, 0.92);
+  color: #92400e;
+}
+
+.webchat-shell.webchat-theme-light .toast-notice-card.text-rose-100 {
+  border-color: rgba(244, 63, 94, 0.3);
+  background: rgba(255, 241, 242, 0.92);
+  color: #9f1239;
+}
+
+.webchat-shell.webchat-theme-light .webchat-banner-danger {
+  color: #9f1239;
+  background: rgba(255, 241, 242, 0.9);
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.webchat-shell.webchat-theme-light .webchat-banner-warn {
+  color: #92400e;
+  background: rgba(255, 251, 235, 0.9);
+  border-color: rgba(245, 158, 11, 0.32);
+}
+
+.webchat-shell.webchat-theme-light .ui-tooltip {
+  color: #1e293b;
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+@media (prefers-reduced-transparency: reduce) {
   .webchat-shell.webchat-theme-dark {
-    color-scheme: dark;
-    background: linear-gradient(180deg, #07101a 0%, #03070d 100%);
-    color: #e2e8f0;
+    --wc-glass: #152030;
+    --wc-glass-strong: #19253a;
   }
 
-  .webchat-shell.webchat-theme-dark .webchat-main-surface,
-  .webchat-shell.webchat-theme-dark .webchat-main-panel {
-    background: #07101a;
+  .webchat-shell.webchat-theme-light {
+    --wc-glass: #ffffff;
+    --wc-glass-strong: #ffffff;
   }
+}
 
-  .webchat-shell.webchat-theme-dark .webchat-sidebar-shell {
-    background: #09111d;
-  }
+/* ── Chromium refraction for the chat's glass surfaces ───────── */
+html.lg-refract .webchat-shell .webchat-sidebar-shell,
+html.lg-refract .webchat-shell .webchat-sources-shell,
+html.lg-refract .webchat-shell .webchat-suggestion-card,
+html.lg-refract .webchat-shell .webchat-scroll-button,
+html.lg-refract .webchat-shell .wc-icon-btn,
+html.lg-refract .webchat-shell .wc-glass,
+html.lg-refract .webchat-shell .thinking-shell {
+  -webkit-backdrop-filter: url(#lg-refract) blur(14px) saturate(180%);
+  backdrop-filter: url(#lg-refract) blur(14px) saturate(180%);
+}
 
-  .webchat-shell.webchat-theme-dark .webchat-sources-shell {
-    background: #09111d;
-  }
+html.lg-refract .webchat-shell .chat-composer-shell,
+html.lg-refract .webchat-shell .webchat-floating-menu,
+html.lg-refract .webchat-shell .webchat-account-panel,
+html.lg-refract .webchat-shell .webchat-header-unused {
+  -webkit-backdrop-filter: url(#lg-refract) blur(26px) saturate(190%);
+  backdrop-filter: url(#lg-refract) blur(26px) saturate(190%);
+}
 
-  .webchat-shell.webchat-theme-dark .webchat-header {
-    background: rgba(8, 17, 28, 0.85);
-    border-color: rgba(30, 52, 72, 0.6);
-  }
+/* ── iOS-style scroll edges: content dissolves under the floating
+   controls instead of being cut off by a hard straight edge ──── */
+.webchat-shell .webchat-scroll-fade {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 58px, #000 calc(100% - 104px), transparent calc(100% - 8px));
+  mask-image: linear-gradient(to bottom, transparent 0, #000 58px, #000 calc(100% - 104px), transparent calc(100% - 8px));
+}
 
-  .webchat-shell.webchat-theme-dark .chat-composer-shell {
-    background: #0b1520;
-    border-color: rgba(30, 52, 72, 0.7);
-  }
-
-  .message-rich {
-    font-family: "Inter", sans-serif;
-    font-weight: 400;
-    @apply text-[15px] leading-6 tracking-[0.002em] text-slate-200;
-  }
-
-  .message-rich p + p {
-    @apply mt-2.5;
-  }
-
-  .message-rich ul,
-  .message-rich ol {
-    @apply my-2.5 space-y-1.5 pl-6;
-  }
-
-  .message-rich ul {
-    @apply list-disc;
-  }
-
-  .message-rich ol {
-    @apply list-decimal;
-  }
-
-  .message-rich li {
-    @apply pl-1 text-slate-200;
-  }
-
-  .message-rich a {
-    @apply text-brand-300 underline underline-offset-4 hover:text-brand-400;
-  }
-
-  .message-rich b,
-  .message-rich strong {
-    @apply font-semibold text-slate-50;
-  }
-
-  .message-rich blockquote {
-    @apply my-2.5 border-l-2 border-brand-400/50 pl-4 text-[15px] italic text-slate-300;
-  }
-
-  .message-rich code {
-    @apply rounded-md bg-[#102033] px-1.5 py-0.5 font-mono text-[13px] text-brand-300;
-  }
-
-  .message-rich pre {
-    @apply my-3 overflow-x-auto rounded-2xl border border-[#284863] bg-[#08111c] p-4;
-  }
-
-  .message-rich pre code {
-    @apply bg-transparent p-0 text-[13px] leading-5 text-slate-200;
-  }
+/* The composer floats over the conversation, so messages pass behind it. */
+.webchat-shell .webchat-composer-dock {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 15;
+}

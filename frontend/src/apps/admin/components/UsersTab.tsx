@@ -243,18 +243,18 @@ export default function UsersTab({
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-ink-600/50">
-        <table className="min-w-[980px] w-full text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-ink-800/60 text-slate-300">
+      <div className="overflow-x-auto rounded-2xl border border-white/10">
+        <table className="min-w-[940px] w-full text-left text-[13px]">
+          <thead className="sticky top-0 z-10 bg-white/[0.06] text-slate-400">
             <tr>
-              <th className="px-3 py-3">ID</th>
-              <th className="px-3 py-3">User</th>
-              <th className="px-3 py-3">Platform</th>
-              <th className="px-3 py-3">Platform User ID</th>
-              <th className="px-3 py-3">Status</th>
-              <th className="px-3 py-3">Role</th>
-              <th className="px-3 py-3">Created</th>
-              <th className="px-3 py-3">Actions</th>
+              <th className="px-3 py-2.5 text-xs font-semibold">ID</th>
+              <th className="px-3 py-2.5 text-xs font-semibold">User</th>
+              <th className="px-3 py-2.5 text-xs font-semibold">Platform</th>
+              <th className="px-3 py-2.5 text-xs font-semibold">Platform User ID</th>
+              <th className="px-3 py-2.5 text-xs font-semibold">Status</th>
+              <th className="px-3 py-2.5 text-xs font-semibold">Role</th>
+              <th className="px-3 py-2.5 text-xs font-semibold">Created</th>
+              <th className="px-3 py-2.5 text-xs font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -271,28 +271,28 @@ export default function UsersTab({
                 const isSelf = user.is_admin && isCurrentAdminUser(user);
 
                 return (
-                  <tr key={user.id} className="border-t border-ink-600/40 transition-colors hover:bg-ink-900/35">
-                    <td className="px-3 py-3">{user.id}</td>
-                    <td className="px-3 py-3">
+                  <tr key={user.id} className="border-t border-white/[0.06] transition-colors hover:bg-white/[0.035]">
+                    <td className="px-3 py-2">{user.id}</td>
+                    <td className="px-3 py-2">
                       <p className="font-medium">{user.name || "-"}</p>
                       <p className="text-xs text-slate-400">
                         {user.platform === "telegram" ? `@${user.username || "-"}` : (user.username || "-")}
                       </p>
                     </td>
-                    <td className="px-3 py-3">{user.platform}</td>
-                    <td className="px-3 py-3">{user.platform_user_id}</td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-2">{user.platform}</td>
+                    <td className="px-3 py-2">{user.platform_user_id}</td>
+                    <td className="px-3 py-2">
                       <StatusTag blocked={user.is_blocked} />
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-2">
                       {user.is_admin ? (
                         <span className="tag border-amber-400/35 bg-amber-500/10 text-amber-200">Admin</span>
                       ) : (
                         <span className="tag border-slate-500/40 bg-slate-500/10 text-slate-300">User</span>
                       )}
                     </td>
-                    <td className="px-3 py-3">{formatDate(user.created_at)}</td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-2">{formatDate(user.created_at)}</td>
+                    <td className="px-3 py-2">
                       <div className="action-row">
                         <button
                           className={`${user.is_blocked ? "btn-good" : "btn-warn"} action-btn`}

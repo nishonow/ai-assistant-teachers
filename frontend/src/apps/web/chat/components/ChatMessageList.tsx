@@ -1,4 +1,4 @@
-import { ArrowDown, BookOpenText, Check, Copy, MessageSquare } from "lucide-react";
+import { ArrowDown, ArrowUpRight, BookOpenText, Check, Copy, MessageSquare, Sparkles } from "lucide-react";
 import React, { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import AssistantMessageContent, { getAssistantMessagePlainText } from "./AssistantMessageContent";
@@ -17,7 +17,7 @@ interface ChatMessageListProps {
 const SUGGESTED_QUESTIONS = [
   "Можно ли уволить учителя без объяснения причин?",
   "Какие права есть у учителя по закону?",
-  "Как получить отпуск по беременность?",
+  "Как получить отпуск по беременности?",
 ] as const;
 
 const AUTO_SCROLL_THRESHOLD = 100;
@@ -49,9 +49,6 @@ const THINKING_ANIMATION_CSS = `
   .thinking-shell {
     position: relative;
     overflow: hidden;
-    background:
-      radial-gradient(circle at top left, rgba(142, 241, 229, 0.08), transparent 34%),
-      linear-gradient(180deg, rgba(13, 24, 39, 0.98) 0%, rgba(10, 19, 31, 0.98) 100%);
   }
 
   .thinking-core {
@@ -59,7 +56,6 @@ const THINKING_ANIMATION_CSS = `
     width: 0.72rem;
     height: 0.72rem;
     border-radius: 9999px;
-    background: radial-gradient(circle, rgba(198, 255, 247, 0.98) 0%, rgba(142, 241, 229, 0.92) 45%, rgba(68, 171, 158, 0.85) 100%);
     animation: webchatThinkingCorePulse 1.6s ease-in-out infinite;
   }
 
@@ -111,19 +107,19 @@ function ChatScrollShell({
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="scroll-area h-full overflow-y-auto px-3 py-4 pb-16 md:px-6 md:py-5 md:pb-20"
+        className="scroll-area webchat-scroll-fade h-full overflow-y-auto px-3 pb-[104px] pt-[60px] md:px-6 md:pb-[108px] md:pt-[64px]"
         style={{ overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch', scrollBehavior: 'auto' } as React.CSSProperties & { WebkitOverflowScrolling: string }}
       >
         {children}
       </div>
       
       {showScrollButton && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 md:bottom-9 z-20">
+        <div className="absolute bottom-9 left-1/2 z-20 -translate-x-1/2 md:bottom-10" style={{ animation: "popUpSoft 260ms var(--lg-ease) both" }}>
           <button
             type="button"
             onClick={onScrollToBottom}
-            className="webchat-scroll-button flex h-10 w-10 items-center justify-center rounded-full border border-[#1e3448] bg-[#0d1827]/90 text-brand-300 backdrop-blur-sm transition-all hover:bg-[#15283f] hover:scale-105 active:scale-95"
-            aria-label="Вниз"
+            className="webchat-scroll-button flex h-10 w-10 items-center justify-center rounded-full transition-transform duration-300 hover:scale-105 active:scale-90"
+            aria-label="Прокрутить вниз"
           >
             <ArrowDown size={18} />
           </button>
@@ -256,33 +252,27 @@ export default function ChatMessageList({
           showScrollButton={showScrollButton}
           onScroll={handleScroll}
         >
-          <div className="mx-auto w-full max-w-4xl space-y-3.5 md:space-y-4" role="status" aria-live="polite">
-            <div className="webchat-loading-card max-w-[72%] rounded-[24px] border border-[#284863] bg-[#0f1c2c] px-4 py-4">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="webchat-loading-chip inline-flex h-6 w-24 rounded-full border border-[#305169] bg-[#102033]" />
-              </div>
+          <div className="mx-auto w-full max-w-[940px] space-y-3.5 md:space-y-4" role="status" aria-live="polite">
+            <div className="webchat-loading-card ml-auto max-w-[54%] rounded-[24px] rounded-br-lg px-4 py-4">
               <div className="space-y-2.5">
-                <div className="webchat-loading-line h-4 w-[88%] rounded-full bg-slate-700/70" />
-                <div className="webchat-loading-line h-4 w-[74%] rounded-full bg-slate-700/60" />
-                <div className="webchat-loading-line h-4 w-[61%] rounded-full bg-slate-700/50" />
+                <div className="webchat-loading-line ml-auto h-3.5 w-full rounded-full" />
+                <div className="webchat-loading-line ml-auto h-3.5 w-[72%] rounded-full" />
               </div>
             </div>
 
-            <div className="webchat-loading-card ml-auto max-w-[54%] rounded-[24px] border border-brand-400/25 bg-brand-500/10 px-4 py-4 [animation-delay:180ms]">
-              <div className="mb-3 flex justify-end">
-                <span className="webchat-loading-chip inline-flex h-6 w-16 rounded-full border border-brand-400/20 bg-brand-500/10" />
-              </div>
+            <div className="webchat-loading-card max-w-[72%] rounded-[24px] rounded-bl-lg px-4 py-4 [animation-delay:180ms]">
               <div className="space-y-2.5">
-                <div className="webchat-loading-line h-4 w-full rounded-full bg-brand-500/20" />
-                <div className="webchat-loading-line h-4 w-[72%] rounded-full bg-brand-500/15" />
+                <div className="webchat-loading-line h-3.5 w-[88%] rounded-full" />
+                <div className="webchat-loading-line h-3.5 w-[74%] rounded-full" />
+                <div className="webchat-loading-line h-3.5 w-[61%] rounded-full" />
               </div>
             </div>
 
-            <div className="webchat-loading-note flex items-center gap-3 rounded-2xl border border-[#284863] bg-[#0d1827] px-4 py-3 text-sm text-slate-300 [animation-delay:180ms]">
-              <span className="webchat-loading-chip inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#305169] bg-[#102033] text-brand-200">
+            <div className="webchat-loading-note wc-muted inline-flex items-center gap-3 rounded-full py-1.5 pl-1.5 pr-4 text-sm [animation-delay:180ms]">
+              <span className="wc-accent inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--wc-active)]">
                 <MessageSquare size={14} />
               </span>
-              <span>Загружаем ответы...</span>
+              <span>Загружаем диалог…</span>
             </div>
           </div>
         </ChatScrollShell>
@@ -297,27 +287,28 @@ export default function ChatMessageList({
         onScrollToBottom={() => {}}
         showScrollButton={false}
       >
-        <div className="grid h-full place-items-center px-4 py-5 md:px-6 md:py-10">
-        <div className="w-full max-w-[50rem] px-4 py-5 text-center sm:px-8 sm:py-10">
-
-          <h2 className="font-heading text-[2rem] leading-tight text-slate-100 sm:text-3xl">Что вы хотите узнать?</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-400">Задайте вопрос или выберите один из примеров ниже</p>
-          <div className="mx-auto mt-6 grid w-full max-w-[760px] gap-2.5 text-left sm:mt-8 sm:gap-3 sm:grid-cols-3">
+        <div className="grid h-full place-items-center px-1 py-5 md:px-6 md:py-10">
+        <div className="w-full max-w-[940px] py-5 text-center sm:py-10">
+          <span className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-[20px] bg-brand-400 text-ink-950">
+            <Sparkles size={28} />
+          </span>
+          <h2 className="wc-text font-heading text-[1.9rem] font-bold leading-tight tracking-[-0.02em] sm:text-4xl">Что вы хотите узнать?</h2>
+          <p className="wc-muted mx-auto mt-3 max-w-md text-[15px] leading-6">Задайте вопрос своими словами или начните с одного из примеров</p>
+          <div className="mx-auto mt-8 grid w-full gap-2.5 text-left sm:grid-cols-3 sm:gap-3">
             {SUGGESTED_QUESTIONS.map((question, index) => (
               <button
                 key={question}
                 type="button"
                 className={[
-                  "webchat-suggestion-card chat-card-enter group rounded-2xl border border-[#1e3448] bg-[#0b1520] px-4 py-4 text-sm leading-6 text-slate-300 transition-all duration-250 sm:px-5 sm:py-5",
-                  "min-h-[84px] sm:min-h-[96px]",
-                  "hover:border-[#2d4a62] hover:bg-[#0e1c2b] hover:text-slate-100 hover:-translate-y-1",
-                  "disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0",
+                  "webchat-suggestion-card chat-card-enter group flex text-left items-start justify-between gap-3 rounded-[24px] px-4 py-4 text-[14.5px] font-medium leading-6 sm:min-h-[112px] sm:flex-col sm:px-5",
+                  "disabled:cursor-not-allowed disabled:opacity-55",
                 ].join(" ")}
                 style={{ animationDelay: `${index * 70}ms` }}
                 disabled={suggestionsDisabled}
                 onClick={() => onSelectSuggestion(question)}
               >
-                {question}
+                <span>{question}</span>
+                <ArrowUpRight size={17} className="wc-accent mt-0.5 shrink-0 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 sm:self-end" />
               </button>
             ))}
           </div>
@@ -338,17 +329,17 @@ export default function ChatMessageList({
       >
         <div
           ref={contentRef}
-          className="mx-auto w-full max-w-4xl space-y-1 md:space-y-1.5"
+          className="mx-auto w-full max-w-[940px] space-y-2.5 md:space-y-3"
         >
           {messages.map((message) =>
             message.role === "user" ? (
               <div key={message.id} className="flex justify-end">
-                <article className="webchat-user-bubble max-w-[85%] rounded-[20px] rounded-br-md bg-[linear-gradient(135deg,_#0c3a4d_0%,_#0a2f42_50%,_#082638_100%)] px-4 py-2 text-sm text-slate-100 md:max-w-[52%]">
-                  <p className="whitespace-pre-wrap leading-[1.65]">{message.content}</p>
+                <article className="webchat-user-bubble max-w-[85%] rounded-[22px] rounded-br-lg px-4 py-2.5 text-[15px] md:max-w-[62%]">
+                  <p className="whitespace-pre-wrap break-words leading-[1.55]">{message.content}</p>
                 </article>
               </div>
             ) : (
-              <article key={message.id} className="webchat-assistant-bubble mr-auto max-w-[90%] rounded-[20px] rounded-bl-md border border-[#1e3448]/60 bg-[#0b1520] px-4 py-2 text-sm text-slate-200 md:max-w-[75%]">
+              <article key={message.id} className="webchat-assistant-bubble mr-auto w-full rounded-[24px] rounded-bl-lg px-4 py-3 md:px-5">
                   <AssistantMessageContent content={message.content} />
                   <div className="mt-3 flex flex-wrap items-center justify-start gap-1.5">
                     {message.sources?.length ? (
@@ -356,16 +347,15 @@ export default function ChatMessageList({
                         <button
                           type="button"
                           className={[
-                            "webchat-source-chip inline-flex h-7 items-center gap-1 rounded-full border px-2 text-[10px] font-medium transition-colors md:px-2.5 md:text-[11px]",
-                            "group border-[#1e3448] bg-transparent text-slate-400 hover:bg-[#102033] hover:text-slate-200",
-                            selectedSourcesMessageId === message.id ? "border-brand-400/30 text-slate-200" : "",
+                            "webchat-source-chip inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium",
                           ].join(" ")}
                           onClick={() => onSelectSources(message)}
                           aria-label={`Показать источники для этого ответа (${message.sources.length})`}
                           aria-pressed={selectedSourcesMessageId === message.id}
                         >
-                          <BookOpenText size={12} />
+                          <BookOpenText size={13} />
                           <span>Источники</span>
+                          <span className="tabular-nums opacity-70">{message.sources.length}</span>
                         </button>
                         <span className="ui-tooltip">
                           Источников: {message.sources.length}
@@ -376,7 +366,7 @@ export default function ChatMessageList({
                     <div className="relative">
                       <button
                         type="button"
-                        className="webchat-copy-chip inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#1e3448] bg-transparent text-slate-400 transition-colors hover:bg-[#102033] hover:text-slate-200"
+                        className="webchat-copy-chip inline-flex h-8 w-8 items-center justify-center rounded-full"
                         onClick={() => {
                           const contentToCopy =
                             message.role === "assistant" ? getAssistantMessagePlainText(message.content) : message.content;
@@ -384,7 +374,7 @@ export default function ChatMessageList({
                         }}
                         aria-label={copiedMessageId === message.id ? "Скопировано" : "Копировать"}
                       >
-                        {copiedMessageId === message.id ? <Check size={12} /> : <Copy size={12} />}
+                        {copiedMessageId === message.id ? <Check size={14} className="wc-accent" /> : <Copy size={14} />}
                       </button>
                       <span className="ui-tooltip">{copiedMessageId === message.id ? "Скопировано" : "Копировать"}</span>
                     </div>
@@ -394,11 +384,11 @@ export default function ChatMessageList({
           )}
 
           {pending ? (
-            <div className="thinking-shell mr-auto inline-flex items-center gap-3 rounded-[20px] rounded-bl-md border border-[#1e3448]/60 px-4 py-3 text-sm text-slate-300">
+            <div className="thinking-shell mr-auto inline-flex items-center gap-3 rounded-full rounded-bl-lg px-4 py-3 text-sm">
                 <span className="thinking-core shrink-0" aria-hidden="true" />
                 <div className="flex items-center gap-2.5">
-                  <span className="webchat-thinking-label text-sm text-slate-100" aria-live="polite">
-                    Mektep AI думает...
+                  <span className="webchat-thinking-label text-sm font-medium" aria-live="polite">
+                    Mektep AI думает
                   </span>
                   <span className="thinking-inline-dots" aria-hidden="true">
                     <span />

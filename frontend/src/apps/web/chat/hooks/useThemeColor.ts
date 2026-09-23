@@ -3,8 +3,8 @@ import { useLayoutEffect } from "react";
 import type { WebchatResolvedTheme } from "../utils/theme";
 
 const THEME_COLORS: Record<WebchatResolvedTheme, string> = {
-  dark: "#07101a",
-  light: "#f7f9fc",
+  dark: "#070d17",
+  light: "#eef2f7",
 };
 
 const DYNAMIC_THEME_META_ATTR = "data-webchat-theme-color";

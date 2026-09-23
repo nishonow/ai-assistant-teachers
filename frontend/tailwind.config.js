@@ -22,8 +22,10 @@ export default {
         panel: "0 20px 50px rgba(2, 8, 18, 0.45)"
       },
       fontFamily: {
-        heading: ["Inter", "sans-serif"],
-        body: ["Inter", "sans-serif"]
+        // Apple devices get SF Pro (native iOS look); everyone else gets Inter.
+        sans: ["-apple-system", "BlinkMacSystemFont", '"SF Pro Text"', "Inter", '"Segoe UI"', "Roboto", "sans-serif"],
+        heading: ["-apple-system", "BlinkMacSystemFont", '"SF Pro Display"', "Inter", '"Segoe UI"', "Roboto", "sans-serif"],
+        body: ["-apple-system", "BlinkMacSystemFont", '"SF Pro Text"', "Inter", '"Segoe UI"', "Roboto", "sans-serif"]
       }
     }
   },

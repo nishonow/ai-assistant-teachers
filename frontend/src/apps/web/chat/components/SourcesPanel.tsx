@@ -1,4 +1,4 @@
-import { BookOpenText, Download, Eye, X } from "lucide-react";
+import { BookOpenText, Download, Eye, FileText, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import type { ChatSource } from "../utils/types";
@@ -15,6 +15,7 @@ interface SourcesPanelProps {
   sources: ChatSource[];
   onDownloadSource: (source: ChatSource) => void;
   onViewSource: (source: ChatSource) => void;
+  onCloseDesktop: () => void;
   onCloseMobile: () => void;
 }
 
@@ -26,6 +27,7 @@ interface SourcesContentProps {
   sources: ChatSource[];
   onDownloadSource: (source: ChatSource) => void;
   onViewSource: (source: ChatSource) => void;
+  onClose?: () => void;
   showHeader: boolean;
 }
 
@@ -42,40 +44,45 @@ function SourcesContent({
   sources,
   onDownloadSource,
   onViewSource,
+  onClose,
   showHeader,
 }: SourcesContentProps) {
   return (
     <>
       {showHeader ? (
-        <header className="webchat-sources-header flex h-[62px] shrink-0 flex-col justify-center border-b border-slate-200 px-4 dark:border-[#21384b] md:px-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="webchat-sources-title font-heading text-sm uppercase tracking-[0.15em] text-slate-800 dark:text-slate-300">
-              {"Источники"}
-            </h2>
+        <header className="webchat-sources-header flex shrink-0 items-start justify-between gap-3 px-5 pb-3 pt-5">
+          <div className="min-w-0">
+            <h2 className="webchat-sources-title wc-text text-base font-semibold">Источники</h2>
+            <p className="wc-muted mt-0.5 truncate text-xs">
+              {sources.length
+                ? `${sources.length} ${sources.length === 1 ? "документ" : sources.length < 5 ? "документа" : "документов"} · ${activeConversationTitle}`
+                : activeConversationTitle}
+            </p>
           </div>
-          <div className="mt-1 flex items-center justify-between gap-3">
-            <p className="truncate text-xs text-slate-500 dark:text-slate-500">{activeConversationTitle}</p>
-            {sources.length ? (
-              <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-slate-500 dark:text-slate-500">
-                {sources.length} {sources.length === 1 ? "файл" : "файла"}
-              </span>
-            ) : (
-              <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-slate-500 dark:text-slate-500">Нет источников</span>
-            )}
-          </div>
+          {onClose ? (
+            <button
+              type="button"
+              className="wc-icon-btn -mr-1 -mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+              onClick={onClose}
+              aria-label="Скрыть источники"
+            >
+              <X size={16} />
+            </button>
+          ) : null}
         </header>
       ) : null}
 
-      <div className="scroll-area min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 space-y-3">
+      <div className="scroll-area min-h-0 flex-1 space-y-2.5 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-1">
         {sources.length ? (
           sources.map((source) => (
-            <article
-              key={source.id}
-              className="webchat-source-card group flex flex-col gap-2 rounded-[16px] border border-slate-200 bg-white/80 p-3 transition-colors hover:bg-white dark:border-[#1e3448] dark:bg-[#0b1623]/50 dark:hover:border-[#2e4b62] dark:hover:bg-[#102033]"
-            >
-              <div className="flex items-start justify-between gap-3">
+            <article key={source.id} className="webchat-source-card group flex flex-col gap-3 rounded-[22px] p-3.5">
+              <div className="flex items-start gap-3">
+                <span className="webchat-source-extension flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl text-[9px] font-bold uppercase tracking-wide">
+                  <FileText size={15} className="mb-0.5 opacity-70" />
+                  {getSourceExtension(source.title)}
+                </span>
                 <p
-                  className="webchat-source-title text-sm font-medium leading-tight text-slate-800 dark:text-slate-200"
+                  className="webchat-source-title wc-text min-w-0 flex-1 text-sm font-medium leading-snug"
                   style={{
                     display: "-webkit-box",
                     WebkitLineClamp: 2,
@@ -86,43 +93,39 @@ function SourcesContent({
                 >
                   {source.title}
                 </p>
-                <span className="webchat-source-extension shrink-0 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-600 dark:border-[#274158] dark:bg-[#1e3448]/80 dark:text-slate-400">
-                  {getSourceExtension(source.title)}
-                </span>
               </div>
-              <div className="mt-1 flex items-center justify-end">
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    className="webchat-source-download flex items-center gap-1.5 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#294459] dark:bg-[#102033] dark:text-[#9af5ea] dark:hover:border-[#3d6888] dark:hover:bg-[#1a344d] dark:hover:text-white"
-                    disabled={!activeConversationId || !source.documentId || viewPendingId === source.id}
-                    onClick={() => onViewSource(source)}
-                  >
-                    <Eye size={12} />
-                    {viewPendingId === source.id ? (
-                      "Открытие..."
-                    ) : (
-                      <>
-                        <span className="hidden lg:inline">Смотреть</span>
-                        <span className="lg:hidden">Смотреть (ПК)</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className="webchat-source-download flex items-center gap-1.5 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#294459] dark:bg-[#102033] dark:text-[#9af5ea] dark:hover:border-[#3d6888] dark:hover:bg-[#1a344d] dark:hover:text-white"
-                    disabled={!activeConversationId || !source.documentId || downloadPendingId === source.id}
-                    onClick={() => onDownloadSource(source)}
-                  >
-                    <Download size={12} />
-                    {downloadPendingId === source.id ? "Скачивание..." : "Скачать"}
-                  </button>
-                </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  className="webchat-source-download flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!activeConversationId || !source.documentId || viewPendingId === source.id}
+                  onClick={() => onViewSource(source)}
+                >
+                  <Eye size={13} />
+                  {viewPendingId === source.id ? (
+                    "Открытие…"
+                  ) : (
+                    <>
+                      <span className="hidden lg:inline">Смотреть</span>
+                      <span className="lg:hidden">Смотреть (ПК)</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="webchat-source-download flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!activeConversationId || !source.documentId || downloadPendingId === source.id}
+                  onClick={() => onDownloadSource(source)}
+                >
+                  <Download size={13} />
+                  {downloadPendingId === source.id ? "Скачивание…" : "Скачать"}
+                </button>
               </div>
             </article>
           ))
         ) : (
-          <div className="webchat-empty-state rounded-[16px] border border-dashed border-slate-300 bg-slate-50/50 px-4 py-5 text-sm leading-6 text-slate-500 dark:border-[#2c4e67] dark:bg-[#0c1726]/50 dark:text-slate-400">
+          <div className="webchat-empty-state flex flex-col items-center rounded-[22px] px-5 py-8 text-center text-sm leading-6">
+            <BookOpenText size={22} className="wc-subtle mb-3" />
             Источники появятся после ответа ассистента, если в нём есть ссылки на документы.
           </div>
         )}
@@ -142,6 +145,7 @@ export default function SourcesPanel({
   sources,
   onDownloadSource,
   onViewSource,
+  onCloseDesktop,
   onCloseMobile,
 }: SourcesPanelProps) {
   const { isVisible: mobileVisible, isClosing: mobileClosing } = useDrawerVisibility(mobileOpen);
@@ -176,11 +180,10 @@ export default function SourcesPanel({
     <>
       <aside
         className={[
-          "webchat-sources-shell hidden flex-col overflow-hidden bg-slate-50 transition-all duration-300 ease-out dark:bg-[#09111d] lg:flex",
-          desktopOpen
-            ? "w-[320px] border-l border-slate-200 opacity-100 dark:border-[#21384b]"
-            : "pointer-events-none w-0 border-l border-transparent opacity-0",
+          "webchat-sources-shell hidden shrink-0 flex-col overflow-hidden rounded-[30px] transition-[width,opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex",
+          desktopOpen ? "w-[296px] translate-x-0 opacity-100" : "pointer-events-none !w-0 translate-x-6 !border-0 opacity-0",
         ].join(" ")}
+        aria-hidden={!desktopOpen}
       >
         {desktopOpen ? (
           <SourcesContent
@@ -191,6 +194,7 @@ export default function SourcesPanel({
             sources={sources}
             onDownloadSource={onDownloadSource}
             onViewSource={onViewSource}
+            onClose={onCloseDesktop}
             showHeader
           />
         ) : null}
@@ -201,7 +205,7 @@ export default function SourcesPanel({
           <button
             type="button"
             style={{ touchAction: 'manipulation' }}
-            className={[mobileClosing ? "drawer-overlay-exit" : "drawer-overlay-enter", "absolute inset-0 bg-black/20 dark:bg-[#020508]/70"].join(" ")}
+            className={[mobileClosing ? "drawer-overlay-exit" : "drawer-overlay-enter", "absolute inset-0 bg-black/30 backdrop-blur-[3px]"].join(" ")}
             onClick={onCloseMobile}
             aria-label={"Закрыть источники"}
           />
@@ -210,16 +214,17 @@ export default function SourcesPanel({
             ref={mobileDrawerRef}
             aria-modal="true"
             role="dialog"
-            className={["webchat-sources-shell absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden border-l border-slate-200 bg-white/90 backdrop-blur-2xl dark:border-[#1e3448]/60 dark:bg-[#08121c]/85", mobileClosing ? "drawer-sheet-right-exit" : "drawer-sheet-right"].join(" ")}
+            className={["webchat-sources-shell wc-glass-strong absolute bottom-2 right-2 top-[calc(0.5rem+env(safe-area-inset-top))] flex w-[88vw] max-w-sm flex-col overflow-hidden rounded-[30px] pb-[env(safe-area-inset-bottom)]", mobileClosing ? "drawer-sheet-right-exit" : "drawer-sheet-right"].join(" ")}
             style={{ willChange: 'transform', transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1)' }}
           >
-            <div className="webchat-sources-mobile-header flex h-[62px] shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50/80 px-4 pt-[env(safe-area-inset-top)] dark:border-[#1e3448]/50 dark:bg-[#0b1623]/60">
-              <div className="webchat-sources-mobile-title flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                <BookOpenText size={16} />
-                <span className="text-sm font-semibold">{"Источники"}</span>
+            <div className="webchat-sources-mobile-header flex shrink-0 items-center justify-between px-4 pb-2 pt-3">
+              <div className="webchat-sources-mobile-title wc-text flex items-center gap-2">
+                <BookOpenText size={17} />
+                <span className="text-base font-semibold">Источники</span>
+                {sources.length ? <span className="wc-muted text-sm tabular-nums">{sources.length}</span> : null}
               </div>
-              <button type="button" style={{ touchAction: 'manipulation' }} className="btn-muted p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200" onClick={onCloseMobile} aria-label={"Закрыть панель источников"}>
-                <X size={16} />
+              <button type="button" style={{ touchAction: 'manipulation' }} className="wc-icon-btn inline-flex h-10 w-10 items-center justify-center rounded-full" onClick={onCloseMobile} aria-label="Закрыть панель источников">
+                <X size={18} />
               </button>
             </div>
             <SourcesContent

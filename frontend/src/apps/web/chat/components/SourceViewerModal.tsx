@@ -39,23 +39,25 @@ export default function SourceViewerModal({
   const supportsInlineView = Boolean(pdfUrl);
 
   return (
-    <div className={[
-      "fixed inset-0 z-[70] p-2 backdrop-blur-sm sm:p-4",
-      isLight ? "bg-slate-900/20" : "bg-slate-900/50",
-    ].join(" ")}>
+    <div
+      className={[
+        "fixed inset-0 z-[70] p-2 backdrop-blur-md sm:p-4",
+        isLight ? "bg-slate-900/15" : "bg-black/45",
+      ].join(" ")}
+      style={{ animation: "backdropIn 220ms ease both" }}
+    >
       <div
         ref={modalRef}
         className={[
-          "mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-2xl border shadow-xl",
-          isLight ? "border-slate-300/80 bg-white" : "border-[#264159] bg-[#07111b]",
+          "wc-glass-strong mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-[30px]",
         ].join(" ")}
+        style={{ animation: "modalSpring 420ms var(--lg-ease) both" }}
         role="dialog"
         aria-modal="true"
       >
         <header
           className={[
-            "flex items-center justify-between gap-3 border-b px-3 py-2.5 sm:px-4 sm:py-3",
-            isLight ? "border-slate-200 bg-slate-50" : "border-[#1f364a] bg-[#0b1623]",
+            "wc-divider flex items-center justify-between gap-3 border-b px-4 py-3 sm:px-5",
           ].join(" ")}
         >
           <div className="min-w-0">
@@ -72,10 +74,7 @@ export default function SourceViewerModal({
             <button
               type="button"
               className={[
-                "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
-                isLight
-                  ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-                  : "border-[#2e4a61] bg-[#102033] text-slate-200 hover:bg-[#18344f]",
+                "wc-icon-btn inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold",
               ].join(" ")}
               onClick={() => onDownload(source)}
             >
@@ -85,10 +84,7 @@ export default function SourceViewerModal({
             <button
               type="button"
               className={[
-                "inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors",
-                isLight
-                  ? "border-slate-300 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-800"
-                  : "border-[#2e4a61] bg-[#102033] text-slate-300 hover:bg-[#18344f] hover:text-white",
+                "wc-icon-btn inline-flex h-9 w-9 items-center justify-center rounded-full",
               ].join(" ")}
               aria-label="Закрыть просмотр источника"
               onClick={onClose}
@@ -98,7 +94,7 @@ export default function SourceViewerModal({
           </div>
         </header>
 
-        <div className={["relative min-h-0 flex-1", isLight ? "bg-slate-100" : "bg-[#050d16]"].join(" ")}>
+        <div className={["relative min-h-0 flex-1", isLight ? "bg-slate-100/70" : "bg-black/30"].join(" ")}>
           {loading ? (
             <div className={["flex h-full items-center justify-center gap-2 text-sm", isLight ? "text-slate-600" : "text-slate-300"].join(" ")}>
               <Loader2 size={18} className="animate-spin" />
