@@ -19,7 +19,6 @@ import {
   deleteAllConversations,
   deleteConversation,
   downloadConversationSource,
-  EditProfileModal,
   isBlockedMessagingError,
   isRateLimitError,
   localizeUserErrorMessage,
@@ -41,6 +40,15 @@ import useRateLimitCountdown from "../chat/hooks/useRateLimitCountdown";
 import useSystemPrefersDark from "../chat/hooks/useSystemPrefersDark";
 import useWebchatDocumentMeta from "../chat/hooks/useWebchatDocumentMeta";
 import useChatConversationsData from "../chat/hooks/useChatConversationsData";
+import SettingsModal, { type ProfileValues } from "../chat/components/SettingsModal";
+import {
+  loadChatTextSize,
+  parseSettingsTab,
+  saveChatTextSize,
+  SETTINGS_QUERY_PARAM,
+  type ChatTextSize,
+  type SettingsTab,
+} from "../chat/utils/settings";
 import usePwaInstallPrompt from "../hooks/usePwaInstallPrompt";
 import { useThemeColor } from "../chat/hooks/useThemeColor";
 
@@ -75,11 +83,7 @@ export default function ChatPage() {
   const [renameValue, setRenameValue] = useState("");
   const [renamePending, setRenamePending] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [profileName, setProfileName] = useState("");
-  const [profileEmail, setProfileEmail] = useState("");
-  const [profilePassword, setProfilePassword] = useState("");
-  const [profilePending, setProfilePending] = useState(false);
+  const [textSize, setTextSize] = useState<ChatTextSize>(() => loadChatTextSize());
   const [downloadPendingId, setDownloadPendingId] = useState<string | null>(null);
   const [viewPendingId, setViewPendingId] = useState<string | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -462,37 +466,74 @@ export default function ChatPage() {
     navigate("/", { replace: true });
   };
 
-  const handleOpenProfile = () => {
-    if (!session) return;
+  const handleSaveProfile = useCallback(
+    async ({ name, email, password }: ProfileValues): Promise<boolean> => {
+      if (!name) {
+        showNotice("error", "Укажите имя.");
+        return false;
+      }
 
-    setProfileName(session.user.displayName || session.user.username);
-    setProfileEmail(session.user.username);
-    setProfilePassword("");
-    setProfileOpen(true);
-  };
+      try {
+        await updateProfile({ name, email, password });
+        showNotice("success", "Профиль успешно обновлен.");
+        return true;
+      } catch (requestError) {
+        showNotice("error", localizeUserErrorMessage(requestError, "Не удалось обновить профиль."));
+        return false;
+      }
+    },
+    [showNotice, updateProfile],
+  );
 
-  const handleSaveProfile = useCallback(async () => {
-    const name = profileName.trim();
-    const email = profileEmail.trim();
+  // Settings live in the URL (?settings=<tab>) on top of the current chat, so the
+  // back button closes them and a refresh or shared link reopens the same tab.
+  const settingsTab = parseSettingsTab(location.search);
 
-    if (!name) {
-      showNotice("error", "Укажите имя.");
+  const buildSettingsSearch = useCallback(
+    (tab: SettingsTab | null) => {
+      const params = new URLSearchParams(location.search);
+      if (tab) {
+        params.set(SETTINGS_QUERY_PARAM, tab);
+      } else {
+        params.delete(SETTINGS_QUERY_PARAM);
+      }
+      const search = params.toString();
+      return search ? `?${search}` : "";
+    },
+    [location.search],
+  );
+
+  const handleOpenSettings = useCallback(
+    (tab: SettingsTab = "profile") => {
+      setMobileSidebarOpen(false);
+      navigate(
+        { pathname: location.pathname, search: buildSettingsSearch(tab) },
+        { state: { settingsOpenedInApp: true } },
+      );
+    },
+    [buildSettingsSearch, location.pathname, navigate],
+  );
+
+  const handleSettingsTabChange = useCallback(
+    (tab: SettingsTab) => {
+      navigate({ pathname: location.pathname, search: buildSettingsSearch(tab) }, { replace: true, state: location.state });
+    },
+    [buildSettingsSearch, location.pathname, location.state, navigate],
+  );
+
+  const handleCloseSettings = useCallback(() => {
+    // Opened from inside the app: step back so the back button doesn't reopen it.
+    if ((location.state as { settingsOpenedInApp?: boolean } | null)?.settingsOpenedInApp) {
+      navigate(-1);
       return;
     }
+    navigate({ pathname: location.pathname, search: buildSettingsSearch(null) }, { replace: true });
+  }, [buildSettingsSearch, location.pathname, location.state, navigate]);
 
-    setProfilePending(true);
-
-    try {
-      await updateProfile({ name, email, password: profilePassword });
-      setProfileOpen(false);
-      setProfilePassword("");
-      showNotice("success", "Профиль успешно обновлен.");
-    } catch (requestError) {
-      showNotice("error", localizeUserErrorMessage(requestError, "Не удалось обновить профиль."));
-    } finally {
-      setProfilePending(false);
-    }
-  }, [profileEmail, profileName, profilePassword, showNotice, updateProfile]);
+  const handleTextSizeChange = useCallback((size: ChatTextSize) => {
+    setTextSize(size);
+    saveChatTextSize(size);
+  }, []);
 
   const handleOpenRenameConversation = useCallback((conversation: ConversationSummary) => {
     setDeleteTargetConversation(null);
@@ -589,13 +630,14 @@ export default function ChatPage() {
       setDeleteTargetConversation(null);
       setMobileSidebarOpen(false);
       setMobileSourcesOpen(false);
-      navigate("/app", { replace: true });
+      // Stay in settings (if open) so the user sees the history is now empty.
+      navigate({ pathname: "/app", search: settingsTab ? `?${SETTINGS_QUERY_PARAM}=${settingsTab}` : "" }, { replace: true, state: location.state });
     } catch (requestError) {
       showNotice("error", localizeUserErrorMessage(requestError, "Не удалось удалить историю чатов."));
     } finally {
       setDeleteAllPending(false);
     }
-  }, [navigate, session, showNotice]);
+  }, [location.state, navigate, session, settingsTab, showNotice]);
 
   const handleDownloadSource = useCallback(
     async (source: ChatSource) => {
@@ -709,25 +751,32 @@ export default function ChatPage() {
 
   return (
     <div
-      className={`webchat-shell webchat-theme-${resolvedTheme} fixed inset-0 isolate flex gap-2.5 overflow-hidden pt-[env(safe-area-inset-top)] md:p-2.5`}
+      className={`webchat-shell webchat-theme-${resolvedTheme} webchat-text-${textSize} fixed inset-0 isolate flex gap-2.5 overflow-hidden pt-[env(safe-area-inset-top)] md:p-2.5`}
       style={{ height: "100dvh" }}
     >
-      <div className="webchat-safari-edge" aria-hidden="true" />
+      {/* Safari 26 colours its toolbars from a fixed element at the screen edge, but
+          only re-reads it when fixed elements change — not when a colour changes.
+          Keying this strip on the theme remounts it on every switch, which forces
+          Safari to re-evaluate the toolbar colour without a page reload. */}
+      <div
+        key={resolvedTheme}
+        className="webchat-safari-edge"
+        style={{ backgroundColor: resolvedTheme === "dark" ? "#070d17" : "#eef2f7" }}
+        aria-hidden="true"
+      />
 
       <ChatSidebar
         activeConversationId={activeConversationId}
         conversations={conversations}
-        hasHistory={conversations.length > 0}
         loading={isLoadingList}
         isMobileOpen={mobileSidebarOpen}
         isAdmin={session.user.role === "admin"}
-        historyPending={deleteAllPending}
         titleAnimationTrigger={titleAnimationTrigger}
         username={session.user.displayName || session.user.username}
+        userEmail={session.user.username}
         onCloseMobile={() => setMobileSidebarOpen(false)}
-        onDeleteAllHistory={() => setDeleteAllConfirmOpen(true)}
         onDeleteConversation={handleOpenDeleteConversation}
-        onEditProfile={handleOpenProfile}
+        onOpenSettings={() => handleOpenSettings("profile")}
         onStartNewChat={handleStartDraftConversation}
         onOpenAdmin={() => {
           setMobileSidebarOpen(false);
@@ -742,6 +791,7 @@ export default function ChatPage() {
         onRenameConversation={handleOpenRenameConversation}
         onSelectConversation={handleSelectConversation}
         onThemeChange={setThemePreference}
+        themePreference={themePreference}
         resolvedTheme={resolvedTheme}
       />
 
@@ -897,22 +947,24 @@ export default function ChatPage() {
           void handleConfirmRename();
         }}
       />
-      <EditProfileModal
-        open={profileOpen}
-        pending={profilePending}
-        canEdit
-        name={profileName}
-        email={profileEmail}
-        password={profilePassword}
-        onChangeName={setProfileName}
-        onChangeEmail={setProfileEmail}
-        onChangePassword={setProfilePassword}
-        onCancel={() => {
-          setProfileOpen(false);
-          setProfilePassword("");
-        }}
-        onConfirm={() => {
-          void handleSaveProfile();
+      <SettingsModal
+        tab={settingsTab}
+        onTabChange={handleSettingsTabChange}
+        onClose={handleCloseSettings}
+        dismissDisabled={deleteAllConfirmOpen || logoutConfirmOpen}
+        userName={session.user.displayName || session.user.username}
+        userEmail={session.user.username}
+        onSaveProfile={handleSaveProfile}
+        themePreference={themePreference}
+        onThemeChange={setThemePreference}
+        textSize={textSize}
+        onTextSizeChange={handleTextSizeChange}
+        conversationCount={conversations.length}
+        historyPending={deleteAllPending}
+        onDeleteAllHistory={() => setDeleteAllConfirmOpen(true)}
+        showInstallAppAction={shouldShowInstallAction}
+        onInstallApp={() => {
+          void handleInstallApp();
         }}
       />
       <WebLogoutConfirmModal open={logoutConfirmOpen} onCancel={() => setLogoutConfirmOpen(false)} onConfirm={handleConfirmLogout} />

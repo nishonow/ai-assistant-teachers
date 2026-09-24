@@ -1,4 +1,4 @@
-import { ChevronsUpDown, Download, LogOut, Moon, MoreHorizontal, Palette, Pencil, Shield, SquarePen, Sun, Trash2, UserRound, X } from "lucide-react";
+import { ChevronsUpDown, CircleHelp, Download, LogOut, Monitor, Moon, MoreHorizontal, Pencil, Settings, Shield, SquarePen, Sun, Trash2, X } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 
 import AnimatedTitle from "./AnimatedTitle";
@@ -13,25 +13,24 @@ import useDrawerVisibility from "../hooks/useDrawerVisibility";
 interface ChatSidebarProps {
   activeConversationId: string | null;
   conversations: ConversationSummary[];
-  hasHistory?: boolean;
   loading?: boolean;
   isMobileOpen: boolean;
   username?: string | null;
+  userEmail?: string | null;
   isAdmin?: boolean;
-  historyPending?: boolean;
   titleAnimationTrigger?: number;
   onCloseMobile: () => void;
   onSelectConversation: (id: string) => void;
   onRenameConversation: (conversation: ConversationSummary) => void;
   onDeleteConversation: (conversation: ConversationSummary) => void;
-  onDeleteAllHistory: () => void;
-  onEditProfile: () => void;
+  onOpenSettings: () => void;
   onStartNewChat: () => void;
   onOpenAdmin: () => void;
   onLogout: () => void;
   showInstallAppAction?: boolean;
   onInstallApp?: () => void;
   onThemeChange: (themePreference: WebchatThemePreference) => void;
+  themePreference: WebchatThemePreference;
   resolvedTheme: WebchatResolvedTheme;
 }
 
@@ -48,21 +47,29 @@ interface SidebarListProps {
 
 interface SidebarAccountMenuProps {
   avatarLetter: string;
-  hasHistory: boolean;
-  historyPending: boolean;
   menuOpen: boolean;
   setMenuOpen: Dispatch<SetStateAction<boolean>>;
   username: string;
+  userEmail: string;
   isAdmin: boolean;
-  onDeleteAllHistory: () => void;
-  onEditProfile: () => void;
+  onOpenSettings: () => void;
   onOpenAdmin: () => void;
   onLogout: () => void;
   showInstallAppAction: boolean;
   onInstallApp: () => void;
   onThemeChange: (themePreference: WebchatThemePreference) => void;
-  resolvedTheme: WebchatResolvedTheme;
+  themePreference: WebchatThemePreference;
 }
+
+const TELEGRAM_HELP_URL = "https://t.me/mugallim_bot";
+
+const THEME_CHOICES: { id: WebchatThemePreference; label: string; icon: typeof Sun }[] = [
+  { id: "system", label: "Авто", icon: Monitor },
+  { id: "light", label: "Светлая", icon: Sun },
+  { id: "dark", label: "Тёмная", icon: Moon },
+];
+
+const MENU_ITEM_CLASS = "wc-menu-item flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-sm transition-colors";
 
 function SidebarBrand({ compact = false, resolvedTheme }: { compact?: boolean; resolvedTheme: WebchatResolvedTheme }) {
   const logo = resolvedTheme === "light" ? logoLight : logoDark;
@@ -233,120 +240,105 @@ function SidebarList({
 
 function SidebarAccountMenu({
   avatarLetter,
-  hasHistory,
-  historyPending,
   menuOpen,
   setMenuOpen,
   username,
+  userEmail,
   isAdmin,
-  onDeleteAllHistory,
-  onEditProfile,
+  onOpenSettings,
   onOpenAdmin,
   onLogout,
   showInstallAppAction,
   onInstallApp,
   onThemeChange,
-  resolvedTheme,
+  themePreference,
 }: SidebarAccountMenuProps) {
+  const run = (action: () => void) => () => {
+    setMenuOpen(false);
+    action();
+  };
+
   return (
     <div className="relative py-2">
       {menuOpen ? (
-        <div className="webchat-account-panel absolute inset-x-0 bottom-[calc(100%+10px)] z-40 rounded-[26px] p-1.5" role="menu">
-          <div className="px-3 pb-2 pt-2">
-            <p className="wc-text truncate text-sm font-semibold">{username}</p>
-          </div>
-          <div className="webchat-theme-row wc-text flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-2 text-sm">
-            <span className="inline-flex items-center gap-2.5">
-              <Palette size={15} />
-              <span className="font-medium">Тема</span>
+        <div className="webchat-account-panel absolute inset-x-0 bottom-[calc(100%+10px)] z-40 rounded-[24px] p-1.5" role="menu">
+          {/* Who is signed in */}
+          <div className="flex items-center gap-3 px-2.5 pb-2.5 pt-2">
+            <span className="webchat-account-avatar inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold">
+              {avatarLetter}
             </span>
-            <div className="webchat-theme-toggle inline-flex items-center gap-0.5 rounded-full p-0.5">
-              <button
-                type="button"
-                className={[
-                  "webchat-theme-toggle-button inline-flex h-7 w-8 items-center justify-center rounded-full",
-                ].join(" ")}
-                onClick={() => onThemeChange("light")}
-                aria-label="Светлая тема"
-                aria-pressed={resolvedTheme === "light"}
-              >
-                <Sun size={14} />
-              </button>
-              <button
-                type="button"
-                className={[
-                  "webchat-theme-toggle-button inline-flex h-7 w-8 items-center justify-center rounded-full",
-                ].join(" ")}
-                onClick={() => onThemeChange("dark")}
-                aria-label="Темная тема"
-                aria-pressed={resolvedTheme === "dark"}
-              >
-                <Moon size={14} />
-              </button>
+            <div className="min-w-0">
+              <p className="wc-text truncate text-sm font-semibold">{username}</p>
+              {userEmail && userEmail !== username ? <p className="wc-muted truncate text-xs">{userEmail}</p> : null}
             </div>
           </div>
-          <button
-            type="button"
-            role="menuitem" className="wc-menu-item flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-sm transition-colors"
-            onClick={() => {
-              setMenuOpen(false);
-              onEditProfile();
-            }}
-          >
-            <UserRound size={15} />
-            Профиль
-          </button>
-          {isAdmin ? (
+
+          {/* Theme: three-way, including "follow the device" */}
+          <div className="wc-divider border-t px-2.5 pb-2 pt-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="wc-text text-sm font-medium">
+                Тема
+                <span className="wc-muted font-normal"> · {THEME_CHOICES.find((choice) => choice.id === themePreference)?.label}</span>
+              </p>
+              <div className="webchat-theme-toggle inline-flex items-center gap-0.5 rounded-full p-0.5" role="group" aria-label="Тема">
+                {THEME_CHOICES.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className="webchat-theme-toggle-button inline-flex h-7 w-8 items-center justify-center rounded-full"
+                    onClick={() => onThemeChange(id)}
+                    aria-pressed={themePreference === id}
+                    aria-label={label}
+                    title={label}
+                  >
+                    <Icon size={14} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="wc-divider border-t pt-1">
+            <button type="button" role="menuitem" className={MENU_ITEM_CLASS} onClick={run(onOpenSettings)}>
+              <Settings size={15} />
+              Настройки
+            </button>
+            {isAdmin ? (
+              <button type="button" role="menuitem" className={MENU_ITEM_CLASS} onClick={run(onOpenAdmin)}>
+                <Shield size={15} />
+                Админ-панель
+              </button>
+            ) : null}
+            {showInstallAppAction ? (
+              <button type="button" role="menuitem" className={MENU_ITEM_CLASS} onClick={run(onInstallApp)}>
+                <Download size={15} />
+                Установить на экран
+              </button>
+            ) : null}
+            <a
+              href={TELEGRAM_HELP_URL}
+              target="_blank"
+              rel="noreferrer"
+              role="menuitem"
+              className={MENU_ITEM_CLASS}
+              onClick={() => setMenuOpen(false)}
+            >
+              <CircleHelp size={15} />
+              Помощь в Telegram
+            </a>
+          </div>
+
+          <div className="wc-divider mt-1 border-t pt-1">
             <button
               type="button"
-              role="menuitem" className="wc-menu-item flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-sm transition-colors"
-              onClick={() => {
-                setMenuOpen(false);
-                onOpenAdmin();
-              }}
+              role="menuitem"
+              className="wc-menu-item-danger flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-sm transition-colors"
+              onClick={run(onLogout)}
             >
-              <Shield size={15} />
-              Админ-панель
+              <LogOut size={15} />
+              Выйти
             </button>
-          ) : null}
-          {showInstallAppAction ? (
-            <button
-              type="button"
-              role="menuitem" className="wc-menu-item flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-sm transition-colors"
-              onClick={() => {
-                setMenuOpen(false);
-                onInstallApp();
-              }}
-            >
-              <Download size={15} />
-              Установить на экран
-            </button>
-          ) : null}
-          <button
-            type="button"
-            role="menuitem"
-            className="wc-menu-item flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-sm transition-colors"
-            onClick={() => {
-              setMenuOpen(false);
-              onDeleteAllHistory();
-            }}
-            disabled={historyPending || !hasHistory}
-          >
-            <Trash2 size={15} />
-            {historyPending ? "Очищаем историю..." : "Удалить всю историю"}
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="wc-menu-item-danger flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-sm transition-colors"
-            onClick={() => {
-              setMenuOpen(false);
-              onLogout();
-            }}
-          >
-            <LogOut size={15} />
-            Выйти
-          </button>
+          </div>
         </div>
       ) : null}
 
@@ -372,25 +364,24 @@ function SidebarAccountMenu({
 export default function ChatSidebar({
   activeConversationId,
   conversations,
-  hasHistory = false,
   loading = false,
   isMobileOpen,
   username,
+  userEmail,
   isAdmin = false,
-  historyPending = false,
   titleAnimationTrigger = 0,
   onCloseMobile,
   onSelectConversation,
   onRenameConversation,
   onDeleteConversation,
-  onDeleteAllHistory,
-  onEditProfile,
+  onOpenSettings,
   onStartNewChat,
   onOpenAdmin,
   onLogout,
   showInstallAppAction = false,
   onInstallApp = () => undefined,
   onThemeChange,
+  themePreference,
   resolvedTheme,
 }: ChatSidebarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -492,22 +483,7 @@ export default function ChatSidebar({
 
         <div className="webchat-sidebar-footer shrink-0">
           <div data-account-menu>
-            <SidebarAccountMenu
-              avatarLetter={avatarLetter}
-              hasHistory={hasHistory}
-              historyPending={historyPending}
-              menuOpen={menuOpen}
-              setMenuOpen={setMenuOpen}
-              username={safeUsername}
-              isAdmin={isAdmin}
-              onDeleteAllHistory={onDeleteAllHistory}
-              onEditProfile={onEditProfile}
-              onOpenAdmin={onOpenAdmin}
-              onLogout={onLogout}
-              showInstallAppAction={showInstallAppAction}
-              onInstallApp={onInstallApp}
-              onThemeChange={onThemeChange}
-              resolvedTheme={resolvedTheme}
+            <SidebarAccountMenu              avatarLetter={avatarLetter}              menuOpen={menuOpen}              setMenuOpen={setMenuOpen}              username={safeUsername}              userEmail={(userEmail || "").trim()}              isAdmin={isAdmin}              onOpenSettings={onOpenSettings}              onOpenAdmin={onOpenAdmin}              onLogout={onLogout}              showInstallAppAction={showInstallAppAction}              onInstallApp={onInstallApp}              onThemeChange={onThemeChange}              themePreference={themePreference}
             />
           </div>
         </div>
@@ -563,22 +539,7 @@ export default function ChatSidebar({
 
             <div className="webchat-sidebar-footer shrink-0">
               <div data-account-menu>
-                <SidebarAccountMenu
-                  avatarLetter={avatarLetter}
-                  hasHistory={hasHistory}
-                  historyPending={historyPending}
-                  menuOpen={menuOpen}
-                  setMenuOpen={setMenuOpen}
-                  username={safeUsername}
-                  isAdmin={isAdmin}
-                  onDeleteAllHistory={onDeleteAllHistory}
-                  onEditProfile={onEditProfile}
-                  onOpenAdmin={onOpenAdmin}
-                  onLogout={onLogout}
-                  showInstallAppAction={showInstallAppAction}
-                  onInstallApp={onInstallApp}
-                  onThemeChange={onThemeChange}
-                  resolvedTheme={resolvedTheme}
+                <SidebarAccountMenu                  avatarLetter={avatarLetter}                  menuOpen={menuOpen}                  setMenuOpen={setMenuOpen}                  username={safeUsername}                  userEmail={(userEmail || "").trim()}                  isAdmin={isAdmin}                  onOpenSettings={onOpenSettings}                  onOpenAdmin={onOpenAdmin}                  onLogout={onLogout}                  showInstallAppAction={showInstallAppAction}                  onInstallApp={onInstallApp}                  onThemeChange={onThemeChange}                  themePreference={themePreference}
                 />
               </div>
             </div>

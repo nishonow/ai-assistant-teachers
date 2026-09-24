@@ -13,7 +13,7 @@
   --wc-text-subtle: #66758a;
 
   --wc-glass: rgba(255, 255, 255, 0.08);
-  --wc-glass-strong: rgba(24, 36, 54, 0.55);
+  --wc-glass-strong: rgba(17, 26, 40, 0.94);
   --wc-glass-border: rgba(255, 255, 255, 0.1);
   --wc-glass-border-top: rgba(255, 255, 255, 0.2);
   --wc-hover: rgba(255, 255, 255, 0.07);
@@ -48,7 +48,7 @@
   --wc-text-subtle: #8a98a9;
 
   --wc-glass: rgba(255, 255, 255, 0.55);
-  --wc-glass-strong: rgba(255, 255, 255, 0.62);
+  --wc-glass-strong: rgba(255, 255, 255, 0.94);
   --wc-glass-border: rgba(15, 23, 42, 0.08);
   --wc-glass-border-top: rgba(255, 255, 255, 1);
   --wc-hover: rgba(15, 23, 42, 0.05);
@@ -583,8 +583,72 @@ html.lg-refract .webchat-shell .webchat-header-unused {
   position: fixed;
   inset-inline: 0;
   bottom: 0;
-  height: calc(env(safe-area-inset-bottom, 0px) + 6px);
+  height: calc(env(safe-area-inset-bottom, 0px) + 12px);
   background-color: var(--wc-bg);
   pointer-events: none;
   z-index: 0;
+}
+
+/* ── Settings window ─────────────────────────────────────────── */
+.webchat-shell .webchat-settings-nav {
+  color: var(--wc-text-muted);
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.webchat-shell .webchat-settings-nav:hover {
+  background: var(--wc-hover);
+  color: var(--wc-text);
+}
+
+.webchat-shell .webchat-settings-nav[aria-current="page"] {
+  background: var(--wc-active);
+  color: var(--wc-text);
+}
+
+.webchat-shell .webchat-settings-nav[aria-current="page"] svg {
+  color: var(--wc-accent);
+}
+
+.webchat-shell .webchat-settings-option {
+  color: var(--wc-text-muted);
+  background: var(--wc-field);
+  border: 1px solid var(--wc-divider);
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 380ms var(--lg-spring);
+}
+
+.webchat-shell .webchat-settings-option:hover {
+  color: var(--wc-text);
+  border-color: color-mix(in srgb, var(--wc-accent) 35%, transparent);
+}
+
+.webchat-shell .webchat-settings-option:active {
+  transform: scale(0.97);
+}
+
+.webchat-shell .webchat-settings-option[aria-pressed="true"] {
+  color: var(--wc-text);
+  border-color: var(--wc-accent);
+  background: color-mix(in srgb, var(--wc-accent) 12%, transparent);
+}
+
+.webchat-shell .webchat-settings-option[aria-pressed="true"] svg {
+  color: var(--wc-accent);
+}
+
+.webchat-shell .webchat-settings-row {
+  background: var(--wc-field);
+  border: 1px solid var(--wc-divider);
+}
+
+/* ── Chat text size (Settings → Внешний вид) ─────────────────── */
+.webchat-shell.webchat-text-sm .message-rich,
+.webchat-shell.webchat-text-sm .webchat-user-bubble {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.webchat-shell.webchat-text-lg .message-rich,
+.webchat-shell.webchat-text-lg .webchat-user-bubble {
+  font-size: 17.5px;
+  line-height: 1.7;
 }
