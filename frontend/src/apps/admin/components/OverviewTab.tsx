@@ -1,6 +1,5 @@
 import {
   Activity,
-  AlertTriangle,
   BarChart3,
   BookOpen,
   CheckCircle2,
@@ -21,6 +20,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { DocumentRecord, StatsResponse, UserRecord } from "../../../core/types";
+import PageHeader from "./PageHeader";
 import ReloadButton from "./ReloadButton";
 
 interface OverviewTabProps {
@@ -106,18 +106,14 @@ interface HealthRowProps {
 
 function HealthRow({ icon: Icon, label, value, iconColor, badge }: HealthRowProps) {
   return (
-    <div className="flex items-center justify-between rounded-xl px-3 py-2 transition-colors hover:bg-white/5">
-      <div className="flex items-center gap-2.5 text-sm text-slate-300">
-        <Icon size={14} className={iconColor} />
-        <span>{label}</span>
+    <div className="flex h-9 items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-2 text-[13px] text-slate-300">
+        <Icon size={14} className={`shrink-0 ${iconColor}`} />
+        <span className="truncate">{label}</span>
       </div>
-      <div className="flex items-center gap-2">
-        {badge && (
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.color}`}>
-            {badge.text}
-          </span>
-        )}
-        <span className="text-sm font-semibold text-slate-100">{value}</span>
+      <div className="flex shrink-0 items-center gap-2">
+        {badge ? <span className={`admin-pill bg-white/[0.06] ${badge.color}`}>{badge.text}</span> : null}
+        <span className="text-[13px] font-semibold tabular-nums text-white">{value}</span>
       </div>
     </div>
   );
@@ -220,73 +216,62 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
   ];
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pb-4">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-heading text-2xl font-bold text-slate-50">Overview</h2>
-          <p className="mt-1 text-sm text-slate-400">Live summary of users, documents, and platform activity.</p>
-        </div>
-        <ReloadButton loading={loading} onReload={onRefresh} idleLabel="Reload" loadingLabel="Reloading" successLabel="Reloaded" />
-      </div>
+    <section>
+      <PageHeader
+        title="Overview"
+        description="Live summary of users, documents and platform activity."
+        actions={<ReloadButton className="btn-sm" loading={loading} onReload={onRefresh} idleLabel="Reload" loadingLabel="Reloading" successLabel="Updated" />}
+      />
 
-      {/* Top stat cards */}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      {/* KPI tiles */}
+      <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
         {statCards.map((card, index) => {
           const Icon = card.icon;
           return (
             <article
               key={card.label}
-              className={`rounded-2xl border ${card.border} ${card.bg} p-4 transition duration-200 hover:-translate-y-0.5`}
-              style={{ animation: "softRise 260ms ease-out both", animationDelay: `${index * 60}ms` }}
+              className="admin-card p-3.5"
+              style={{ animation: "softRise 240ms ease-out both", animationDelay: `${index * 50}ms` }}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-slate-400">{card.label}</p>
-                  <p className="mt-1.5 font-heading text-3xl font-bold leading-none text-slate-50">
-                    <AnimatedNumber value={card.value} trigger={reloadCycle} />
-                  </p>
-                  <p className="mt-1.5 text-xs text-slate-400">{card.note}</p>
-                </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[12px] font-medium text-slate-400">{card.label}</p>
                 <span
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border"
-                  style={{ color: card.accent, borderColor: `${card.accent}40`, backgroundColor: `${card.accent}18` }}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg"
+                  style={{ color: card.accent, backgroundColor: `${card.accent}1f` }}
                   aria-hidden
                 >
-                  <Icon size={18} />
+                  <Icon size={14} />
                 </span>
               </div>
+              <p className="mt-2 font-heading text-[26px] font-semibold leading-none tracking-[-0.02em] text-white tabular-nums">
+                <AnimatedNumber value={card.value} trigger={reloadCycle} />
+              </p>
+              <p className="mt-1.5 truncate text-[12px] text-slate-400">{card.note}</p>
             </article>
           );
         })}
       </div>
 
-      {/* Bottom panels */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* System Health */}
-        <article
-          className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"
-          style={{ animation: "softRise 300ms ease-out both", animationDelay: "120ms" }}
-        >
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-100">
-            <Activity size={15} className="text-teal-400" />
-            System Health
-          </h3>
-
+      <div className="mt-2.5 grid gap-2.5 lg:grid-cols-2">
+        {/* Users & documents health */}
+        <article className="admin-card p-4">
+          <h2 className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-white">
+            <Activity size={14} className="text-teal-400" />
+            System health
+          </h2>
           <div className="divide-y divide-white/[0.06]">
             <HealthRow
               icon={UserCheck}
               label="Active users"
               value={<><AnimatedNumber value={activeUsers} trigger={reloadCycle} /> / <AnimatedNumber value={totalUsers} trigger={reloadCycle} /></>}
               iconColor="text-emerald-400"
-              badge={activeRate >= 80 ? { text: "healthy", color: "bg-emerald-500/15 text-emerald-300" } : { text: "low", color: "bg-amber-500/15 text-amber-300" }}
+              badge={activeRate >= 80 ? { text: "healthy", color: "text-emerald-300" } : { text: "low", color: "text-amber-300" }}
             />
             <HealthRow
               icon={UserX}
               label="Blocked users"
               value={<AnimatedNumber value={blockedUsers} trigger={reloadCycle} />}
               iconColor="text-rose-400"
-              badge={blockedUsers > 0 ? { text: `${blockedUsers}`, color: "bg-rose-500/15 text-rose-300" } : undefined}
             />
             <HealthRow
               icon={UserCog}
@@ -299,40 +284,40 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
               label="Indexed documents"
               value={<><AnimatedNumber value={indexedDocuments} trigger={reloadCycle} /> / <AnimatedNumber value={totalDocuments} trigger={reloadCycle} /></>}
               iconColor="text-blue-400"
-              badge={indexedRate >= 90 ? { text: "good", color: "bg-blue-500/15 text-blue-300" } : { text: `${indexedRate}%`, color: "bg-amber-500/15 text-amber-300" }}
+              badge={indexedRate >= 90 ? { text: "good", color: "text-blue-300" } : { text: `${indexedRate}%`, color: "text-amber-300" }}
             />
             <HealthRow
               icon={BookOpen}
-              label="Avg chunks / doc"
+              label="Avg chunks per document"
               value={<AnimatedNumber value={avgChunksPerDocument} trigger={reloadCycle} />}
               iconColor="text-violet-400"
             />
           </div>
+
+          {/* Rates */}
+          <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-3">
+            {[
+              { label: "Activation", value: activeRate, color: "text-emerald-300" },
+              { label: "Indexed", value: indexedRate, color: "text-blue-300" },
+              { label: "Blocked", value: toPercent(blockedUsers, totalUsers), color: "text-rose-300" },
+            ].map((rate) => (
+              <div key={rate.label}>
+                <p className="text-[11px] text-slate-400">{rate.label}</p>
+                <p className={`text-[17px] font-semibold tabular-nums ${rate.color}`}>
+                  <AnimatedNumber value={rate.value} trigger={reloadCycle} suffix="%" />
+                </p>
+              </div>
+            ))}
+          </div>
         </article>
 
-        {/* Activity Snapshot */}
-        <article
-          className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"
-          style={{ animation: "softRise 300ms ease-out both", animationDelay: "200ms" }}
-        >
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-100">
-            <Clock3 size={15} className="text-amber-400" />
-            Activity Snapshot
-          </h3>
-
+        {/* Activity */}
+        <article className="admin-card p-4">
+          <h2 className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-white">
+            <Clock3 size={14} className="text-amber-400" />
+            Activity
+          </h2>
           <div className="divide-y divide-white/[0.06]">
-            <HealthRow
-              icon={Globe}
-              label="Web messages"
-              value={<><AnimatedNumber value={webMessages} trigger={reloadCycle} /> (<AnimatedNumber value={webPercent} trigger={reloadCycle} suffix="%" />)</>}
-              iconColor="text-teal-400"
-            />
-            <HealthRow
-              icon={Send}
-              label="Telegram messages"
-              value={<><AnimatedNumber value={telegramMessages} trigger={reloadCycle} /> (<AnimatedNumber value={telegramPercent} trigger={reloadCycle} suffix="%" />)</>}
-              iconColor="text-blue-400"
-            />
             <HealthRow
               icon={MessageSquare}
               label="Saved conversations"
@@ -357,87 +342,33 @@ export default function OverviewTab({ stats, users, documents, loading, onRefres
               value={<AnimatedNumber value={recentUploads} trigger={reloadCycle} />}
               iconColor="text-amber-400"
             />
-            <HealthRow
-              icon={ShieldCheck}
-              label="Top uploader"
-              value={topUploader}
-              iconColor="text-emerald-400"
-            />
+            <HealthRow icon={ShieldCheck} label="Top uploader" value={topUploader} iconColor="text-emerald-400" />
           </div>
 
-          {/* Platform split bar */}
-          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.05] p-3">
-            <p className="mb-2.5 flex items-center gap-1.5 text-xs font-medium text-slate-400">
-              <BarChart3 size={12} />
-              Platform message split
-            </p>
-            <div className="space-y-2.5">
-              <div>
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5 text-teal-300"><Globe size={11} />Web</span>
-                  <span className="font-semibold text-slate-200">{numberFmt.format(Math.round(animatedWebWidth))}%</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-teal-400 transition-all duration-500"
-                    style={{ width: `${Math.max(0, Math.min(animatedWebWidth, 100))}%` }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5 text-blue-300"><Send size={11} />Telegram</span>
-                  <span className="font-semibold text-slate-200">{numberFmt.format(Math.round(animatedTelegramWidth))}%</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-blue-400 transition-all duration-500"
-                    style={{ width: `${Math.max(0, Math.min(animatedTelegramWidth, 100))}%` }}
-                  />
-                </div>
-              </div>
+          {/* Platform split: one stacked bar */}
+          <div className="mt-3 border-t border-white/[0.06] pt-3">
+            <div className="mb-2 flex items-center justify-between text-[12px]">
+              <span className="flex items-center gap-1.5 text-slate-300">
+                <span className="h-2 w-2 rounded-full bg-teal-400" />
+                <Globe size={12} className="text-slate-400" />
+                Web <span className="tabular-nums text-slate-400">{numberFmt.format(webMessages)}</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-slate-300">
+                <span className="h-2 w-2 rounded-full bg-blue-400" />
+                <Send size={12} className="text-slate-400" />
+                Telegram <span className="tabular-nums text-slate-400">{numberFmt.format(telegramMessages)}</span>
+              </span>
             </div>
+            <div className="flex h-2 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full bg-teal-400 transition-all duration-500" style={{ width: `${Math.max(0, Math.min(animatedWebWidth, 100))}%` }} />
+              <div className="h-full bg-blue-400 transition-all duration-500" style={{ width: `${Math.max(0, Math.min(animatedTelegramWidth, 100))}%` }} />
+            </div>
+            <p className="mt-1.5 flex justify-between text-[11px] tabular-nums text-slate-400">
+              <span>{numberFmt.format(Math.round(animatedWebWidth))}%</span>
+              <span>{numberFmt.format(Math.round(animatedTelegramWidth))}%</span>
+            </p>
           </div>
         </article>
-      </div>
-
-      {/* Quick insights row */}
-      <div className="grid gap-3 sm:grid-cols-3" style={{ animation: "softRise 320ms ease-out both", animationDelay: "280ms" }}>
-        <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-3">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400">
-            <UserCheck size={16} />
-          </span>
-          <div>
-            <p className="text-xs text-slate-400">User activation rate</p>
-            <p className="font-heading text-xl font-bold text-emerald-300">
-              <AnimatedNumber value={activeRate} trigger={reloadCycle} suffix="%" />
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 rounded-2xl border border-blue-500/20 bg-blue-500/8 p-3">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/15 text-blue-400">
-            <CheckCircle2 size={16} />
-          </span>
-          <div>
-            <p className="text-xs text-slate-400">Doc index rate</p>
-            <p className="font-heading text-xl font-bold text-blue-300">
-              <AnimatedNumber value={indexedRate} trigger={reloadCycle} suffix="%" />
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 rounded-2xl border border-violet-500/20 bg-violet-500/8 p-3">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/15 text-violet-400">
-            <AlertTriangle size={16} />
-          </span>
-          <div>
-            <p className="text-xs text-slate-400">Block rate</p>
-            <p className="font-heading text-xl font-bold text-violet-300">
-              <AnimatedNumber value={toPercent(blockedUsers, totalUsers)} trigger={reloadCycle} suffix="%" />
-            </p>
-          </div>
-        </div>
       </div>
     </section>
   );

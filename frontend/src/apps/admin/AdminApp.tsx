@@ -27,7 +27,7 @@ const TABS: TabItem[] = [
   { id: "overview", label: "Overview" },
   { id: "users", label: "Users" },
   { id: "documents", label: "Documents" },
-  { id: "upload", label: "Upload Documents" },
+  { id: "upload", label: "Upload" },
 ];
 
 const TAB_PATHS: Record<TabId, string> = {
@@ -473,13 +473,18 @@ export default function AdminApp() {
           navigate(TAB_PATHS[tab]);
           setSidebarOpen(false);
         }}
+        username={username}
+        onRequestLogout={() => {
+          setSidebarOpen(false);
+          setLogoutConfirmOpen(true);
+        }}
       />
 
-      <main className="relative z-10 flex min-h-[100svh] flex-col gap-3 p-3 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] md:ml-[272px] md:min-h-screen md:gap-3.5 md:p-4 md:pl-0">
-        <Topbar username={username} onOpenMenu={() => setSidebarOpen(true)} onRequestLogout={() => setLogoutConfirmOpen(true)} />
+      <main className="relative z-10 min-h-[100svh] px-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] md:ml-[232px] md:min-h-screen md:px-6 md:pb-8 md:pt-6">
+        <Topbar title={TABS.find((tab) => tab.id === activeTab)?.label ?? "Admin"} onOpenMenu={() => setSidebarOpen(true)} />
         <ToastNotice notice={notice} />
 
-        <section className="panel p-4 md:p-5">
+        <section className="mx-auto w-full max-w-[1180px]">
           <div key={location.pathname} className="admin-tab-transition">
             <Routes>
               <Route index element={<Navigate to="overview" replace />} />

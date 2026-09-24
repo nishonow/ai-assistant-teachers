@@ -1,5 +1,6 @@
 ﻿import { Ban, Check, ChevronDown, Search, ShieldCheck, ShieldOff, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import PageHeader from "./PageHeader";
 import Pagination from "./Pagination";
 import ReloadButton from "./ReloadButton";
 import { formatDate } from "../../../core/utils";
@@ -58,8 +59,8 @@ function FilterDropdown({ label, value, options, onChange }: FilterDropdownProps
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className="text-sm font-medium text-slate-200">{selected?.label || "-"}</span>
-        <ChevronDown size={15} className={`text-slate-400 transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
+        <span className="truncate font-medium text-slate-200">{selected?.label || "-"}</span>
+        <ChevronDown size={14} className={`shrink-0 text-slate-400 transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open ? (
@@ -93,9 +94,9 @@ function FilterDropdown({ label, value, options, onChange }: FilterDropdownProps
 
 function StatusTag({ blocked }: { blocked: boolean }) {
   return blocked ? (
-    <span className="tag border-rose-400/40 bg-rose-500/10 text-rose-200">Blocked</span>
+    <span className="admin-pill bg-rose-500/10 text-rose-300">Blocked</span>
   ) : (
-    <span className="tag border-emerald-400/40 bg-emerald-500/10 text-emerald-200">Active</span>
+    <span className="admin-pill bg-emerald-500/10 text-emerald-300">Active</span>
   );
 }
 
@@ -196,147 +197,208 @@ export default function UsersTab({
     { value: "oldest", label: "Oldest first" },
   ];
 
-  return (
-    <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-heading text-2xl font-bold">Users</h2>
+  const renderActions = (user: UserRecord, isSelf: boolean) => {
+    const blockKey = `block-${user.id}`;
+    const adminKey = `admin-${user.id}`;
+    return (
+      <div className="flex justify-end gap-1.5">
+        <button
+          className={`${user.is_blocked ? "btn-good" : "btn-warn"} btn-sm w-[5.75rem]`}
+          type="button"
+          onClick={() => onToggleBlock(user)}
+          disabled={actionLoading === blockKey}
+        >
+          <Ban size={13} />
+          {actionLoading === blockKey ? "…" : user.is_blocked ? "Unblock" : "Block"}
+        </button>
 
-        <div className="flex items-center gap-2">
-          <button className="btn-muted md:hidden" type="button" onClick={() => setShowFilters((prev) => !prev)}>
+        {user.is_admin ? (
+          <button
+            className="btn-danger btn-sm w-[7.25rem]"
+            type="button"
+            onClick={() => onRevokeAdmin(user)}
+            disabled={actionLoading === adminKey || isSelf}
+            title={isSelf ? "You cannot revoke your own admin role" : "Revoke admin"}
+          >
+            <ShieldOff size={13} />
+            {isSelf ? "You" : actionLoading === adminKey ? "…" : "Revoke"}
+          </button>
+        ) : (
+          <button
+            className="btn-muted btn-sm w-[7.25rem]"
+            type="button"
+            onClick={() => onMakeAdmin(user)}
+            disabled={actionLoading === adminKey}
+          >
+            <ShieldCheck size={13} />
+            {actionLoading === adminKey ? "…" : "Make admin"}
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <section>
+      <PageHeader
+        title="Users"
+        description={
+          filteredUsers.length === users.length
+            ? `${users.length} users across web and Telegram`
+            : `${filteredUsers.length} of ${users.length} users match the filters`
+        }
+        actions={<ReloadButton className="btn-sm" loading={loading} onReload={onRefresh} />}
+      />
+
+      {/* Toolbar */}
+      <div className="mb-2.5 flex flex-col gap-2 md:flex-row md:items-center">
+        <div className="flex flex-1 gap-2">
+          <div className="relative flex-1">
+            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input
+              className="input mt-0 h-9 rounded-xl py-0 pl-8 text-[13px]"
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by name or username"
+              aria-label="Search users"
+            />
+          </div>
+          <button
+            className="btn-muted btn-sm h-9 rounded-xl md:hidden"
+            type="button"
+            onClick={() => setShowFilters((prev) => !prev)}
+            aria-expanded={showFilters}
+          >
             <SlidersHorizontal size={14} />
             Filters
           </button>
-          {totalPages > 1 && <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />}
-          <ReloadButton loading={loading} onReload={onRefresh} />
-        </div>
-      </div>
-
-      <div className="panel p-3">
-        <div className="relative">
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            className="input mt-0 pl-9"
-            type="text"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by name or username"
-          />
         </div>
 
-        <div className={`${showFilters ? "mt-2 grid" : "hidden"} gap-2 sm:grid-cols-3 md:mt-3 md:grid`}>
-          <FilterDropdown label="Platform" value={platform} options={platformOptions} onChange={setPlatform} />
-
-          <FilterDropdown
-            label="Joined"
-            value={joinSort}
-            options={joinedOptions}
-            onChange={(next) => setJoinSort(next as JoinSort)}
-          />
-
-          <button className="btn-muted" type="button" onClick={clearFilters}>
+        <div className={`${showFilters ? "grid" : "hidden"} grid-cols-[1fr_1fr_auto] gap-2 md:flex md:items-center`}>
+          <div className="md:w-40">
+            <FilterDropdown label="Platform" value={platform} options={platformOptions} onChange={setPlatform} />
+          </div>
+          <div className="md:w-36">
+            <FilterDropdown label="Joined" value={joinSort} options={joinedOptions} onChange={(next) => setJoinSort(next as JoinSort)} />
+          </div>
+          <button className="h-9 rounded-xl px-3 text-[13px] font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-white" type="button" onClick={clearFilters}>
             Clear
           </button>
         </div>
-
-        <p className="mt-2 text-xs text-slate-400">
-          Showing {pageUsers.length} of {filteredUsers.length} users
-        </p>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10">
-        <table className="min-w-[940px] w-full text-left text-[13px]">
-          <thead className="sticky top-0 z-10 bg-white/[0.06] text-slate-400">
-            <tr>
-              <th className="px-3 py-2.5 text-xs font-semibold">ID</th>
-              <th className="px-3 py-2.5 text-xs font-semibold">User</th>
-              <th className="px-3 py-2.5 text-xs font-semibold">Platform</th>
-              <th className="px-3 py-2.5 text-xs font-semibold">Platform User ID</th>
-              <th className="px-3 py-2.5 text-xs font-semibold">Status</th>
-              <th className="px-3 py-2.5 text-xs font-semibold">Role</th>
-              <th className="px-3 py-2.5 text-xs font-semibold">Created</th>
-              <th className="px-3 py-2.5 text-xs font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageUsers.length === 0 ? (
+      {/* Table */}
+      <div className="admin-card overflow-hidden">
+        {/* Phones: one card per user, actions always visible */}
+        <ul className="divide-y divide-white/[0.06] md:hidden">
+          {pageUsers.length === 0 ? <li className="py-10 text-center text-[13px] text-slate-400">No users found.</li> : null}
+          {pageUsers.map((user) => {
+            const isSelf = user.is_admin && isCurrentAdminUser(user);
+            const displayName = user.name || user.username || "—";
+            const handle = user.platform === "telegram" ? `@${user.username || "-"}` : user.username || "-";
+            return (
+              <li key={user.id} className="p-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[13px] font-semibold text-slate-200">
+                    {displayName.charAt(0).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1 leading-tight">
+                    <p className="truncate text-[14px] font-medium text-white">{displayName}</p>
+                    <p className="truncate text-[12px] text-slate-500">
+                      {handle} · {user.platform === "telegram" ? "Telegram" : user.platform === "web" ? "Web" : user.platform}
+                    </p>
+                  </div>
+                  <StatusTag blocked={user.is_blocked} />
+                </div>
+                <div className="mt-2.5 flex items-center justify-between gap-2">
+                  {user.is_admin ? (
+                    <span className="admin-pill bg-amber-400/10 text-amber-300">Admin</span>
+                  ) : (
+                    <span className="admin-pill bg-white/[0.06] text-slate-400">User</span>
+                  )}
+                  {renderActions(user, isSelf)}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="hidden overflow-x-auto md:block">
+          <table className="admin-table min-w-[860px]">
+            <thead>
               <tr>
-                <td className="px-3 py-8 text-center text-slate-400" colSpan={8}>
-                  No users found.
-                </td>
+                <th className="w-12">ID</th>
+                <th>User</th>
+                <th>Platform</th>
+                <th>Status</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th className="text-right">Actions</th>
               </tr>
-            ) : (
-              pageUsers.map((user) => {
-                const blockKey = `block-${user.id}`;
-                const adminKey = `admin-${user.id}`;
-                const isSelf = user.is_admin && isCurrentAdminUser(user);
+            </thead>
+            <tbody>
+              {pageUsers.length === 0 ? (
+                <tr>
+                  <td className="py-10 text-center text-slate-400" colSpan={7}>
+                    No users found.
+                  </td>
+                </tr>
+              ) : (
+                pageUsers.map((user) => {
+                  const isSelf = user.is_admin && isCurrentAdminUser(user);
+                  const displayName = user.name || user.username || "—";
+                  const handle = user.platform === "telegram" ? `@${user.username || "-"}` : user.username || "-";
 
-                return (
-                  <tr key={user.id} className="border-t border-white/[0.06] transition-colors hover:bg-white/[0.035]">
-                    <td className="px-3 py-2">{user.id}</td>
-                    <td className="px-3 py-2">
-                      <p className="font-medium">{user.name || "-"}</p>
-                      <p className="text-xs text-slate-400">
-                        {user.platform === "telegram" ? `@${user.username || "-"}` : (user.username || "-")}
-                      </p>
-                    </td>
-                    <td className="px-3 py-2">{user.platform}</td>
-                    <td className="px-3 py-2">{user.platform_user_id}</td>
-                    <td className="px-3 py-2">
-                      <StatusTag blocked={user.is_blocked} />
-                    </td>
-                    <td className="px-3 py-2">
-                      {user.is_admin ? (
-                        <span className="tag border-amber-400/35 bg-amber-500/10 text-amber-200">Admin</span>
-                      ) : (
-                        <span className="tag border-slate-500/40 bg-slate-500/10 text-slate-300">User</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">{formatDate(user.created_at)}</td>
-                    <td className="px-3 py-2">
-                      <div className="action-row">
-                        <button
-                          className={`${user.is_blocked ? "btn-good" : "btn-warn"} action-btn`}
-                          type="button"
-                          onClick={() => onToggleBlock(user)}
-                          disabled={actionLoading === blockKey}
-                        >
-                          <Ban size={13} />
-                          {actionLoading === blockKey ? "Please wait..." : user.is_blocked ? "Unblock" : "Block"}
-                        </button>
-
+                  return (
+                    <tr key={user.id}>
+                      <td className="tabular-nums text-slate-500">{user.id}</td>
+                      <td>
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[12px] font-semibold text-slate-200">
+                            {displayName.charAt(0).toUpperCase()}
+                          </span>
+                          <div className="min-w-0 leading-tight">
+                            <p className="truncate font-medium text-white">{displayName}</p>
+                            <p className="truncate text-[12px] text-slate-500">{handle}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="text-slate-300">{user.platform === "telegram" ? "Telegram" : user.platform === "web" ? "Web" : user.platform}</span>
+                        <span className="block text-[11.5px] tabular-nums text-slate-500">{user.platform_user_id}</span>
+                      </td>
+                      <td>
+                        <StatusTag blocked={user.is_blocked} />
+                      </td>
+                      <td>
                         {user.is_admin ? (
-                          <button
-                            className="btn-danger action-btn"
-                            type="button"
-                            onClick={() => onRevokeAdmin(user)}
-                            disabled={actionLoading === adminKey || isSelf}
-                            title={isSelf ? "You cannot revoke your own admin role" : "Revoke admin"}
-                          >
-                            <ShieldOff size={13} />
-                            {isSelf ? "Current Admin" : actionLoading === adminKey ? "Please wait..." : "Revoke Admin"}
-                          </button>
+                          <span className="admin-pill bg-amber-400/10 text-amber-300">Admin</span>
                         ) : (
-                          <button
-                            className="btn-primary action-btn"
-                            type="button"
-                            onClick={() => onMakeAdmin(user)}
-                            disabled={actionLoading === adminKey}
-                          >
-                            <ShieldCheck size={13} />
-                            {actionLoading === adminKey ? "Please wait..." : "Make Admin"}
-                          </button>
+                          <span className="admin-pill bg-white/[0.06] text-slate-400">User</span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                      </td>
+                      <td className="whitespace-nowrap tabular-nums text-slate-400">{formatDate(user.created_at)}</td>
+                      <td>
+                        {renderActions(user, isSelf)}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
 
+        {totalPages > 1 ? (
+          <div className="flex items-center justify-between border-t border-white/[0.06] px-3 py-2">
+            <p className="text-[12px] text-slate-500">
+              Showing {pageUsers.length} of {filteredUsers.length}
+            </p>
+            <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }
-

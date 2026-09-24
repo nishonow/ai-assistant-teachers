@@ -12,24 +12,24 @@ export default function ConfirmLogoutModal({ open, loading = false, onCancel, on
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-card max-w-md p-5">
+      <div className="modal-card max-w-sm p-5">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
-            <p className="font-heading text-xl font-bold">Confirm Logout</p>
-            <p className="mt-1 text-sm text-slate-300">Are you sure you want to end this admin session?</p>
+            <p className="text-[17px] font-semibold">Log out?</p>
+            <p className="mt-0.5 text-[13px] text-slate-400">You will need to sign in again to use the admin panel.</p>
           </div>
-          <button type="button" className="btn-muted p-2" onClick={onCancel} aria-label="Close">
+          <button type="button" className="btn-icon h-8 w-8" onClick={onCancel} aria-label="Close">
             <X size={16} />
           </button>
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" className="btn-muted" onClick={onCancel} disabled={loading}>
+          <button type="button" className="btn-muted btn-sm" onClick={onCancel} disabled={loading}>
             Stay
           </button>
-          <button type="button" className="btn-danger" onClick={onConfirm} disabled={loading}>
+          <button type="button" className="btn-danger btn-sm" onClick={onConfirm} disabled={loading}>
             <LogOut size={14} />
-            Logout
+            Log out
           </button>
         </div>
       </div>

@@ -1,7 +1,9 @@
-﻿import { Download, RotateCw, Trash2 } from "lucide-react";
+﻿import { Download, FileText, RotateCw, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import type { DocumentRecord } from "../../../core/types";
+import { formatDate } from "../../../core/utils";
+import PageHeader from "./PageHeader";
 import Pagination from "./Pagination";
 import ReloadButton from "./ReloadButton";
 
@@ -12,27 +14,18 @@ function formatDocumentName(fileName: string): string {
 }
 
 function DocumentStatus({ value, processing }: { value: string; processing: boolean }) {
-  if (processing) {
-    return (
-      <span className="tag border-amber-400/40 bg-amber-500/10 text-amber-200">Reindexing...</span>
-    );
-  }
-
   const normalized = value.trim().toLowerCase();
 
+  if (processing || normalized === "processing") {
+    return <span className="admin-pill bg-amber-400/10 text-amber-300">Indexing…</span>;
+  }
   if (normalized === "indexed" || normalized === "ready") {
-    return <span className="tag border-emerald-400/40 bg-emerald-500/10 text-emerald-200">Indexed</span>;
+    return <span className="admin-pill bg-emerald-500/10 text-emerald-300">Indexed</span>;
   }
-
-  if (normalized === "processing") {
-    return <span className="tag border-amber-400/40 bg-amber-500/10 text-amber-200">Reindexing</span>;
-  }
-
   if (normalized === "failed") {
-    return <span className="tag border-rose-400/40 bg-rose-500/10 text-rose-200">Failed</span>;
+    return <span className="admin-pill bg-rose-500/10 text-rose-300">Failed</span>;
   }
-
-  return <span className="tag border-slate-500/40 bg-slate-500/10 text-slate-300">Pending</span>;
+  return <span className="admin-pill bg-white/[0.06] text-slate-400">Pending</span>;
 }
 
 interface DocumentsTabProps {
@@ -73,98 +66,113 @@ export default function DocumentsTab({
   }, [documents, currentPage]);
 
   return (
-    <section className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-heading text-2xl font-bold text-slate-50">Documents</h2>
-          <p className="mt-1 text-sm text-slate-400">
-            Showing {pageDocuments.length} of {documents.length} documents
-          </p>
-        </div>
+    <section>
+      <PageHeader
+        title="Documents"
+        description={`${documents.length} documents in the knowledge base`}
+        actions={<ReloadButton className="btn-sm" loading={loading} onReload={onRefresh} />}
+      />
 
-        <div className="flex shrink-0 items-center gap-2">
-          {totalPages > 1 && <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />}
-          <ReloadButton loading={loading} onReload={onRefresh} />
-        </div>
-      </div>
-
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.035]">
-        <table className="min-w-full table-auto text-left text-sm lg:min-w-[1024px]">
-          <thead className="bg-white/[0.06] text-slate-300">
-            <tr>
-              <th className="hidden w-16 px-4 py-2.5 lg:table-cell">ID</th>
-              <th className="w-[42%] px-4 py-2.5">File Name</th>
-              <th className="w-32 px-4 py-2.5">Status</th>
-              <th className="w-24 px-4 py-2.5">Chunks</th>
-              <th className="w-[12rem] px-4 py-2.5 sm:w-[15rem] lg:w-[25rem]">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageDocuments.length === 0 ? (
+      <div className="admin-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="admin-table">
+            <thead>
               <tr>
-                <td className="px-4 py-10 text-center text-slate-400" colSpan={5}>
-                  No documents found.
-                </td>
+                <th className="hidden w-12 lg:table-cell">ID</th>
+                <th>File</th>
+                <th className="w-28">Status</th>
+                <th className="hidden w-20 text-right sm:table-cell">Chunks</th>
+                <th className="w-px text-right">Actions</th>
               </tr>
-            ) : (
-              pageDocuments.map((doc) => {
-                const downloadKey = `download-${doc.id}`;
-                const reindexKey = `reindex-${doc.id}`;
-                const deleteKey = `delete-${doc.id}`;
-                const displayName = formatDocumentName(doc.file_name);
-                const rowProcessing = reindexingDocumentId === doc.id;
+            </thead>
+            <tbody>
+              {pageDocuments.length === 0 ? (
+                <tr>
+                  <td className="py-10 text-center text-slate-400" colSpan={5}>
+                    No documents yet. Upload some on the Upload page.
+                  </td>
+                </tr>
+              ) : (
+                pageDocuments.map((doc) => {
+                  const downloadKey = `download-${doc.id}`;
+                  const reindexKey = `reindex-${doc.id}`;
+                  const deleteKey = `delete-${doc.id}`;
+                  const displayName = formatDocumentName(doc.file_name);
+                  const rowProcessing = reindexingDocumentId === doc.id;
+                  const extension = (doc.file_type || doc.file_name.split(".").pop() || "").toUpperCase().slice(0, 4);
 
-                return (
-                  <tr key={doc.id} className="border-t border-white/[0.06] align-top transition-colors hover:bg-white/[0.035]">
-                    <td className="hidden px-4 py-2.5 text-slate-400 lg:table-cell">{doc.id}</td>
-                    <td className="px-4 py-2.5" title={displayName}>
-                      <p className="break-words text-slate-100 sm:truncate">{displayName}</p>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <DocumentStatus value={doc.status} processing={rowProcessing} />
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-200">{doc.chunk_count ?? 0}</td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:flex-nowrap">
-                        <button
-                          className="btn-muted w-full justify-start sm:w-auto"
-                          type="button"
-                          onClick={() => onDownload(doc)}
-                          disabled={actionLoading === downloadKey || rowProcessing}
-                        >
-                          <Download size={13} />
-                          {actionLoading === downloadKey ? "Please wait..." : "Download"}
-                        </button>
+                  return (
+                    <tr key={doc.id}>
+                      <td className="hidden tabular-nums text-slate-500 lg:table-cell">{doc.id}</td>
+                      <td className="max-w-0" title={displayName}>
+                        <div className="flex items-center gap-2.5">
+                          <span className="hidden h-7 w-9 shrink-0 items-center justify-center sm:flex rounded-md bg-white/[0.06] text-[10px] font-semibold text-slate-400">
+                            {extension || <FileText size={13} />}
+                          </span>
+                          <div className="min-w-0 leading-tight">
+                            <p className="truncate font-medium text-white">{displayName}</p>
+                            <p className="truncate text-[12px] text-slate-500">
+                              {doc.uploaded_by || "admin"}
+                              {doc.created_at ? ` · ${formatDate(doc.created_at)}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <DocumentStatus value={doc.status} processing={rowProcessing} />
+                      </td>
+                      <td className="hidden text-right tabular-nums text-slate-300 sm:table-cell">{doc.chunk_count ?? 0}</td>
+                      <td>
+                        <div className="flex justify-end gap-1">
+                          <button
+                            className="btn-icon h-8 w-8"
+                            type="button"
+                            onClick={() => onDownload(doc)}
+                            disabled={actionLoading === downloadKey || rowProcessing}
+                            aria-label="Download"
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </button>
+                          <button
+                            className="btn-icon h-8 w-8"
+                            type="button"
+                            onClick={() => onReindex(doc)}
+                            disabled={actionLoading === reindexKey || rowProcessing}
+                            aria-label="Reindex"
+                            title="Reindex"
+                          >
+                            <RotateCw size={14} className={rowProcessing ? "animate-spin" : ""} />
+                          </button>
+                          <button
+                            className="btn-icon h-8 w-8 hover:!border-rose-400/30 hover:!bg-rose-500/15 hover:!text-rose-300"
+                            type="button"
+                            onClick={() => onDelete(doc)}
+                            disabled={actionLoading === deleteKey || rowProcessing}
+                            aria-label="Delete"
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
 
-                        <button
-                          className="btn-warn w-full justify-start sm:w-auto"
-                          type="button"
-                          onClick={() => onReindex(doc)}
-                          disabled={actionLoading === reindexKey || rowProcessing}
-                        >
-                          <RotateCw size={13} />
-                          Reindex
-                        </button>
-
-                        <button
-                          className="btn-danger w-full justify-start sm:w-auto"
-                          type="button"
-                          onClick={() => onDelete(doc)}
-                          disabled={actionLoading === deleteKey || rowProcessing}
-                        >
-                          <Trash2 size={13} />
-                          {actionLoading === deleteKey ? "Please wait..." : "Delete"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+        {totalPages > 1 ? (
+          <div className="flex items-center justify-between border-t border-white/[0.06] px-3 py-2">
+            <p className="text-[12px] text-slate-500">
+              Showing {pageDocuments.length} of {documents.length}
+            </p>
+            <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
+          </div>
+        ) : null}
       </div>
-
     </section>
   );
 }

@@ -430,6 +430,52 @@
     transition: background-color 9999s ease-in-out 0s;
   }
 
+  /* ── Admin: compact dashboard primitives ─────────────────── */
+  .admin-card {
+    @apply rounded-2xl;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .btn-sm {
+    @apply h-8 gap-1.5 px-3 py-0 text-[13px];
+  }
+
+  .admin-table {
+    @apply w-full text-left text-[13px];
+  }
+
+  .admin-table thead th {
+    @apply whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .admin-table tbody td {
+    @apply px-3 py-2.5 align-middle;
+  }
+
+  .admin-table tbody tr + tr td {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .admin-table tbody tr {
+    transition: background 120ms ease;
+  }
+
+  .admin-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .admin-pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11.5px] font-medium;
+  }
+
+  .admin-pill::before {
+    content: "";
+    @apply h-1.5 w-1.5 rounded-full;
+    background: currentColor;
+  }
+
   /* ── Admin sidebar ───────────────────────────────────────── */
   .sidebar-shell {
     background: var(--lg-fill-strong);
@@ -440,7 +486,7 @@
   }
 
   .sidebar-item {
-    @apply relative flex w-full items-center gap-3 rounded-full border border-transparent px-4 py-2 text-left text-sm font-medium text-slate-300;
+    @apply relative flex h-9 w-full items-center gap-2.5 rounded-xl border border-transparent px-3 text-left text-[13px] font-medium text-slate-300;
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/80;
     transition: background 180ms ease, color 180ms ease, transform 380ms var(--lg-spring);
   }
@@ -471,7 +517,7 @@
 
   /* ── Admin filter dropdowns ──────────────────────────────── */
   .filter-select {
-    @apply flex w-full items-center justify-between rounded-full px-4 py-2 text-left;
+    @apply flex h-9 w-full items-center justify-between rounded-xl px-3 text-left text-[13px];
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.12);
     transition: border-color 150ms ease, background 150ms ease;
@@ -488,7 +534,7 @@
   }
 
   .filter-menu {
-    @apply absolute z-20 mt-2 w-full overflow-hidden rounded-3xl p-1.5;
+    @apply absolute z-20 mt-1.5 w-full min-w-[11rem] overflow-hidden rounded-2xl p-1;
     background: var(--lg-fill-strong);
     border: 1px solid var(--lg-border);
     border-top-color: var(--lg-border-top);
@@ -507,7 +553,7 @@
   }
 
   .filter-menu-item {
-    @apply flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm text-slate-200 transition-colors duration-150 hover:bg-white/10;
+    @apply flex h-8 w-full items-center justify-between rounded-xl px-2.5 text-left text-[13px] text-slate-200 transition-colors duration-150 hover:bg-white/10;
   }
 
   .filter-menu-item-active {
@@ -517,6 +563,10 @@
   /* ── Reload button ───────────────────────────────────────── */
   .reload-btn {
     @apply btn-muted relative overflow-hidden;
+  }
+
+  .reload-btn.btn-sm {
+    @apply h-8 px-3 py-0 text-[13px];
   }
 
   .reload-icon {

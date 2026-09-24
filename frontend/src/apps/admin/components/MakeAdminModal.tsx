@@ -30,33 +30,32 @@ export default function MakeAdminModal({ user, loading, onClose, onSubmit }: Mak
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-card max-w-lg p-6">
+      <div className="modal-card max-w-sm p-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <p className="font-heading text-xs uppercase tracking-[0.15em] text-brand-300">Privilege Update</p>
-            <h3 className="mt-1 font-heading text-2xl font-bold">Make Admin</h3>
-            <p className="mt-1 text-sm text-slate-300">Set login and password for {user.name || "this user"}.</p>
+            <h3 className="text-[17px] font-semibold">Make admin</h3>
+            <p className="mt-0.5 text-[13px] text-slate-400">Set a login and password for {user.name || "this user"}.</p>
           </div>
-          <button type="button" className="btn-muted p-2" onClick={onClose} aria-label="Close modal">
+          <button type="button" className="btn-icon h-8 w-8" onClick={onClose} aria-label="Close modal">
             <X size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <label className="text-sm text-slate-200">
-            Admin Login
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <label className="block text-[12px] font-medium text-slate-400">
+            Admin login
             <div className="relative">
               <UserRound size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input className="input pl-9" type="text" name="login" defaultValue={defaults.login} required />
+              <input className="input h-9 rounded-xl py-0 pl-9 text-[13px]" type="text" name="login" defaultValue={defaults.login} required />
             </div>
           </label>
 
-          <label className="text-sm text-slate-200">
-            Admin Password
+          <label className="block text-[12px] font-medium text-slate-400">
+            Admin password
             <div className="relative">
               <KeyRound size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
-                className="input pl-9"
+                className="input h-9 rounded-xl py-0 pl-9 text-[13px]"
                 type="password"
                 name="password"
                 minLength={4}
@@ -66,13 +65,13 @@ export default function MakeAdminModal({ user, loading, onClose, onSubmit }: Mak
             </div>
           </label>
 
-          <div className="flex justify-end gap-2">
-            <button type="button" className="btn-muted" onClick={onClose} disabled={loading}>
+          <div className="flex justify-end gap-2 pt-1">
+            <button type="button" className="btn-muted btn-sm" onClick={onClose} disabled={loading}>
               Cancel
             </button>
-            <button type="submit" className="btn-primary" disabled={loading}>
+            <button type="submit" className="btn-primary btn-sm" disabled={loading}>
               <ShieldCheck size={14} />
-              {loading ? "Saving..." : "Grant Admin"}
+              {loading ? "Saving…" : "Grant admin"}
             </button>
           </div>
         </form>
