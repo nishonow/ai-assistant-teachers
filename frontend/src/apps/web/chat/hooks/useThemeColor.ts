@@ -64,11 +64,32 @@ export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
     // Safari iOS only repaints the toolbar chrome (safe-area color) when a
     // scroll/layout event occurs after the meta tag changes. Nudging scroll
     // by 1px and back forces it to re-evaluate without visible movement.
+    //
+    // The page itself has no scrollable height (the chat scrolls inside its own
+    // panel), so a plain scrollTop change is a no-op. Give the body 2px of extra
+    // height for two frames, scroll 1px and back, then restore. The chat is
+    // position: fixed, so nothing visibly moves, but Safari 26 sees a real scroll
+    // and re-reads the toolbar colour — otherwise it only updates on reload.
+    let nudging = false;
     const nudgeScroll = () => {
-      const scrollable = document.scrollingElement ?? document.documentElement;
-      const prev = scrollable.scrollTop;
-      scrollable.scrollTop = prev + 1;
-      scrollable.scrollTop = prev;
+      if (nudging) return;
+      nudging = true;
+
+      const body = document.body;
+      const previousMinHeight = body.style.minHeight;
+      body.style.minHeight = "calc(100% + 2px)";
+
+      // Return to wherever the page was, so scrollable pages (landing) don't jump.
+      const previousScrollY = window.scrollY;
+
+      window.requestAnimationFrame(() => {
+        window.scrollTo(0, previousScrollY + 1);
+        window.requestAnimationFrame(() => {
+          window.scrollTo(0, previousScrollY);
+          body.style.minHeight = previousMinHeight;
+          nudging = false;
+        });
+      });
     };
 
     const reapplyOnVisibility = () => {
@@ -104,6 +125,7 @@ export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
       root.style.removeProperty("background-color");
       root.style.removeProperty("color-scheme");
       document.body.style.removeProperty("background-color");
+      document.body.style.removeProperty("min-height");
       // Other pages are dark: put the (Android Chrome) toolbar colour back too.
       document
         .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')

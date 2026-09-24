@@ -322,7 +322,7 @@ export default function SettingsModal(props: SettingsModalProps) {
   const activeLabel = TABS.find((item) => item.id === tab)?.label ?? "Настройки";
 
   return (
-    <div className="modal-backdrop p-0 md:p-4">
+    <div className="modal-backdrop z-[45] p-0 md:p-4">
       <div
         ref={modalRef}
         role="dialog"

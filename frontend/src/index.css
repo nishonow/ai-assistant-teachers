@@ -235,6 +235,78 @@
     transition-duration: 120ms;
   }
 
+  /* ── Landing page (light) ─────────────────────────────────
+     Light liquid glass: translucent white + blur over flat colour
+     blocks. No gradients, no shadows. */
+  .lp-glass {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(11, 22, 36, 0.08);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: blur(22px) saturate(180%);
+  }
+
+  .lp-glass-strong {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(11, 22, 36, 0.08);
+    -webkit-backdrop-filter: blur(30px) saturate(190%);
+    backdrop-filter: blur(30px) saturate(190%);
+  }
+
+  html.lg-refract .lp-glass {
+    -webkit-backdrop-filter: url(#lg-refract) blur(18px) saturate(180%);
+    backdrop-filter: url(#lg-refract) blur(18px) saturate(180%);
+  }
+
+  html.lg-refract .lp-glass-strong {
+    -webkit-backdrop-filter: url(#lg-refract) blur(24px) saturate(190%);
+    backdrop-filter: url(#lg-refract) blur(24px) saturate(190%);
+  }
+
+  .lp-btn {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-40;
+    transition: transform 380ms var(--lg-spring), background 160ms ease, border-color 160ms ease, color 160ms ease;
+  }
+
+  .lp-btn:not(:disabled):active {
+    transform: scale(0.96);
+    transition-duration: 110ms;
+  }
+
+  .lp-btn-primary {
+    @apply lp-btn bg-[#0b1624] text-white hover:bg-[#1b2b40];
+  }
+
+  .lp-btn-accent {
+    @apply lp-btn bg-[#17dfc1] text-[#062a24] hover:bg-[#3fe8cf];
+  }
+
+  .lp-btn-ghost {
+    @apply lp-btn border border-[#0b1624]/[0.12] bg-white text-[#0b1624] hover:border-[#0b1624]/25;
+  }
+
+  .lp-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-[#0b1624]/10 bg-white/70 px-3.5 py-2 text-[13.5px] font-medium text-[#0b1624]/80;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 380ms var(--lg-spring);
+  }
+
+  .lp-chip:hover {
+    @apply border-[#0b1624]/25 bg-white text-[#0b1624];
+  }
+
+  .lp-chip:active {
+    transform: scale(0.96);
+  }
+
+  .lp-card {
+    @apply rounded-[24px] border border-[#0b1624]/[0.07] bg-white;
+    transition: border-color 180ms ease, transform 420ms var(--lg-spring);
+  }
+
+  .lp-card-link:hover {
+    @apply border-[#0b1624]/20;
+    transform: translateY(-2px);
+  }
+
   /* ── Buttons ──────────────────────────────────────────────── */
   .btn {
     @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50;
