@@ -42,7 +42,6 @@ import useSystemPrefersDark from "../chat/hooks/useSystemPrefersDark";
 import useWebchatDocumentMeta from "../chat/hooks/useWebchatDocumentMeta";
 import useChatConversationsData from "../chat/hooks/useChatConversationsData";
 import usePwaInstallPrompt from "../hooks/usePwaInstallPrompt";
-import { usePreventIosInputZoom } from "../chat/hooks/usePreventIosInputZoom";
 import { useThemeColor } from "../chat/hooks/useThemeColor";
 
 export default function ChatPage() {
@@ -272,7 +271,6 @@ export default function ChatPage() {
     resolvedTheme,
     preservePreviousConversationTitle: Boolean(routeConversationId && isLoadingConversation),
   });
-  usePreventIosInputZoom();
   useThemeColor(resolvedTheme);
 
   const handleSelectConversation = useCallback(
@@ -714,6 +712,8 @@ export default function ChatPage() {
       className={`webchat-shell webchat-theme-${resolvedTheme} fixed inset-0 isolate flex gap-2.5 overflow-hidden pt-[env(safe-area-inset-top)] md:p-2.5`}
       style={{ height: "100dvh" }}
     >
+      <div className="webchat-safari-edge" aria-hidden="true" />
+
       <ChatSidebar
         activeConversationId={activeConversationId}
         conversations={conversations}

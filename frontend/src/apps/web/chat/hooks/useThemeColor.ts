@@ -51,6 +51,9 @@ export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
 
       // Keep page underlay and safe-area backing color in sync with the selected theme.
       document.documentElement.style.setProperty(UNDERLAY_CSS_VARIABLE, color);
+      // Safari 26 ignores theme-color; its toolbar glass follows color-scheme
+      // and the page background, so both must match the in-app theme.
+      document.documentElement.style.colorScheme = resolvedTheme;
       document.documentElement.style.setProperty("background-color", color, "important");
       document.body.style.setProperty("background-color", color, "important");
 
@@ -96,6 +99,17 @@ export function useThemeColor(resolvedTheme: WebchatResolvedTheme) {
     document.addEventListener("visibilitychange", reapplyOnVisibility);
 
     return () => {
+      const root = document.documentElement;
+      root.style.removeProperty(UNDERLAY_CSS_VARIABLE);
+      root.style.removeProperty("background-color");
+      root.style.removeProperty("color-scheme");
+      document.body.style.removeProperty("background-color");
+      // Other pages are dark: put the (Android Chrome) toolbar colour back too.
+      document
+        .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+        .forEach((meta) => {
+          meta.content = "#070d17";
+        });
       if (rafId !== null) {
         window.cancelAnimationFrame(rafId);
       }

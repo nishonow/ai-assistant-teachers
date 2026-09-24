@@ -574,3 +574,17 @@ html.lg-refract .webchat-shell .webchat-header-unused {
   bottom: 0;
   z-index: 15;
 }
+
+/* ── iOS Safari 26 toolbar tint ─────────────────────────────────
+   Safari ignores theme-color and samples a fixed element touching the
+   bottom edge. This strip matches the chat background, so the bottom
+   toolbar and the area behind it follow the in-app light/dark theme. */
+.webchat-shell .webchat-safari-edge {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  height: calc(env(safe-area-inset-bottom, 0px) + 6px);
+  background-color: var(--wc-bg);
+  pointer-events: none;
+  z-index: 0;
+}

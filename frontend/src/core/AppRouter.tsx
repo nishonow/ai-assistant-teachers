@@ -6,8 +6,11 @@ import { PrivacyPage, TermsPage } from "../apps/web/pages/LegalPages";
 import LoginPage from "../apps/web/pages/LoginPage";
 import RegisterPage from "../apps/web/pages/RegisterPage";
 import { RedirectIfAuthenticated, RequireAdmin, RequireAuth } from "./auth";
+import { usePreventIosInputZoom } from "../apps/web/chat/hooks/usePreventIosInputZoom";
 
 export default function AppRouter() {
+  usePreventIosInputZoom();
+
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
